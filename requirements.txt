@@ -1,0 +1,33 @@
+# Core GUI framework
+PyQt6>=6.5.0
+
+# Code parsing and analysis
+tree-sitter>=0.20.0
+tree-sitter-c>=0.20.0
+tree-sitter-javascript>=0.20.0
+
+# Local LLM integration
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.0
+transformers>=4.30.0
+torch>=2.0.0
+
+# Database and data handling
+sqlite3  # Built into Python
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Testing framework
+pytest>=7.0.0
+pytest-qt>=4.2.0
+pytest-cov>=4.0.0
+
+# Development tools
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+
+# Optional static analysis tools
+# Note: These would be installed separately as system dependencies
+# cppcheck (for C static analysis)
+# eslint (for JavaScript analysis)
