@@ -50,9 +50,9 @@ def test_data_models():
         id="F001",
         description="User authentication system",
         confidence=0.85,
-        category=FeatureCategory.SAFETY_CRITICAL
+        category=FeatureCategory.SAFETY
     )
-    assert feature.category == FeatureCategory.SAFETY_CRITICAL
+    assert feature.category == FeatureCategory.SAFETY
     print("✓ Feature model works")
     
     # Test Requirement
@@ -151,7 +151,7 @@ def test_enums():
     
     # Test all enum values are accessible
     assert ChunkType.FUNCTION
-    assert FeatureCategory.SAFETY_CRITICAL
+    assert FeatureCategory.SAFETY
     assert RequirementType.USER
     assert Severity.SERIOUS
     assert Probability.MEDIUM

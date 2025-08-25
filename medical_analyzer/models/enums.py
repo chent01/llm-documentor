@@ -16,15 +16,16 @@ class ChunkType(Enum):
 
 class FeatureCategory(Enum):
     """Categories for identified software features."""
-    USER_INTERFACE = auto()
     DATA_PROCESSING = auto()
+    USER_INTERFACE = auto()
     COMMUNICATION = auto()
-    SAFETY_CRITICAL = auto()
-    CONFIGURATION = auto()
-    LOGGING = auto()
+    SAFETY = auto()
+    DEVICE_CONTROL = auto()
+    ALGORITHM = auto()
+    STORAGE = auto()
     VALIDATION = auto()
-    CONTROL = auto()
     MONITORING = auto()
+    CONFIGURATION = auto()
 
 
 class RequirementType(Enum):

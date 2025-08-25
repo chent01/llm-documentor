@@ -1,0 +1,113 @@
+{
+  "risk_register": {
+    "export_timestamp": "2025-08-24T23:29:30.090705",
+    "total_risks": 2,
+    "iso_14971_compliant": true,
+    "risks": [
+      {
+        "id": "RISK_0001",
+        "hazard": "Incorrect patient data processing",
+        "cause": "Invalid input data bypassing validation or processing errors in data handling logic",
+        "effect": "Incorrect patient information leading to misdiagnosis, wrong treatment decisions, or medication errors",
+        "severity": "Serious",
+        "probability": "Medium",
+        "risk_level": "Undesirable",
+        "mitigation": "Implement data integrity checks and validation for invalid input data bypassing validation or processing errors in data handling logic. Add data backup and recovery mechanisms.",
+        "verification": "Comprehensive testing including unit, integration, and system tests. Data validation testing and integrity checks.",
+        "related_requirements": [
+          "SR_001"
+        ],
+        "risk_control_measures": [
+          "Implement data integrity checks and validation for invalid input data bypassing validation or processing errors in data handling logic. Add data backup and recovery mechanisms."
+        ],
+        "residual_risk_severity": "Negligible",
+        "residual_risk_probability": "Remote",
+        "residual_risk_level": "Negligible",
+        "risk_acceptability": "Acceptable",
+        "risk_control_effectiveness": 0.7999999999999999,
+        "post_market_surveillance": "Quarterly monitoring of risk control measures. Semi-annual review of incident reports. Annual risk assessment update.",
+        "risk_benefit_analysis": "Risk is acceptable only with proper risk control measures in place. Clinical benefits justify the residual risk when controls are effective. Risk-benefit ratio is favorable with implemented mitigations.",
+        "metadata": {
+          "confidence": 0.85,
+          "identification_method": "llm",
+          "source_requirements": 3,
+          "risk_score": {
+            "raw_score": 9,
+            "severity_score": 3,
+            "probability_score": 3,
+            "normalized_score": 0.5625,
+            "risk_priority": 2
+          },
+          "iso_14971_compliant": true,
+          "risk_number": "RISK_0001",
+          "residual_risk_assessment": {
+            "residual_severity": "Negligible",
+            "residual_probability": "Remote",
+            "mitigation_effectiveness": 0.7999999999999999,
+            "residual_risk_level": "Negligible"
+          },
+          "risk_acceptability": {
+            "acceptable": true,
+            "action_required": "Risk control measures recommended",
+            "approval_needed": true,
+            "documentation_level": "Detailed"
+          },
+          "post_mitigation_severity": "Negligible",
+          "post_mitigation_probability": "Remote"
+        }
+      },
+      {
+        "id": "RISK_0002",
+        "hazard": "Delayed or missing vital signs display",
+        "cause": "System performance issues, network delays, or display refresh failures",
+        "effect": "Healthcare providers may miss critical changes in patient condition, leading to delayed intervention",
+        "severity": "Serious",
+        "probability": "Low",
+        "risk_level": "Acceptable",
+        "mitigation": "Implement comprehensive safety measures to prevent system performance issues, network delays, or display refresh failures. Add monitoring and automatic shutdown capabilities.",
+        "verification": "Comprehensive testing including unit, integration, and system tests",
+        "related_requirements": [
+          "SR_004"
+        ],
+        "risk_control_measures": [
+          "Implement comprehensive safety measures to prevent system performance issues, network delays, or display refresh failures. Add monitoring and automatic shutdown capabilities."
+        ],
+        "residual_risk_severity": "Negligible",
+        "residual_risk_probability": "Remote",
+        "residual_risk_level": "Negligible",
+        "risk_acceptability": "Acceptable",
+        "risk_control_effectiveness": 0.7999999999999999,
+        "post_market_surveillance": "Annual review of risk status and control measure effectiveness. Monitor through routine post-market surveillance activities.",
+        "risk_benefit_analysis": "Risk is acceptable with current control measures. Clinical benefits clearly outweigh the minimal residual risk. Risk-benefit analysis supports market approval.",
+        "metadata": {
+          "confidence": 0.78,
+          "identification_method": "llm",
+          "source_requirements": 1,
+          "risk_score": {
+            "raw_score": 6,
+            "severity_score": 3,
+            "probability_score": 2,
+            "normalized_score": 0.375,
+            "risk_priority": 3
+          },
+          "iso_14971_compliant": true,
+          "risk_number": "RISK_0002",
+          "residual_risk_assessment": {
+            "residual_severity": "Negligible",
+            "residual_probability": "Remote",
+            "mitigation_effectiveness": 0.7999999999999999,
+            "residual_risk_level": "Negligible"
+          },
+          "risk_acceptability": {
+            "acceptable": true,
+            "action_required": "Risk control measures may be considered",
+            "approval_needed": false,
+            "documentation_level": "Standard"
+          },
+          "post_mitigation_severity": "Negligible",
+          "post_mitigation_probability": "Remote"
+        }
+      }
+    ]
+  }
+}
