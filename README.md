@@ -1,6 +1,5 @@
 # Medical Software Analysis Tool
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![Tests](https://github.com/chent01/llm-documentor/actions/workflows/tests.yml/badge.svg)](https://github.com/chent01/llm-documentor/actions/workflows/tests.yml)
 
