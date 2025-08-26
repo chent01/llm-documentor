@@ -8,6 +8,10 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Set, Optional, Dict, Any
 from ..models import ProjectStructure, FileMetadata
+from ..error_handling.error_handler import (
+    ErrorCategory, ErrorSeverity, handle_error, 
+    get_error_handler, AnalysisError
+)
 
 
 class IngestionService:
@@ -48,43 +52,87 @@ class IngestionService:
         """
         root_path = os.path.abspath(root_path)
         
-        if not os.path.exists(root_path):
-            raise ValueError(f"Path does not exist: {root_path}")
-        
-        if not os.path.isdir(root_path):
-            raise ValueError(f"Path is not a directory: {root_path}")
-        
-        # Discover all files in the project
-        all_files = self._discover_files(root_path)
-        
-        # Filter to supported file types
-        supported_files = self.filter_files(all_files)
-        
-        # Generate file metadata
-        file_metadata = []
-        for file_path in supported_files:
-            try:
-                metadata = self.get_file_metadata(file_path)
-                file_metadata.append(metadata)
-            except Exception as e:
-                # Log error but continue with other files
-                print(f"Warning: Could not get metadata for {file_path}: {e}")
-        
-        # Create project structure
-        project_metadata = {
-            'total_files_discovered': len(all_files),
-            'supported_files_count': len(supported_files),
-            'scan_timestamp': datetime.now().isoformat()
-        }
-        
-        return ProjectStructure(
-            root_path=root_path,
-            selected_files=supported_files,
-            description=description,
-            metadata=project_metadata,
-            timestamp=datetime.now(),
-            file_metadata=file_metadata
-        )
+        try:
+            if not os.path.exists(root_path):
+                error = handle_error(
+                    category=ErrorCategory.FILE_SYSTEM,
+                    message=f"Path does not exist: {root_path}",
+                    severity=ErrorSeverity.HIGH,
+                    recoverable=False,
+                    stage="project_scanning"
+                )
+                raise ValueError(f"Path does not exist: {root_path}")
+            
+            if not os.path.isdir(root_path):
+                error = handle_error(
+                    category=ErrorCategory.FILE_SYSTEM,
+                    message=f"Path is not a directory: {root_path}",
+                    severity=ErrorSeverity.HIGH,
+                    recoverable=False,
+                    stage="project_scanning"
+                )
+                raise ValueError(f"Path is not a directory: {root_path}")
+            
+            # Discover all files in the project
+            all_files = self._discover_files(root_path)
+            
+            # Filter to supported file types
+            supported_files = self.filter_files(all_files)
+            
+            # Generate file metadata with error handling
+            file_metadata = []
+            failed_files = []
+            
+            for file_path in supported_files:
+                try:
+                    metadata = self.get_file_metadata(file_path)
+                    file_metadata.append(metadata)
+                except Exception as e:
+                    # Handle file metadata extraction errors
+                    error = handle_error(
+                        category=ErrorCategory.FILE_SYSTEM,
+                        message=f"Could not get metadata for {file_path}",
+                        details=str(e),
+                        severity=ErrorSeverity.MEDIUM,
+                        recoverable=True,
+                        stage="metadata_extraction",
+                        file_path=file_path,
+                        exception=e
+                    )
+                    failed_files.append(file_path)
+                    continue
+            
+            # Create project structure
+            project_metadata = {
+                'total_files_discovered': len(all_files),
+                'supported_files_count': len(supported_files),
+                'successful_metadata_extraction': len(file_metadata),
+                'failed_metadata_extraction': len(failed_files),
+                'scan_timestamp': datetime.now().isoformat()
+            }
+            
+            return ProjectStructure(
+                root_path=root_path,
+                selected_files=supported_files,
+                description=description,
+                metadata=project_metadata,
+                timestamp=datetime.now(),
+                file_metadata=file_metadata
+            )
+            
+        except Exception as e:
+            # Handle any unexpected errors during project scanning
+            handle_error(
+                category=ErrorCategory.ANALYSIS_PIPELINE,
+                message="Project scanning failed",
+                details=str(e),
+                severity=ErrorSeverity.CRITICAL,
+                recoverable=False,
+                stage="project_scanning",
+                context={"root_path": root_path},
+                exception=e
+            )
+            raise
     
     def _discover_files(self, root_path: str) -> List[str]:
         """
@@ -97,15 +145,68 @@ class IngestionService:
             List of absolute file paths
         """
         discovered_files = []
+        access_errors = []
         
-        for root, dirs, files in os.walk(root_path):
-            # Filter out excluded directories
-            dirs[:] = [d for d in dirs if not self._should_exclude_directory(d, root)]
-            
-            for file in files:
-                if not self._should_exclude_file(file):
-                    file_path = os.path.join(root, file)
-                    discovered_files.append(file_path)
+        try:
+            for root, dirs, files in os.walk(root_path):
+                # Filter out excluded directories
+                dirs[:] = [d for d in dirs if not self._should_exclude_directory(d, root)]
+                
+                for file in files:
+                    if not self._should_exclude_file(file):
+                        file_path = os.path.join(root, file)
+                        try:
+                            # Check if file is accessible
+                            if os.access(file_path, os.R_OK):
+                                discovered_files.append(file_path)
+                            else:
+                                access_errors.append(file_path)
+                        except (OSError, PermissionError) as e:
+                            access_errors.append(file_path)
+                            handle_error(
+                                category=ErrorCategory.FILE_SYSTEM,
+                                message=f"File access error: {file_path}",
+                                details=str(e),
+                                severity=ErrorSeverity.MEDIUM,
+                                recoverable=True,
+                                stage="file_discovery",
+                                file_path=file_path,
+                                exception=e
+                            )
+        
+        except PermissionError as e:
+            handle_error(
+                category=ErrorCategory.FILE_SYSTEM,
+                message=f"Permission denied accessing directory: {root_path}",
+                details=str(e),
+                severity=ErrorSeverity.HIGH,
+                recoverable=True,
+                stage="file_discovery",
+                file_path=root_path,
+                exception=e
+            )
+        except OSError as e:
+            handle_error(
+                category=ErrorCategory.FILE_SYSTEM,
+                message=f"OS error during file discovery: {root_path}",
+                details=str(e),
+                severity=ErrorSeverity.MEDIUM,
+                recoverable=True,
+                stage="file_discovery",
+                file_path=root_path,
+                exception=e
+            )
+        
+        # Log summary of access errors
+        if access_errors:
+            handle_error(
+                category=ErrorCategory.FILE_SYSTEM,
+                message=f"Skipped {len(access_errors)} files due to access restrictions",
+                details=f"Files: {', '.join(access_errors[:5])}{'...' if len(access_errors) > 5 else ''}",
+                severity=ErrorSeverity.LOW,
+                recoverable=True,
+                stage="file_discovery"
+            )
         
         return discovered_files
     
@@ -212,12 +313,32 @@ class IngestionService:
             PermissionError: If file can't be read
         """
         if not os.path.exists(file_path):
+            handle_error(
+                category=ErrorCategory.FILE_SYSTEM,
+                message=f"File not found: {file_path}",
+                severity=ErrorSeverity.MEDIUM,
+                recoverable=True,
+                stage="metadata_extraction",
+                file_path=file_path
+            )
             raise FileNotFoundError(f"File not found: {file_path}")
         
         try:
             stat_info = os.stat(file_path)
             file_size = stat_info.st_size
             last_modified = datetime.fromtimestamp(stat_info.st_mtime)
+            
+            # Check for very large files
+            if file_size > 10 * 1024 * 1024:  # 10MB
+                handle_error(
+                    category=ErrorCategory.FILE_SYSTEM,
+                    message=f"Large file detected: {file_path} ({file_size} bytes)",
+                    details="File size may impact analysis performance",
+                    severity=ErrorSeverity.LOW,
+                    recoverable=True,
+                    stage="metadata_extraction",
+                    file_path=file_path
+                )
             
             # Determine file type
             file_ext = Path(file_path).suffix.lower()
@@ -253,15 +374,36 @@ class IngestionService:
                                 '=>' in line_stripped or
                                 line_stripped.startswith('const ') and '=>' in line_stripped):
                                 function_count += 1
-            except UnicodeDecodeError:
+            except UnicodeDecodeError as e:
                 # Try with different encoding
                 try:
                     with open(file_path, 'r', encoding='latin-1') as f:
                         line_count = sum(1 for _ in f)
                         encoding = 'latin-1'
-                except Exception:
+                    
+                    handle_error(
+                        category=ErrorCategory.FILE_SYSTEM,
+                        message=f"Encoding issue with file: {file_path}",
+                        details=f"Used latin-1 encoding as fallback: {str(e)}",
+                        severity=ErrorSeverity.LOW,
+                        recoverable=True,
+                        stage="metadata_extraction",
+                        file_path=file_path,
+                        exception=e
+                    )
+                except Exception as fallback_error:
                     line_count = 0
                     encoding = 'unknown'
+                    handle_error(
+                        category=ErrorCategory.FILE_SYSTEM,
+                        message=f"Failed to read file content: {file_path}",
+                        details=f"Both UTF-8 and latin-1 encodings failed: {str(fallback_error)}",
+                        severity=ErrorSeverity.MEDIUM,
+                        recoverable=True,
+                        stage="metadata_extraction",
+                        file_path=file_path,
+                        exception=fallback_error
+                    )
             
             return FileMetadata(
                 file_path=file_path,
@@ -273,9 +415,28 @@ class IngestionService:
                 function_count=function_count
             )
             
-        except PermissionError:
+        except PermissionError as e:
+            handle_error(
+                category=ErrorCategory.FILE_SYSTEM,
+                message=f"Permission denied reading file: {file_path}",
+                severity=ErrorSeverity.MEDIUM,
+                recoverable=True,
+                stage="metadata_extraction",
+                file_path=file_path,
+                exception=e
+            )
             raise PermissionError(f"Permission denied reading file: {file_path}")
         except Exception as e:
+            handle_error(
+                category=ErrorCategory.FILE_SYSTEM,
+                message=f"Error reading file metadata for {file_path}",
+                details=str(e),
+                severity=ErrorSeverity.MEDIUM,
+                recoverable=True,
+                stage="metadata_extraction",
+                file_path=file_path,
+                exception=e
+            )
             raise RuntimeError(f"Error reading file metadata for {file_path}: {e}")
     
     def get_project_summary(self, project: ProjectStructure) -> Dict[str, Any]:

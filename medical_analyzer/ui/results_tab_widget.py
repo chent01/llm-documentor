@@ -19,6 +19,14 @@ import os
 import io
 from datetime import datetime
 
+from ..services.soup_service import SOUPService
+from .soup_widget import SOUPWidget
+import csv
+import json
+import os
+import io
+from datetime import datetime
+
 
 class RequirementEditDialog(QDialog):
     """Dialog for editing individual requirements."""
@@ -1610,9 +1618,10 @@ class ResultsTabWidget(QTabWidget):
     export_requested = pyqtSignal(str, str)  # tab_name, export_type
     refresh_requested = pyqtSignal(str)  # tab_name
     
-    def __init__(self):
+    def __init__(self, soup_service: Optional[SOUPService] = None):
         super().__init__()
         self.analysis_results = {}
+        self.soup_service = soup_service
         self.setup_tabs()
         self.setup_connections()
         
@@ -1637,6 +1646,13 @@ class ResultsTabWidget(QTabWidget):
         # Test results tab
         self.test_tab = TestingResultsTab()
         self.addTab(self.test_tab, "Tests")
+        
+        # SOUP inventory tab
+        if self.soup_service:
+            self.soup_tab = SOUPWidget(self.soup_service)
+            self.addTab(self.soup_tab, "SOUP")
+        else:
+            self.soup_tab = None
         
         # Initially disable all tabs
         self.setEnabled(False)
@@ -1686,6 +1702,12 @@ class ResultsTabWidget(QTabWidget):
         self.requirements_tab.requirements_updated.connect(self.on_requirements_updated)
         self.risk_tab.risks_updated.connect(self.on_risks_updated)
         
+        # Connect SOUP tab signals if available
+        if self.soup_tab:
+            self.soup_tab.component_added.connect(self.on_soup_component_added)
+            self.soup_tab.component_updated.connect(self.on_soup_component_updated)
+            self.soup_tab.component_deleted.connect(self.on_soup_component_deleted)
+        
     def update_results(self, results: Dict[str, Any]):
         """Update all tabs with analysis results."""
         self.analysis_results = results
@@ -1712,6 +1734,9 @@ class ResultsTabWidget(QTabWidget):
             
         if 'tests' in results:
             self.test_tab.update_test_results(results['tests'])
+            
+        # SOUP tab doesn't need updates from analysis results
+        # as it's managed independently by the user
             
     def clear_results(self):
         """Clear all results and disable the widget."""
@@ -1921,3 +1946,28 @@ class ResultsTabWidget(QTabWidget):
                 QMessageBox.information(self, "Export Successful", f"Data exported to:\n{file_path}")
             except Exception as e:
                 QMessageBox.critical(self, "Export Error", f"Failed to save file:\n{str(e)}")
+    
+    def on_soup_component_added(self, component):
+        """Handle SOUP component addition."""
+        # Update analysis results to include SOUP data
+        if 'soup' not in self.analysis_results:
+            self.analysis_results['soup'] = []
+        self.analysis_results['soup'].append(component)
+    
+    def on_soup_component_updated(self, component):
+        """Handle SOUP component update."""
+        # Update the component in analysis results
+        if 'soup' in self.analysis_results:
+            for i, existing_component in enumerate(self.analysis_results['soup']):
+                if existing_component.id == component.id:
+                    self.analysis_results['soup'][i] = component
+                    break
+    
+    def on_soup_component_deleted(self, component_id):
+        """Handle SOUP component deletion."""
+        # Remove the component from analysis results
+        if 'soup' in self.analysis_results:
+            self.analysis_results['soup'] = [
+                comp for comp in self.analysis_results['soup'] 
+                if comp.id != component_id
+            ]

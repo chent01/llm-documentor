@@ -14,6 +14,9 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from .file_tree_widget import FileTreeWidget
 from .progress_widget import AnalysisProgressWidget, AnalysisStage, StageStatus
 from .results_tab_widget import ResultsTabWidget
+from ..database.schema import DatabaseManager
+from ..services.soup_service import SOUPService
+from ..services.export_service import ExportService
 
 
 class MainWindow(QMainWindow):
@@ -27,6 +30,12 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.selected_project_path: Optional[str] = None
+        
+        # Initialize services
+        self.db_manager = DatabaseManager()
+        self.soup_service = SOUPService(self.db_manager)
+        self.export_service = ExportService(self.soup_service)
+        
         self.setup_ui()
         self.setup_connections()
         
@@ -79,9 +88,12 @@ class MainWindow(QMainWindow):
         self.clear_button = QPushButton("Clear")
         self.analyze_button = QPushButton("Start Analysis")
         self.analyze_button.setEnabled(False)
+        self.export_button = QPushButton("Export Bundle")
+        self.export_button.setEnabled(False)
         button_layout.addStretch()
         button_layout.addWidget(self.clear_button)
         button_layout.addWidget(self.analyze_button)
+        button_layout.addWidget(self.export_button)
         
         # Create main splitter for analysis and results
         main_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -101,7 +113,7 @@ class MainWindow(QMainWindow):
         main_splitter.addWidget(top_widget)
         
         # Results section
-        self.results_widget = ResultsTabWidget()
+        self.results_widget = ResultsTabWidget(self.soup_service)
         main_splitter.addWidget(self.results_widget)
         
         # Set initial splitter sizes (70% top, 30% bottom)
@@ -115,6 +127,7 @@ class MainWindow(QMainWindow):
         self.select_folder_button.clicked.connect(self.select_project_folder)
         self.analyze_button.clicked.connect(self.start_analysis)
         self.clear_button.clicked.connect(self.clear_project)
+        self.export_button.clicked.connect(self.export_bundle)
         self.file_tree_widget.selection_changed.connect(self.on_file_selection_changed)
         
         # Progress widget connections
@@ -246,6 +259,7 @@ class MainWindow(QMainWindow):
         self.validation_label.setText("")
         self.description_text.clear()
         self.analyze_button.setEnabled(False)
+        self.export_button.setEnabled(False)
         
         # Hide progress and clear results
         self.progress_widget.hide_progress()
@@ -330,6 +344,10 @@ class MainWindow(QMainWindow):
         self.description_text.setEnabled(True)
         self.file_tree_widget.setEnabled(True)
         
+        # Enable export button if we have results
+        if results:
+            self.export_button.setEnabled(True)
+        
     def analysis_failed(self, error_message: str, partial_results: dict = None):
         """Handle analysis failure."""
         self.progress_widget.complete_analysis(success=False)
@@ -375,6 +393,66 @@ class MainWindow(QMainWindow):
         """Handle refresh request from results tabs."""
         # This would typically re-run analysis for specific components
         self.show_info("Refresh", f"Refresh {tab_name} requested")
+    
+    def export_bundle(self):
+        """Create and export a comprehensive analysis bundle."""
+        if not self.selected_project_path:
+            self.show_error("Export Error", "No project selected for export.")
+            return
+        
+        # Get project name from path
+        project_name = os.path.basename(self.selected_project_path)
+        if not project_name:
+            project_name = "medical_software_project"
+        
+        # Get analysis results from results widget
+        analysis_results = self.results_widget.analysis_results
+        if not analysis_results:
+            self.show_error("Export Error", "No analysis results available for export.")
+            return
+        
+        # Ask user for export location
+        export_dir = QFileDialog.getExistingDirectory(
+            self, "Select Export Directory", "",
+            QFileDialog.Option.ShowDirsOnly
+        )
+        
+        if not export_dir:
+            return  # User cancelled
+        
+        try:
+            # Log export start
+            self.export_service.log_action(
+                "export_initiated", 
+                f"User initiated export for project: {project_name}",
+                user="user"
+            )
+            
+            # Create the export bundle
+            bundle_path = self.export_service.create_comprehensive_export(
+                analysis_results=analysis_results,
+                project_name=project_name,
+                project_path=self.selected_project_path,
+                output_dir=export_dir
+            )
+            
+            # Show success message
+            self.show_info(
+                "Export Successful", 
+                f"Analysis bundle exported successfully to:\n{bundle_path}\n\n"
+                "The bundle contains all analysis artifacts including requirements, "
+                "risk register, traceability matrix, test results, and SOUP inventory."
+            )
+            
+        except Exception as e:
+            self.show_error("Export Failed", f"Failed to create export bundle:\n{str(e)}")
+            
+            # Log export failure
+            self.export_service.log_action(
+                "export_failed", 
+                f"Export failed with error: {str(e)}",
+                user="user"
+            )
         
     def show_error(self, title: str, message: str):
         """Show an error message dialog."""

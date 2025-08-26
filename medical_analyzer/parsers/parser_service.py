@@ -11,6 +11,10 @@ from .c_parser import CParser, CCodeStructure
 from .js_parser import JSParser, JSCodeStructure
 from ..models.core import CodeChunk, FileMetadata, CodeReference, ProjectStructure
 from ..models.enums import ChunkType
+from ..error_handling.error_handler import (
+    ErrorCategory, ErrorSeverity, handle_error, 
+    get_error_handler, AnalysisError
+)
 
 
 @dataclass
@@ -46,15 +50,40 @@ class ParserService:
             List of parsed file containers
         """
         parsed_files = []
+        failed_files = []
         
         for file_path in project_structure.selected_files:
             try:
                 parsed_file = self.parse_file(file_path)
                 if parsed_file:
                     parsed_files.append(parsed_file)
+                else:
+                    failed_files.append(file_path)
             except Exception as e:
-                print(f"Error parsing file {file_path}: {e}")
+                # Handle parsing errors with graceful degradation
+                error = handle_error(
+                    category=ErrorCategory.PARSER,
+                    message=f"Failed to parse file: {file_path}",
+                    details=str(e),
+                    severity=ErrorSeverity.MEDIUM,
+                    recoverable=True,
+                    stage="file_parsing",
+                    file_path=file_path,
+                    exception=e
+                )
+                failed_files.append(file_path)
                 continue
+        
+        # Log summary of parsing results
+        if failed_files:
+            handle_error(
+                category=ErrorCategory.PARSER,
+                message=f"Parsing completed with {len(failed_files)} failed files",
+                details=f"Failed files: {', '.join(failed_files[:5])}{'...' if len(failed_files) > 5 else ''}",
+                severity=ErrorSeverity.LOW,
+                recoverable=True,
+                stage="file_parsing"
+            )
         
         return parsed_files
     
@@ -67,34 +96,96 @@ class ParserService:
         Returns:
             ParsedFile container or None if parsing failed
         """
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
-        
-        # Get file metadata
-        file_metadata = self._extract_file_metadata(file_path)
-        
-        # Determine file type and parse accordingly
-        file_ext = os.path.splitext(file_path)[1].lower()
-        
-        if file_ext in {'.c', '.h'}:
-            code_structure = self.c_parser.parse_file(file_path)
-            chunks = self._extract_c_chunks(code_structure)
-        elif file_ext in {'.js', '.ts', '.jsx', '.tsx'}:
-            code_structure = self.js_parser.parse_file(file_path)
-            chunks = self._extract_js_chunks(code_structure)
-        else:
-            print(f"Unsupported file type: {file_ext}")
+        try:
+            if not os.path.exists(file_path):
+                handle_error(
+                    category=ErrorCategory.FILE_SYSTEM,
+                    message=f"File not found during parsing: {file_path}",
+                    severity=ErrorSeverity.MEDIUM,
+                    recoverable=True,
+                    stage="file_parsing",
+                    file_path=file_path
+                )
+                return None
+            
+            # Get file metadata
+            file_metadata = self._extract_file_metadata(file_path)
+            
+            # Determine file type and parse accordingly
+            file_ext = os.path.splitext(file_path)[1].lower()
+            
+            if file_ext in {'.c', '.h'}:
+                try:
+                    code_structure = self.c_parser.parse_file(file_path)
+                    chunks = self._extract_c_chunks(code_structure)
+                except Exception as e:
+                    handle_error(
+                        category=ErrorCategory.PARSER,
+                        message=f"C parser failed for file: {file_path}",
+                        details=str(e),
+                        severity=ErrorSeverity.MEDIUM,
+                        recoverable=True,
+                        stage="c_parsing",
+                        file_path=file_path,
+                        exception=e
+                    )
+                    # Fall back to basic text analysis
+                    chunks = self._fallback_text_analysis(file_path, file_metadata)
+                    code_structure = None
+                    
+            elif file_ext in {'.js', '.ts', '.jsx', '.tsx'}:
+                try:
+                    code_structure = self.js_parser.parse_file(file_path)
+                    chunks = self._extract_js_chunks(code_structure)
+                except Exception as e:
+                    handle_error(
+                        category=ErrorCategory.PARSER,
+                        message=f"JavaScript parser failed for file: {file_path}",
+                        details=str(e),
+                        severity=ErrorSeverity.MEDIUM,
+                        recoverable=True,
+                        stage="javascript_parsing",
+                        file_path=file_path,
+                        exception=e
+                    )
+                    # Fall back to basic text analysis
+                    chunks = self._fallback_text_analysis(file_path, file_metadata)
+                    code_structure = None
+            else:
+                handle_error(
+                    category=ErrorCategory.PARSER,
+                    message=f"Unsupported file type: {file_ext}",
+                    details=f"File: {file_path}",
+                    severity=ErrorSeverity.LOW,
+                    recoverable=True,
+                    stage="file_parsing",
+                    file_path=file_path
+                )
+                return None
+            
+            # Update file metadata with parsing results
+            if code_structure:
+                file_metadata.function_count = len(getattr(code_structure, 'functions', []))
+            
+            return ParsedFile(
+                file_path=file_path,
+                file_metadata=file_metadata,
+                code_structure=code_structure,
+                chunks=chunks
+            )
+            
+        except Exception as e:
+            handle_error(
+                category=ErrorCategory.PARSER,
+                message=f"Unexpected error parsing file: {file_path}",
+                details=str(e),
+                severity=ErrorSeverity.HIGH,
+                recoverable=True,
+                stage="file_parsing",
+                file_path=file_path,
+                exception=e
+            )
             return None
-        
-        # Update file metadata with parsing results
-        file_metadata.function_count = len(getattr(code_structure, 'functions', []))
-        
-        return ParsedFile(
-            file_path=file_path,
-            file_metadata=file_metadata,
-            code_structure=code_structure,
-            chunks=chunks
-        )
     
     def _extract_file_metadata(self, file_path: str) -> FileMetadata:
         """Extract metadata from a file.
@@ -578,6 +669,50 @@ class ParserService:
                 stats['min_chunk_size'] = 0
         
         return stats
+    
+    def _fallback_text_analysis(self, file_path: str, file_metadata: FileMetadata) -> List[CodeChunk]:
+        """Perform basic text analysis as fallback when parsing fails.
+        
+        Args:
+            file_path: Path to the file
+            file_metadata: File metadata
+            
+        Returns:
+            List of basic code chunks
+        """
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+            
+            # Create a single chunk with the entire file content
+            chunk = CodeChunk(
+                file_path=file_path,
+                start_line=1,
+                end_line=file_metadata.line_count,
+                function_name=None,
+                content=content,
+                chunk_type=ChunkType.GLOBAL,
+                metadata={
+                    'language': file_metadata.file_type,
+                    'is_fallback': True,
+                    'analysis_method': 'text_based'
+                }
+            )
+            
+            return [chunk]
+            
+        except Exception as e:
+            handle_error(
+                category=ErrorCategory.PARSER,
+                message=f"Fallback text analysis failed: {file_path}",
+                details=str(e),
+                severity=ErrorSeverity.MEDIUM,
+                recoverable=True,
+                stage="fallback_analysis",
+                file_path=file_path,
+                exception=e
+            )
+            return []
     
     def is_supported_file(self, file_path: str) -> bool:
         """Check if a file is supported for parsing.

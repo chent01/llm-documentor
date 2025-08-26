@@ -6,4 +6,5 @@ software projects to generate regulatory compliance documentation.
 """
 
 __version__ = "1.0.0"
-__author__ = "Medical Software Analysis Tool"
+__author__ = "Total Control Pty Ltd"
+__email__ = "info@tcgindustrial.com.au"

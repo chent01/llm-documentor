@@ -22,6 +22,14 @@ from .enums import (
     RiskLevel
 )
 
+from .result_models import (
+    FeatureExtractionResult,
+    RequirementGenerationResult,
+    SoftwareRequirementGenerationResult,
+    HazardIdentificationResult,
+    RiskRegisterResult
+)
+
 __all__ = [
     'ProjectStructure',
     'CodeChunk', 
@@ -36,5 +44,10 @@ __all__ = [
     'RequirementType',
     'Severity',
     'Probability',
-    'RiskLevel'
+    'RiskLevel',
+    'FeatureExtractionResult',
+    'RequirementGenerationResult',
+    'SoftwareRequirementGenerationResult',
+    'HazardIdentificationResult',
+    'RiskRegisterResult'
 ]

@@ -9,15 +9,22 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 from enum import Enum
+from ..error_handling.error_handler import (
+    ErrorCategory, ErrorSeverity, handle_error, 
+    get_error_handler, AnalysisError
+)
 
 
 class LLMError(Exception):
     """Base exception for LLM-related errors."""
     
-    def __init__(self, message: str, recoverable: bool = True, backend: Optional[str] = None):
+    def __init__(self, message: str, recoverable: bool = True, backend: Optional[str] = None, 
+                 error_type: str = "general", context: Optional[Dict[str, Any]] = None):
         self.message = message
         self.recoverable = recoverable
         self.backend = backend
+        self.error_type = error_type
+        self.context = context or {}
         super().__init__(message)
 
 
@@ -61,6 +68,16 @@ class LLMBackend(ABC):
         """
         self.config = config
         self._model_info: Optional[ModelInfo] = None
+        
+        # Circuit breaker state
+        self._failure_count = 0
+        self._last_failure_time = None
+        self._circuit_open = False
+        self._circuit_timeout = 60  # seconds
+        self._max_failures = 3
+        
+        # Error handler
+        self._error_handler = get_error_handler()
     
     @abstractmethod
     def generate(
@@ -98,6 +115,101 @@ class LLMBackend(ABC):
             True if backend is available, False otherwise
         """
         pass
+    
+    def _check_circuit_breaker(self) -> bool:
+        """Check if circuit breaker is open.
+        
+        Returns:
+            True if circuit is closed (can proceed), False if open
+        """
+        if not self._circuit_open:
+            return True
+        
+        # Check if timeout has passed
+        if self._last_failure_time:
+            import time
+            if time.time() - self._last_failure_time > self._circuit_timeout:
+                self._circuit_open = False
+                self._failure_count = 0
+                return True
+        
+        return False
+    
+    def _record_failure(self):
+        """Record a failure and potentially open the circuit breaker."""
+        import time
+        
+        self._failure_count += 1
+        self._last_failure_time = time.time()
+        
+        if self._failure_count >= self._max_failures:
+            self._circuit_open = True
+            self._error_handler.handle_error(
+                category=ErrorCategory.LLM_SERVICE,
+                message="Circuit breaker opened due to repeated failures",
+                details=f"Failed {self._failure_count} times in {self._circuit_timeout} seconds",
+                severity=ErrorSeverity.HIGH,
+                recoverable=True,
+                stage="llm_generation",
+                context={"backend": self.__class__.__name__}
+            )
+    
+    def _record_success(self):
+        """Record a successful operation and reset failure count."""
+        self._failure_count = 0
+        self._circuit_open = False
+    
+    def _handle_generation_error(self, error: Exception, context: Dict[str, Any]) -> str:
+        """Handle generation errors with fallback strategies.
+        
+        Args:
+            error: The original error
+            context: Context information about the generation request
+            
+        Returns:
+            Fallback response or raises the error
+        """
+        # Record the failure
+        self._record_failure()
+        
+        # Log the error
+        error_details = {
+            "prompt_length": len(context.get("prompt", "")),
+            "temperature": context.get("temperature", 0.1),
+            "max_tokens": context.get("max_tokens"),
+            "backend": self.__class__.__name__
+        }
+        
+        analysis_error = self._error_handler.handle_error(
+            category=ErrorCategory.LLM_SERVICE,
+            message=f"LLM generation failed: {str(error)}",
+            details=f"Context: {error_details}",
+            severity=ErrorSeverity.MEDIUM,
+            recoverable=True,
+            stage="llm_generation",
+            context=error_details,
+            exception=error
+        )
+        
+        # Check if we have a fallback handler
+        operation = context.get("operation", "text_generation")
+        if operation in self._error_handler.fallback_handlers:
+            try:
+                fallback_result = self._error_handler.fallback_handlers[operation](context)
+                return fallback_result
+            except Exception as fallback_error:
+                self._error_handler.handle_error(
+                    category=ErrorCategory.LLM_SERVICE,
+                    message="Fallback handler also failed",
+                    details=str(fallback_error),
+                    severity=ErrorSeverity.HIGH,
+                    recoverable=False,
+                    stage="llm_fallback",
+                    exception=fallback_error
+                )
+        
+        # If no fallback, raise the original error
+        raise error
     
     @abstractmethod
     def get_model_info(self) -> ModelInfo:

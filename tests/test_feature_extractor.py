@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 from datetime import datetime
 
 from medical_analyzer.services.feature_extractor import FeatureExtractor
-from medical_analyzer.services.result_models import FeatureExtractionResult
+from medical_analyzer.models.result_models import FeatureExtractionResult
 from medical_analyzer.models.core import CodeChunk, Feature, CodeReference
 from medical_analyzer.models.enums import ChunkType, FeatureCategory
 from medical_analyzer.llm.backend import LLMBackend, LLMError, ModelInfo, ModelType

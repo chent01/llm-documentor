@@ -1,0 +1,5 @@
+2025-08-26 09:11:17,466 - medical_analyzer.error_handler - WARNING - [FILE_SYSTEM] Demo error 1
+2025-08-26 09:11:17,468 - medical_analyzer.error_handler - WARNING - [FILE_SYSTEM] Demo error 2
+2025-08-26 09:11:17,469 - medical_analyzer.error_handler - WARNING - [FILE_SYSTEM] Demo error 3
+2025-08-26 09:11:17,470 - medical_analyzer.error_handler - WARNING - [FILE_SYSTEM] Demo error 4
+2025-08-26 09:11:17,471 - medical_analyzer.error_handler - WARNING - [FILE_SYSTEM] Demo error 5

@@ -11,7 +11,7 @@ from datetime import datetime
 from ..models.core import Requirement, RiskItem
 from ..models.enums import Severity, Probability, RiskLevel
 from ..llm.backend import LLMBackend, LLMError
-from .result_models import HazardIdentificationResult
+from ..models.result_models import HazardIdentificationResult
 from .llm_response_parser import LLMResponseParser
 
 

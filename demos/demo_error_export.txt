@@ -1,0 +1,48 @@
+Medical Software Analyzer - Error Log
+==================================================
+
+Timestamp: 2025-08-26 09:11:17.466299
+Category: file_system
+Severity: medium
+Stage: demo_stage
+Message: Demo error 1
+Details: Demo error details 1
+------------------------------
+
+Timestamp: 2025-08-26 09:11:17.468361
+Category: file_system
+Severity: medium
+Stage: demo_stage
+Message: Demo error 2
+Details: Demo error details 2
+------------------------------
+
+Timestamp: 2025-08-26 09:11:17.469312
+Category: file_system
+Severity: medium
+Stage: demo_stage
+Message: Demo error 3
+Details: Demo error details 3
+------------------------------
+
+Timestamp: 2025-08-26 09:11:17.470298
+Category: file_system
+Severity: medium
+Stage: demo_stage
+Message: Demo error 4
+Details: Demo error details 4
+------------------------------
+
+Timestamp: 2025-08-26 09:11:17.471294
+Category: file_system
+Severity: medium
+Stage: demo_stage
+Message: Demo error 5
+Details: Demo error details 5
+------------------------------
+
+ERROR SUMMARY
+====================
+Total Errors: 5
+Recovered Errors: 0
+Recovery Rate: 0.00%

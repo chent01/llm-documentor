@@ -10,7 +10,7 @@ import os
 import tempfile
 from datetime import datetime
 
-from medical_analyzer.services.test_generator import TestGenerator
+from medical_analyzer.tests.test_generator import TestGenerator
 from medical_analyzer.models.core import ProjectStructure, FileMetadata
 from medical_analyzer.parsers.c_parser import FunctionSignature as CFunctionSignature, CCodeStructure
 from medical_analyzer.parsers.js_parser import FunctionSignature as JSFunctionSignature, JSCodeStructure

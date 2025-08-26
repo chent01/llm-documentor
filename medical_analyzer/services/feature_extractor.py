@@ -11,7 +11,7 @@ from datetime import datetime
 from ..models.core import CodeChunk, Feature, CodeReference
 from ..models.enums import FeatureCategory
 from ..llm.backend import LLMBackend, LLMError
-from .result_models import FeatureExtractionResult
+from ..models.result_models import FeatureExtractionResult
 from .llm_response_parser import LLMResponseParser
 
 

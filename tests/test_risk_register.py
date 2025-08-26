@@ -14,7 +14,7 @@ from datetime import datetime
 
 from medical_analyzer.services.risk_register import RiskRegister, RiskRegisterResult
 from medical_analyzer.services.hazard_identifier import HazardIdentifier
-from medical_analyzer.services.result_models import HazardIdentificationResult
+from medical_analyzer.models.result_models import HazardIdentificationResult
 from medical_analyzer.models.core import RiskItem, Requirement
 from medical_analyzer.models.enums import (
     Severity, Probability, RiskLevel, RequirementType

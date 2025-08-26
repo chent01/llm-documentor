@@ -13,7 +13,7 @@ from pathlib import Path
 
 from ..models.core import RiskItem, Requirement
 from ..models.enums import Severity, Probability, RiskLevel
-from .result_models import HazardIdentificationResult
+from ..models.result_models import HazardIdentificationResult
 from .hazard_identifier import HazardIdentifier
 
 
