@@ -1,0 +1,61 @@
+{
+    "llm": {
+        "backend_type": "openai",         // Options: "openai", "anthropic", "local", "mock"
+        "model_path": null,              // Path to local model file (for "local" backend)
+        "server_url": null,              // URL for local LLM server (for "local" backend)
+        "api_key": "your-api-key-here",   // API key for OpenAI or Anthropic
+        "model_name": "gpt-4",           // Model name (e.g., "gpt-4", "claude-2", etc.)
+        "max_tokens": 2000,              // Maximum tokens to generate
+        "temperature": 0.2,              // Temperature for sampling (0.0-1.0)
+        "timeout": 60,                   // Request timeout in seconds
+        "retry_attempts": 3,             // Number of retry attempts
+        "batch_size": 16,                // Batch size for processing
+        "context_window": 8192,          // Context window size in tokens
+        "embedding_model": "text-embedding-ada-002"  // Model for embeddings
+    },
+    "database": {
+        "db_path": "C:/path/to/medical_analyzer.db",  // Absolute path to database file
+        "backup_enabled": true,          // Enable automatic backups
+        "backup_interval": 7200,         // Backup interval in seconds (2 hours)
+        "max_backups": 5                 // Maximum number of backup files
+    },
+    "export": {
+        "default_format": "pdf",         // Options: "pdf", "html", "markdown", "zip"
+        "include_audit_log": true,       // Include audit log in exports
+        "include_metadata": true,        // Include metadata in exports
+        "compression_level": 9,          // Compression level for zip exports (1-9)
+        "max_file_size": 52428800        // Maximum export file size in bytes (50MB)
+    },
+    "ui": {
+        "theme": "dark",                 // Options: "light", "dark", "system", "default"
+        "window_width": 1600,            // Initial window width
+        "window_height": 900,            // Initial window height
+        "auto_save": true,               // Enable auto-save
+        "auto_save_interval": 600,       // Auto-save interval in seconds (10 minutes)
+        "show_tooltips": true,           // Show tooltips
+        "confirm_exit": true             // Confirm before exiting
+    },
+    "analysis": {
+        "max_chunk_size": 2000,          // Maximum chunk size for analysis
+        "min_confidence": 0.7,           // Minimum confidence threshold
+        "max_files_per_analysis": 500,   // Maximum files per analysis run
+        "supported_extensions": [".c", ".h", ".js", ".ts", ".jsx", ".tsx", ".py", ".cpp"],
+        "enable_parallel_processing": true,  // Enable parallel processing
+        "max_workers": 8                 // Maximum number of worker threads
+    },
+    "logging": {
+        "level": "DEBUG",                // Options: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+        "file_enabled": true,            // Enable logging to file
+        "console_enabled": true,         // Enable logging to console
+        "log_file": "C:/logs/medical_analyzer.log",  // Absolute path to log file
+        "max_file_size": 20971520,       // Maximum log file size in bytes (20MB)
+        "backup_count": 10,              // Number of log backups to keep
+        "format_string": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    },
+    "custom": {
+        "auto_update_check": true,       // Check for updates automatically
+        "update_check_interval": 172800, // Update check interval in seconds (2 days)
+        "telemetry_enabled": false,      // Enable anonymous usage telemetry
+        "project_templates_dir": "C:/path/to/templates"  // Custom project templates directory
+    }
+}

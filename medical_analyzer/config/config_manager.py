@@ -18,14 +18,38 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LLMConfig:
     """Configuration for LLM backend settings."""
-    backend_type: str  # 'mock', 'llama_cpp', 'local_server', 'openai'
+    backend_type: str  # 'mock', 'llama_cpp', 'local_server', 'openai', 'anthropic'
     model_path: Optional[str] = None
     server_url: Optional[str] = None
     api_key: Optional[str] = None
+    model_name: Optional[str] = None
     max_tokens: int = 1000
     temperature: float = 0.1
     timeout: int = 30
     retry_attempts: int = 3
+    batch_size: int = 8
+    context_window: int = 4096
+    embedding_model: Optional[str] = None
+    
+    def validate(self) -> bool:
+        """Validate the LLM configuration."""
+        if self.backend_type not in ['mock', 'llama_cpp', 'local_server', 'openai', 'anthropic']:
+            logger.error(f"Invalid backend type: {self.backend_type}")
+            return False
+            
+        if self.backend_type == 'llama_cpp' and not self.model_path:
+            logger.error("Model path is required for llama_cpp backend")
+            return False
+            
+        if self.backend_type == 'local_server' and not self.server_url:
+            logger.error("Server URL is required for local_server backend")
+            return False
+            
+        if self.backend_type in ['openai', 'anthropic'] and not self.api_key:
+            logger.error(f"API key is required for {self.backend_type} backend")
+            return False
+            
+        return True
 
 
 @dataclass
@@ -89,10 +113,15 @@ class LoggingConfig:
 class ConfigManager:
     """Manages application configuration loading, validation, and access."""
     
-    def __init__(self):
-        """Initialize the configuration manager."""
+    def __init__(self, config_path: Optional[str] = None):
+        """Initialize the configuration manager.
+        
+        Args:
+            config_path: Optional path to a configuration file. If provided,
+                         this file will be loaded instead of the default.
+        """
         self.config_dir = self._get_config_dir()
-        self.config_file = self.config_dir / "config.json"
+        self.config_file = Path(config_path) if config_path else self.config_dir / "config.json"
         self.user_config_file = self.config_dir / "user_config.json"
         
         # Default configurations
@@ -103,8 +132,14 @@ class ConfigManager:
         self.analysis_config = AnalysisConfig()
         self.logging_config = LoggingConfig()
         
+        # Version information
+        self.version = self._get_version()
+        
         # Custom settings
         self.custom_settings: Dict[str, Any] = {}
+        
+        # Load default configuration
+        self.load_default_config()
     
     def _get_config_dir(self) -> Path:
         """Get the configuration directory path."""
@@ -119,12 +154,38 @@ class ConfigManager:
         
         return config_dir
     
+    def _get_version(self) -> str:
+        """Get the application version.
+        
+        Returns:
+            The application version string.
+        """
+        try:
+            from medical_analyzer import __version__
+            return __version__
+        except ImportError:
+            return "1.0.0"
+    
     def load_default_config(self) -> None:
         """Load default configuration settings."""
         logger.info("Loading default configuration")
         
-        # Set default LLM configuration
-        self.llm_config = LLMConfig(
+        # Check if default config exists in package
+        default_config_path = Path(__file__).parent / "templates" / "default_config.json"
+        
+        if default_config_path.exists():
+            try:
+                with open(default_config_path, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+                self._apply_config(config_data)
+                logger.info("Loaded default configuration from template")
+            except Exception as e:
+                logger.error(f"Failed to load default configuration: {e}")
+        else:
+            logger.info("No default configuration template found, using built-in defaults")
+            
+            # Set default LLM configuration if no template found
+            self.llm_config = LLMConfig(
             backend_type="mock",
             max_tokens=1000,
             temperature=0.1,
@@ -306,6 +367,93 @@ class ConfigManager:
             
         except Exception as e:
             logger.error(f"Error saving configuration: {e}")
+    
+    def _apply_config(self, config_data: Dict[str, Any]) -> None:
+        """Apply configuration data to the current configuration.
+        
+        Args:
+            config_data: Configuration data to apply.
+        """
+        # Apply LLM configuration
+        if 'llm' in config_data:
+            llm_data = config_data['llm']
+            self.llm_config = LLMConfig(
+                backend_type=llm_data.get('backend_type', 'mock'),
+                model_path=llm_data.get('model_path'),
+                server_url=llm_data.get('server_url'),
+                api_key=llm_data.get('api_key'),
+                model_name=llm_data.get('model_name'),
+                max_tokens=llm_data.get('max_tokens', 1000),
+                temperature=llm_data.get('temperature', 0.1),
+                timeout=llm_data.get('timeout', 30),
+                retry_attempts=llm_data.get('retry_attempts', 3),
+                batch_size=llm_data.get('batch_size', 8),
+                context_window=llm_data.get('context_window', 4096),
+                embedding_model=llm_data.get('embedding_model')
+            )
+        
+        # Apply database configuration
+        if 'database' in config_data:
+            db_data = config_data['database']
+            self.database_config = DatabaseConfig(
+                db_path=db_data.get('db_path', ':memory:'),
+                backup_enabled=db_data.get('backup_enabled', True),
+                backup_interval=db_data.get('backup_interval', 3600),
+                max_backups=db_data.get('max_backups', 10)
+            )
+        
+        # Apply export configuration
+        if 'export' in config_data:
+            export_data = config_data['export']
+            self.export_config = ExportConfig(
+                default_format=export_data.get('default_format', 'zip'),
+                include_audit_log=export_data.get('include_audit_log', True),
+                include_metadata=export_data.get('include_metadata', True),
+                compression_level=export_data.get('compression_level', 6),
+                max_file_size=export_data.get('max_file_size', 100 * 1024 * 1024)
+            )
+        
+        # Apply UI configuration
+        if 'ui' in config_data:
+            ui_data = config_data['ui']
+            self.ui_config = UIConfig(
+                theme=ui_data.get('theme', 'default'),
+                window_width=ui_data.get('window_width', 1200),
+                window_height=ui_data.get('window_height', 800),
+                auto_save=ui_data.get('auto_save', True),
+                auto_save_interval=ui_data.get('auto_save_interval', 300),
+                show_tooltips=ui_data.get('show_tooltips', True),
+                confirm_exit=ui_data.get('confirm_exit', True)
+            )
+        
+        # Apply analysis configuration
+        if 'analysis' in config_data:
+            analysis_data = config_data['analysis']
+            self.analysis_config = AnalysisConfig(
+                max_chunk_size=analysis_data.get('max_chunk_size', 1000),
+                min_confidence=analysis_data.get('min_confidence', 0.5),
+                max_files_per_analysis=analysis_data.get('max_files_per_analysis', 1000),
+                supported_extensions=analysis_data.get('supported_extensions'),
+                enable_parallel_processing=analysis_data.get('enable_parallel_processing', True),
+                max_workers=analysis_data.get('max_workers', 4)
+            )
+        
+        # Apply logging configuration
+        if 'logging' in config_data:
+            logging_data = config_data['logging']
+            self.logging_config = LoggingConfig(
+                level=logging_data.get('level', 'INFO'),
+                file_enabled=logging_data.get('file_enabled', True),
+                console_enabled=logging_data.get('console_enabled', True),
+                log_file=logging_data.get('log_file', 'medical_analyzer.log'),
+                max_file_size=logging_data.get('max_file_size', 10 * 1024 * 1024),
+                backup_count=logging_data.get('backup_count', 5),
+                format_string=logging_data.get('format_string', '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            )
+        
+        # Apply custom settings
+        if 'custom' in config_data:
+            self.custom_settings = config_data['custom']
     
     def get_llm_config(self) -> Dict[str, Any]:
         """Get LLM configuration as a dictionary."""

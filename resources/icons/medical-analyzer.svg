@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#3498db" />
+  
+  <!-- Medical cross -->
+  <rect x="216" y="96" width="80" height="320" rx="10" fill="white" />
+  <rect x="96" y="216" width="320" height="80" rx="10" fill="white" />
+  
+  <!-- Document icon -->
+  <g transform="translate(256, 256) rotate(45) translate(-120, -120)">
+    <rect x="40" y="40" width="160" height="200" rx="10" fill="#ecf0f1" />
+    <rect x="60" y="80" width="120" height="10" rx="2" fill="#7f8c8d" />
+    <rect x="60" y="100" width="120" height="10" rx="2" fill="#7f8c8d" />
+    <rect x="60" y="120" width="80" height="10" rx="2" fill="#7f8c8d" />
+    <rect x="60" y="160" width="120" height="10" rx="2" fill="#7f8c8d" />
+    <rect x="60" y="180" width="120" height="10" rx="2" fill="#7f8c8d" />
+    <rect x="60" y="200" width="80" height="10" rx="2" fill="#7f8c8d" />
+  </g>
+  
+  <!-- Magnifying glass -->
+  <g transform="translate(300, 300)">
+    <circle cx="0" cy="0" r="50" fill="none" stroke="#2c3e50" stroke-width="12" />
+    <line x1="35" y1="35" x2="80" y2="80" stroke="#2c3e50" stroke-width="12" stroke-linecap="round" />
+  </g>
+</svg>

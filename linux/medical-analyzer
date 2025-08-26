@@ -1,0 +1,12 @@
+#!/bin/bash
+# Medical Software Analysis Tool launcher for Linux
+
+# Check if Python is available
+if ! command -v python3 &> /dev/null; then
+    echo "Python 3 is not available. Please install Python 3.8 or later and try again."
+    exit 1
+fi
+
+# Launch the application
+echo "Launching Medical Software Analysis Tool..."
+exec python3 -m medical_analyzer "$@"

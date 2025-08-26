@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Medical Software Analyzer
+Comment=Medical device software analysis and regulatory compliance tool
+Exec=medical-analyzer
+Icon=/usr/share/icons/medical-analyzer.png
+Terminal=false
+Categories=Development;Science;MedicalSoftware;
+StartupNotify=true
+StartupWMClass=medical-analyzer

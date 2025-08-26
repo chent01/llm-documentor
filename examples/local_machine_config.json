@@ -1,0 +1,55 @@
+{
+    "llm": {
+        "backend_type": "local",
+        "model_path": "/path/to/your/model.gguf",
+        "max_tokens": 1000,
+        "temperature": 0.1,
+        "batch_size": 8,
+        "context_window": 4096
+    },
+    "database": {
+        "db_path": "C:/path/to/medical_analyzer.db",
+        "backup_enabled": true,
+        "backup_interval": 7200,
+        "max_backups": 5
+    },
+    "export": {
+        "default_format": "pdf",
+        "include_audit_log": true,
+        "include_metadata": true,
+        "compression_level": 9,
+        "max_file_size": 52428800
+    },
+    "ui": {
+        "theme": "dark",
+        "window_width": 1600,
+        "window_height": 900,
+        "auto_save": true,
+        "auto_save_interval": 600,
+        "show_tooltips": true,
+        "confirm_exit": true
+    },
+    "analysis": {
+        "max_chunk_size": 2000,
+        "min_confidence": 0.7,
+        "max_files_per_analysis": 500,
+        "supported_extensions": [".c", ".h", ".js", ".ts", ".jsx", ".tsx", ".py", ".cpp"],
+        "enable_parallel_processing": true,
+        "max_workers": 8
+    },
+    "logging": {
+        "level": "DEBUG",
+        "file_enabled": true,
+        "console_enabled": true,
+        "log_file": "C:/logs/medical_analyzer.log",
+        "max_file_size": 20971520,
+        "backup_count": 10,
+        "format_string": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    },
+    "custom": {
+        "auto_update_check": true,
+        "update_check_interval": 172800,
+        "telemetry_enabled": false,
+        "project_templates_dir": "C:/path/to/templates"
+    }
+}

@@ -27,9 +27,11 @@ class MainWindow(QMainWindow):
     analysis_requested = pyqtSignal(str, str)
     analysis_cancelled = pyqtSignal()
     
-    def __init__(self):
+    def __init__(self, config_manager=None, app_settings=None):
         super().__init__()
         self.selected_project_path: Optional[str] = None
+        self.config_manager = config_manager
+        self.app_settings = app_settings
         
         # Initialize services
         self.db_manager = DatabaseManager()

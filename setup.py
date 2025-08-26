@@ -52,12 +52,39 @@ def get_entry_points():
     return {
         'console_scripts': [
             'medical-analyzer=medical_analyzer.__main__:main',
-            'medical-analyzer-gui=medical_analyzer.__main__:main',
         ],
         'gui_scripts': [
             'medical-analyzer-gui=medical_analyzer.__main__:main',
         ]
     }
+
+# Get platform-specific data files
+def get_platform_data_files():
+    import platform
+    system = platform.system()
+    data_files = []
+    
+    if system == 'Windows':
+        # Windows-specific files
+        data_files.extend([
+            ('icons', ['medical_analyzer/ui/resources/app_icon.ico']),
+            ('', ['windows/medical-analyzer.bat']),
+        ])
+    elif system == 'Darwin':  # macOS
+        # macOS-specific files
+        data_files.extend([
+            ('icons', ['medical_analyzer/ui/resources/app_icon.icns']),
+            ('', ['macos/medical-analyzer.command']),
+        ])
+    else:  # Linux and others
+        # Linux-specific files
+        data_files.extend([
+            ('icons', ['medical_analyzer/ui/resources/app_icon.png']),
+            ('applications', ['linux/medical-analyzer.desktop']),
+            ('bin', ['linux/medical-analyzer']),
+        ])
+    
+    return data_files
 
 setup(
     name="medical-software-analyzer",
@@ -73,6 +100,7 @@ setup(
         "Documentation": "https://medical-analyzer.readthedocs.io/",
         "Source Code": "https://github.com/total-control/medical-software-analyzer",
     },
+    data_files=get_platform_data_files(),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Healthcare Industry",

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 Main entry point for the Medical Software Analysis Tool.
+
+This script serves as the primary entry point for the application when run directly.
+It delegates to the main function in the medical_analyzer package.
 """
 
 import sys
@@ -11,29 +14,10 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from medical_analyzer.database import init_database
-
-
-def main():
-    """Main application entry point."""
-    print("Medical Software Analysis Tool")
-    print("==============================")
-    
-    # Initialize database
-    try:
-        db_manager = init_database()
-        print("✓ Database initialized successfully")
-    except Exception as e:
-        print(f"✗ Database initialization failed: {e}")
-        return 1
-    
-    print("\nProject structure created successfully!")
-    print("\nNext steps:")
-    print("1. Install dependencies: pip install -r requirements.txt")
-    print("2. Run the application: python main.py")
-    
-    return 0
+# Import the main function from the package
+from medical_analyzer.__main__ import main
 
 
 if __name__ == "__main__":
+    # Pass command line arguments to the main function
     sys.exit(main())
