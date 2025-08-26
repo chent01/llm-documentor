@@ -107,8 +107,5 @@ medical_analyzer/
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+see the LICENSE file for details.
 
-## Contact
-
-Total Control Pty Ltd - info@tcgindustrial.com.au
