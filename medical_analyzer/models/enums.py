@@ -55,5 +55,8 @@ class RiskLevel(Enum):
     """Overall risk levels calculated from severity and probability."""
     UNACCEPTABLE = "Unacceptable"
     UNDESIRABLE = "Undesirable"
+    HIGH = "High"
+    MEDIUM = "Medium"
+    LOW = "Low"
     ACCEPTABLE = "Acceptable"
     NEGLIGIBLE = "Negligible"

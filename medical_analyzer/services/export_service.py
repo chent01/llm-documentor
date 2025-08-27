@@ -263,11 +263,21 @@ class ExportService:
                 # Test suites
                 suites = tests.get('test_suites', [])
                 for suite in suites:
-                    f.write(f"Suite: {suite.get('name', 'Unknown')}\n")
-                    f.write(f"  Status: {suite.get('status', 'Unknown')}\n")
-                    f.write(f"  Tests: {suite.get('total_tests', 0)}\n")
-                    f.write(f"  Passed: {suite.get('passed_tests', 0)}\n")
-                    f.write(f"  Failed: {suite.get('failed_tests', 0)}\n\n")
+                    # Handle both dict and TestSuite object
+                    if hasattr(suite, 'project_name'):
+                        # TestSuite object
+                        f.write(f"Suite: {suite.project_name}\n")
+                        f.write(f"  Status: Generated\n")
+                        f.write(f"  Tests: {len(suite.test_skeletons)}\n")
+                        f.write(f"  Integration Tests: {len(suite.integration_tests)}\n")
+                        f.write(f"  Created: {suite.created_at}\n\n")
+                    else:
+                        # Dictionary
+                        f.write(f"Suite: {suite.get('name', 'Unknown')}\n")
+                        f.write(f"  Status: {suite.get('status', 'Unknown')}\n")
+                        f.write(f"  Tests: {suite.get('total_tests', 0)}\n")
+                        f.write(f"  Passed: {suite.get('passed_tests', 0)}\n")
+                        f.write(f"  Failed: {suite.get('failed_tests', 0)}\n\n")
             
             # Export test files if available
             test_files = tests.get('generated_files', {})
