@@ -78,8 +78,18 @@ pip install -e ".[docs]"
 ### Running Tests
 
 ```bash
+# Run all tests
 python -m pytest
+
+# Run tests with coverage
+python -m pytest --cov=medical_analyzer
+
+# Run pre-commit validation
+./scripts/pre_commit_validation.sh  # Linux/macOS
+scripts\pre_commit_validation.bat   # Windows
 ```
+
+For comprehensive test maintenance guidelines, see [Test Maintenance Guide](docs/TEST_MAINTENANCE_GUIDE.md).
 
 ### Building Documentation
 

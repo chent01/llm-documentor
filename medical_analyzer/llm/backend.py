@@ -79,6 +79,34 @@ class LLMBackend(ABC):
         # Error handler
         self._error_handler = get_error_handler()
     
+    @classmethod
+    def create_from_config(cls, config: Dict[str, Any]) -> 'LLMBackend':
+        """
+        Create an LLM backend instance from configuration.
+        
+        Args:
+            config: Configuration dictionary containing backend settings
+            
+        Returns:
+            LLMBackend instance based on configuration
+            
+        Raises:
+            LLMError: If backend cannot be created from config
+        """
+        backend_type = config.get('backend', 'fallback')
+        
+        if backend_type == 'fallback' or backend_type == 'mock':
+            return FallbackLLMBackend(config)
+        elif backend_type == 'llama_cpp':
+            from .llama_cpp_backend import LlamaCppBackend
+            return LlamaCppBackend(config)
+        elif backend_type == 'local_server':
+            from .local_server_backend import LocalServerBackend
+            return LocalServerBackend(config)
+        else:
+            # Default to fallback backend for unknown types
+            return FallbackLLMBackend(config)
+    
     @abstractmethod
     def generate(
         self, 

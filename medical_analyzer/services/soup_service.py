@@ -68,14 +68,14 @@ class SOUPService:
             ValueError: If component validation fails
             sqlite3.Error: If database operation fails
         """
+        # Generate ID if not provided
+        if not component.id:
+            component.id = str(uuid.uuid4())
+        
         # Validate component
         validation_errors = component.validate()
         if validation_errors:
             raise ValueError(f"Component validation failed: {', '.join(validation_errors)}")
-        
-        # Generate ID if not provided
-        if not component.id:
-            component.id = str(uuid.uuid4())
         
         # Prepare data for database
         now = datetime.now().isoformat()

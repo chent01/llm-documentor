@@ -113,6 +113,9 @@ class StageProgressWidget(QWidget):
         # Update status label
         self.status_label.setText(self.status.value.replace('_', ' ').title())
         
+        # Update error label visibility
+        self.error_label.setVisible(self.status == StageStatus.FAILED and self.error_message is not None)
+        
         # Update colors based on status
         if self.status == StageStatus.PENDING:
             self.progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #e0e0e0; }")
@@ -126,8 +129,6 @@ class StageProgressWidget(QWidget):
         elif self.status == StageStatus.FAILED:
             self.progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #f44336; }")
             self.status_label.setStyleSheet("color: #f44336; font-weight: bold;")
-            if self.error_message:
-                self.error_label.setVisible(True)
         elif self.status == StageStatus.SKIPPED:
             self.progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #FF9800; }")
             self.status_label.setStyleSheet("color: #FF9800; font-weight: bold;")

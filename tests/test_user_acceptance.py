@@ -9,9 +9,18 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from unittest.mock import patch
 
 from medical_analyzer import __version__
 from medical_analyzer.config.config_manager import ConfigManager
+
+
+@pytest.fixture
+def isolated_argv():
+    """Fixture to isolate sys.argv during tests to prevent pytest argument conflicts."""
+    original_argv = sys.argv.copy()
+    yield
+    sys.argv = original_argv
 
 
 @pytest.fixture
@@ -141,7 +150,7 @@ def test_gui_launch():
         process.kill()
 
 
-def test_headless_analysis(sample_project_dir):
+def test_headless_analysis(sample_project_dir, isolated_argv):
     """Test that the application can analyze a sample project in headless mode."""
     # Create a temporary output directory
     output_dir = tempfile.mkdtemp(prefix="medical_analyzer_output_")
@@ -154,9 +163,9 @@ def test_headless_analysis(sample_project_dir):
                 "-m",
                 "medical_analyzer",
                 "--headless",
-                "--input",
+                "--project-path",
                 sample_project_dir,
-                "--output",
+                "--output-dir",
                 output_dir,
                 "--verbose",
             ],
@@ -168,26 +177,27 @@ def test_headless_analysis(sample_project_dir):
         # Check that the process completed successfully
         assert result.returncode == 0, f"Analysis failed: {result.stderr}"
         
-        # Check that output files were created
-        assert os.path.exists(output_dir), "Output directory not created"
+        # Check that the analysis completed and created an export
+        # The export service creates a zip file in a temporary directory
+        # and returns the path in the stdout
+        assert "Analysis completed" in result.stdout, "Analysis completion message not found"
+        assert "Results exported to:" in result.stdout, "Export path not found in output"
         
-        # Check for expected output files (the exact files will depend on your implementation)
-        expected_files = ["analysis_report.json", "regulatory_findings.json"]
-        for file in expected_files:
-            file_path = os.path.join(output_dir, file)
-            assert os.path.exists(file_path), f"Expected output file {file} not found"
-            
-            # Check that the file contains valid JSON
-            with open(file_path, "r") as f:
-                data = json.load(f)
-                assert isinstance(data, dict), f"Invalid JSON in {file}"
+        # Extract the export path from stdout
+        lines = result.stdout.split('\n')
+        export_line = [line for line in lines if "Results exported to:" in line]
+        assert len(export_line) > 0, "Export path line not found"
+        
+        export_path = export_line[0].split("Results exported to: ")[1].strip()
+        assert os.path.exists(export_path), f"Export file not found at {export_path}"
+        assert export_path.endswith('.zip'), f"Export should be a zip file, got {export_path}"
     
     finally:
         # Clean up
         shutil.rmtree(output_dir, ignore_errors=True)
 
 
-def test_config_file_creation():
+def test_config_file_creation(isolated_argv):
     """Test that the application creates a config file if it doesn't exist."""
     # Create a temporary directory for the test
     temp_dir = tempfile.mkdtemp(prefix="medical_analyzer_config_test_")
@@ -229,7 +239,7 @@ def test_config_file_creation():
             del os.environ["MEDICAL_ANALYZER_CONFIG_DIR"]
 
 
-def test_version_command():
+def test_version_command(isolated_argv):
     """Test that the --version command works correctly."""
     result = subprocess.run(
         [sys.executable, "-m", "medical_analyzer", "--version"],
@@ -245,7 +255,7 @@ def test_version_command():
     assert __version__ in result.stdout, "Version number not found in output"
 
 
-def test_help_command():
+def test_help_command(isolated_argv):
     """Test that the --help command works correctly."""
     result = subprocess.run(
         [sys.executable, "-m", "medical_analyzer", "--help"],

@@ -303,8 +303,8 @@ class TestParserServiceErrorHandling:
     
     def test_parse_file_nonexistent(self, parser_service):
         """Test parsing a non-existent file."""
-        result = parser_service.parse_file("/nonexistent/file.c")
-        assert result is None
+        with pytest.raises(FileNotFoundError, match="File not found"):
+            parser_service.parse_file("/nonexistent/file.c")
     
     def test_parse_file_unsupported_type(self, parser_service):
         """Test parsing an unsupported file type."""

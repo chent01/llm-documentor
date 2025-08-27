@@ -82,12 +82,49 @@ Examples:
     )
     
     parser.add_argument(
+        '--init-config',
+        action='store_true',
+        help='Initialize configuration file and exit'
+    )
+    
+    parser.add_argument(
         '--version',
         action='version',
         version='Medical Software Analysis Tool v1.0.0'
     )
     
     return parser.parse_args()
+
+
+def handle_init_config() -> int:
+    """Handle the --init-config flag to create a default configuration file."""
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Create config manager and initialize default config
+        config_manager = ConfigManager()
+        config_manager.load_default_config()
+        
+        # Get config directory from environment or use default
+        config_dir = os.environ.get("MEDICAL_ANALYZER_CONFIG_DIR")
+        if config_dir:
+            config_path = Path(config_dir) / "config.json"
+        else:
+            # Use default config location
+            config_path = Path.home() / ".medical_analyzer" / "config.json"
+        
+        # Create directory if it doesn't exist
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Save the configuration
+        config_manager.save_config(config_path)
+        
+        print(f"Configuration file created at: {config_path}")
+        return 0
+        
+    except Exception as e:
+        print(f"Failed to create configuration file: {e}")
+        return 1
 
 
 def initialize_application(args: argparse.Namespace) -> tuple[ConfigManager, AppSettings]:
@@ -160,7 +197,7 @@ def run_headless_mode(config_manager: ConfigManager, app_settings: AppSettings, 
     logger.info("Starting headless mode")
     
     if not args.project_path:
-        logger.error("Project path is required for headless mode")
+        logger.error("Project path is required for headless mode (use --project-path)")
         return 1
     
     try:
@@ -245,6 +282,10 @@ def main() -> int:
     try:
         # Parse command line arguments
         args = parse_arguments()
+        
+        # Handle init-config flag
+        if args.init_config:
+            return handle_init_config()
         
         # Initialize application
         config_manager, app_settings = initialize_application(args)

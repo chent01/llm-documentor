@@ -33,12 +33,12 @@ class LLMConfig:
     
     def validate(self) -> bool:
         """Validate the LLM configuration."""
-        if self.backend_type not in ['mock', 'llama_cpp', 'local_server', 'openai', 'anthropic']:
+        if self.backend_type not in ['mock', 'llama_cpp', 'local', 'local_server', 'openai', 'anthropic']:
             logger.error(f"Invalid backend type: {self.backend_type}")
             return False
             
-        if self.backend_type == 'llama_cpp' and not self.model_path:
-            logger.error("Model path is required for llama_cpp backend")
+        if self.backend_type in ['llama_cpp', 'local'] and not self.model_path:
+            logger.error("Model path is required for llama_cpp/local backend")
             return False
             
         if self.backend_type == 'local_server' and not self.server_url:
@@ -138,8 +138,11 @@ class ConfigManager:
         # Custom settings
         self.custom_settings: Dict[str, Any] = {}
         
-        # Load default configuration
-        self.load_default_config()
+        # Load configuration
+        if config_path and Path(config_path).exists():
+            self.load_config(Path(config_path))
+        else:
+            self.load_default_config()
     
     def _get_config_dir(self) -> Path:
         """Get the configuration directory path."""
@@ -260,10 +263,14 @@ class ConfigManager:
                     model_path=llm_data.get('model_path'),
                     server_url=llm_data.get('server_url'),
                     api_key=llm_data.get('api_key'),
+                    model_name=llm_data.get('model_name'),
                     max_tokens=llm_data.get('max_tokens', 1000),
                     temperature=llm_data.get('temperature', 0.1),
                     timeout=llm_data.get('timeout', 30),
-                    retry_attempts=llm_data.get('retry_attempts', 3)
+                    retry_attempts=llm_data.get('retry_attempts', 3),
+                    batch_size=llm_data.get('batch_size', 8),
+                    context_window=llm_data.get('context_window', 4096),
+                    embedding_model=llm_data.get('embedding_model')
                 )
             
             # Load database configuration

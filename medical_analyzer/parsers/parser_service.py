@@ -106,7 +106,7 @@ class ParserService:
                     stage="file_parsing",
                     file_path=file_path
                 )
-                return None
+                raise FileNotFoundError(f"File not found: {file_path}")
             
             # Get file metadata
             file_metadata = self._extract_file_metadata(file_path)
@@ -174,6 +174,9 @@ class ParserService:
                 chunks=chunks
             )
             
+        except FileNotFoundError:
+            # Re-raise FileNotFoundError to allow proper error handling by callers
+            raise
         except Exception as e:
             handle_error(
                 category=ErrorCategory.PARSER,

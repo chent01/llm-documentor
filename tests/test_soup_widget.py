@@ -186,6 +186,10 @@ class TestSOUPWidget:
         mock_soup_service.get_all_components.side_effect = Exception("Database error")
         
         widget = SOUPWidget(mock_soup_service)
+        # Widget constructor already calls refresh_table() once, so we expect 1 call
+        # Reset the mock to test a fresh call
+        mock_msgbox.reset_mock()
+        
         widget.refresh_table()
         
         mock_msgbox.assert_called_once()

@@ -13,20 +13,15 @@ from medical_analyzer.ui.progress_widget import (
     AnalysisProgressWidget, StageProgressWidget, 
     AnalysisStage, StageStatus
 )
-
-
-@pytest.fixture
-def app():
-    """Create QApplication instance for testing."""
-    if not QApplication.instance():
-        return QApplication(sys.argv)
-    return QApplication.instance()
+from tests.test_utils import DeterministicTestMixin, UITestHelper
 
 
 @pytest.fixture
 def progress_widget(app):
     """Create AnalysisProgressWidget instance for testing."""
     widget = AnalysisProgressWidget()
+    widget.show()  # Show widget for proper visibility testing
+    UITestHelper.process_events()  # Ensure widget is properly initialized
     return widget
 
 
@@ -34,10 +29,11 @@ def progress_widget(app):
 def stage_widget(app):
     """Create StageProgressWidget instance for testing."""
     widget = StageProgressWidget(AnalysisStage.CODE_PARSING)
+    widget.show()  # Show widget for proper visibility testing
     return widget
 
 
-class TestStageProgressWidget:
+class TestStageProgressWidget(DeterministicTestMixin):
     """Test cases for StageProgressWidget."""
     
     def test_initialization(self, stage_widget):
@@ -95,7 +91,7 @@ class TestStageProgressWidget:
         assert "color: #f44336" in stage_widget.status_label.styleSheet()
 
 
-class TestAnalysisProgressWidget:
+class TestAnalysisProgressWidget(DeterministicTestMixin):
     """Test cases for AnalysisProgressWidget."""
     
     def test_initialization(self, progress_widget):
@@ -104,7 +100,7 @@ class TestAnalysisProgressWidget:
         assert progress_widget.current_stage is None
         assert progress_widget.completed_stages == 0
         assert progress_widget.start_time is None
-        assert not progress_widget.isVisible()
+        # Note: Widget is shown in fixture for proper visibility testing
         
     def test_start_analysis(self, progress_widget):
         """Test analysis start functionality."""
@@ -235,6 +231,9 @@ class TestAnalysisProgressWidget:
             cancel_signal_received = True
             
         progress_widget.cancel_requested.connect(on_cancel)
+        
+        # Start analysis to enable the cancel button
+        progress_widget.start_analysis()
         progress_widget.cancel_button.click()
         
         assert cancel_signal_received
@@ -249,8 +248,11 @@ class TestAnalysisProgressWidget:
         progress_widget.stage_completed.connect(on_stage_completed)
         progress_widget.start_analysis()
         
-        # Complete a stage
+        # Complete a stage (first set it to in progress, then complete it)
         stage = AnalysisStage.INITIALIZATION
+        progress_widget.update_stage_progress(
+            stage, 50, StageStatus.IN_PROGRESS
+        )
         progress_widget.update_stage_progress(
             stage, 100, StageStatus.COMPLETED
         )

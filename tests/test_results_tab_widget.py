@@ -4,7 +4,7 @@ Tests for the ResultsTabWidget and its components.
 
 import pytest
 from unittest.mock import Mock, patch
-from PyQt6.QtWidgets import QApplication, QMessageBox, QDialog
+from PyQt6.QtWidgets import QApplication, QMessageBox, QDialog, QTableWidgetItem
 from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
 from PyQt6.QtGui import QColor
@@ -15,14 +15,7 @@ from medical_analyzer.ui.results_tab_widget import (
     TraceabilityTab, TestingResultsTab, SummaryTab, TestExecutionDialog,
     RequirementEditDialog, RiskEditDialog
 )
-
-
-@pytest.fixture
-def app():
-    """Create QApplication instance for testing."""
-    if not QApplication.instance():
-        return QApplication(sys.argv)
-    return QApplication.instance()
+from tests.test_utils import DeterministicTestMixin, UITestHelper
 
 
 @pytest.fixture
@@ -129,7 +122,7 @@ def sample_summary():
     }
 
 
-class TestRequirementsTab:
+class TestRequirementsTab(DeterministicTestMixin):
     """Test cases for RequirementsTab."""
     
     def test_initialization(self, requirements_tab):
@@ -173,7 +166,7 @@ class TestRequirementsTab:
         assert hasattr(requirements_tab, 'requirements_updated')
 
 
-class TestRiskRegisterTab:
+class TestRiskRegisterTab(DeterministicTestMixin):
     """Test cases for RiskRegisterTab."""
     
     def test_initialization(self, risk_tab):
@@ -225,6 +218,9 @@ class TestSummaryTab:
         
     def test_update_summary(self, summary_tab, sample_summary):
         """Test updating summary display."""
+        # Show the widget so isVisible() works correctly
+        summary_tab.show()
+        
         summary_tab.update_summary(sample_summary)
         
         assert '/path/to/project' in summary_tab.project_path_label.text()
@@ -236,12 +232,6 @@ class TestSummaryTab:
         assert '85%' in summary_tab.confidence_label.text()
         
         # Check that errors section is visible when errors exist
-        # Debug: check if errors are in the data
-        errors = sample_summary.get('errors', [])
-        warnings = sample_summary.get('warnings', [])
-        print(f"Debug - Errors: {errors}, Warnings: {warnings}")
-        print(f"Debug - Errors group visible: {summary_tab.errors_group.isVisible()}")
-        
         assert summary_tab.errors_group.isVisible()
         error_text = summary_tab.errors_text.toPlainText()
         assert 'Error in parsing file X' in error_text
@@ -1460,6 +1450,9 @@ class TestResultsTabWidgetIntegration:
         
     def test_tab_interaction_signals(self, results_widget):
         """Test interaction between tabs through signals."""
+        # Enable the widget so buttons can be clicked
+        results_widget.setEnabled(True)
+        
         # Set up signal tracking
         export_signals = []
         refresh_signals = []
