@@ -4,7 +4,7 @@ PyQt6-Qt6>=6.4.0
 PyQt6-sip>=13.4.0
 
 # Database
-sqlite3
+#sqlite3
 
 # Data processing and analysis
 pandas>=1.5.0
