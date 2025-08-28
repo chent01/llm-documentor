@@ -5,6 +5,7 @@ This package contains specialized services for medical software analysis,
 each focused on a single responsibility.
 """
 
+from .analysis_orchestrator import AnalysisOrchestrator
 from .feature_extractor import FeatureExtractor
 from .hazard_identifier import HazardIdentifier
 from .llm_response_parser import LLMResponseParser
@@ -15,6 +16,7 @@ from .traceability_service import TraceabilityService, TraceabilityMatrix
 # Result models moved to medical_analyzer.models
 
 __all__ = [
+    'AnalysisOrchestrator',
     'FeatureExtractor',
     'HazardIdentifier',
     'LLMResponseParser',

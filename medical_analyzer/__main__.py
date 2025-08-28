@@ -181,8 +181,38 @@ def run_gui_mode(config_manager: ConfigManager, app_settings: AppSettings) -> in
     # Set application style
     app.setStyle('Fusion')
     
+    # Create analysis orchestrator
+    from medical_analyzer.services.analysis_orchestrator import AnalysisOrchestrator
+    analysis_orchestrator = AnalysisOrchestrator(config_manager, app_settings)
+    
     # Create and show main window
     main_window = MainWindow(config_manager, app_settings)
+    
+    # Connect the analysis_requested signal to the orchestrator
+    main_window.analysis_requested.connect(analysis_orchestrator.start_analysis)
+    
+    # Connect orchestrator signals to main window for progress updates
+    analysis_orchestrator.analysis_started.connect(
+        lambda path: logger.info(f"Analysis started for: {path}")
+    )
+    analysis_orchestrator.analysis_completed.connect(main_window.analysis_completed)
+    analysis_orchestrator.analysis_failed.connect(main_window.analysis_failed)
+    analysis_orchestrator.progress_updated.connect(
+        lambda percentage: main_window.update_stage_progress("Analysis", percentage, "in_progress")
+    )
+    analysis_orchestrator.stage_started.connect(
+        lambda stage: main_window.update_stage_progress(stage, 0, "in_progress")
+    )
+    analysis_orchestrator.stage_completed.connect(
+        lambda stage, results: main_window.update_stage_progress(stage, 100, "completed")
+    )
+    analysis_orchestrator.stage_failed.connect(
+        lambda stage, error: main_window.update_stage_progress(stage, 0, "failed", error_message=error)
+    )
+    
+    # Connect cancellation signal
+    main_window.analysis_cancelled.connect(analysis_orchestrator.cancel_analysis)
+    
     main_window.show()
     
     logger.info("GUI started successfully")
