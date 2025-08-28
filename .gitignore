@@ -262,3 +262,6 @@ core.*
 
 # PyQt6 specific
 *.qrc.py
+
+#python environment
+llm-doc/

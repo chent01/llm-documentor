@@ -308,21 +308,23 @@ class ConfigManager:
             # Load LLM configuration
             if 'llm' in config_data:
                 llm_data = config_data['llm']
-                self.llm_config_legacy = LLMConfigLegacy(
-                    backend_type=llm_data.get('backend_type', 'mock'),
-                    model_path=llm_data.get('model_path'),
-                    server_url=llm_data.get('server_url'),
-                    api_key=llm_data.get('api_key'),
-                    model_name=llm_data.get('model_name'),
-                    max_tokens=llm_data.get('max_tokens', 1000),
-                    temperature=llm_data.get('temperature', 0.1),
-                    timeout=llm_data.get('timeout', 30),
-                    retry_attempts=llm_data.get('retry_attempts', 3),
-                    batch_size=llm_data.get('batch_size', 8),
-                    context_window=llm_data.get('context_window', 4096),
-                    embedding_model=llm_data.get('embedding_model')
-                )
-                self.llm_config = self.llm_config_legacy.to_backend_config()
+                for llmConfigBackends in llm_data['backends']:
+                    self.llm_config_legacy = LLMConfigLegacy(
+                        backend_type=llmConfigBackends.get('backend_type', 'mock'),
+                        model_path=llmConfigBackends.get('model_path'),
+                        server_url=llmConfigBackends.get('server_url'),
+                        api_key=llmConfigBackends.get('api_key'),
+                        model_name=llmConfigBackends.get('model_name'),
+                        max_tokens=llmConfigBackends.get('max_tokens', 1000),
+                        temperature=llmConfigBackends.get('temperature', 0.1),
+                        timeout=llmConfigBackends.get('timeout', 30),
+                        retry_attempts=llmConfigBackends.get('retry_attempts', 3),
+                        batch_size=llmConfigBackends.get('batch_size', 8),
+                        context_window=llmConfigBackends.get('context_window', 4096),
+                        embedding_model=llmConfigBackends.get('embedding_model')
+                    )
+                    self.llm_config = self.llm_config_legacy.to_backend_config()
+                
             
             # Load database configuration
             if 'database' in config_data:

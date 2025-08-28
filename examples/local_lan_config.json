@@ -1,16 +1,24 @@
 {
     "llm": {
-        "backend_type": "local",
-        "server_url": "http://192.168.1.100:8080",
-        "api_key": "your-api-key-if-required",
-        "model_name": "your-model-name",
-        "max_tokens": 1000,
-        "temperature": 0.1,
-        "timeout": 30,
-        "retry_attempts": 3
+    "backends": [
+        {
+            "backend_type": "local_server",
+            "server_url": "http://192.168.50.3:1234",
+            "api_key": "your-api-key-if-required",
+            "model_name": "your-model-name",
+            "max_tokens": 4000,
+            "temperature": 0.1,
+            "timeout": 30,
+            "retry_attempts": 3
+        }
+    ],
+    "default_temperature": 0.1,
+    "default_max_tokens": 2048,
+    "enable_fallback": true,
+    "chunk_overlap": 200
     },
     "database": {
-        "db_path": "C:/path/to/medical_analyzer.db",
+        "db_path": "./medical_analyzer.db",
         "backup_enabled": true,
         "backup_interval": 7200,
         "max_backups": 5
@@ -43,7 +51,7 @@
         "level": "DEBUG",
         "file_enabled": true,
         "console_enabled": true,
-        "log_file": "C:/logs/medical_analyzer.log",
+        "log_file": "./medical_analyzer.log",
         "max_file_size": 20971520,
         "backup_count": 10,
         "format_string": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -52,6 +60,6 @@
         "auto_update_check": true,
         "update_check_interval": 172800,
         "telemetry_enabled": false,
-        "project_templates_dir": "C:/path/to/templates"
+        "project_templates_dir": "./templates"
     }
 }
