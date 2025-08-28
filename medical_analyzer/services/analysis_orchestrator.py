@@ -63,9 +63,8 @@ class AnalysisOrchestrator(QObject):
         self.llm_backend = None
         
         try:
-            self.llm_backend = LLMBackend.create_from_config(
-                config_manager.get_llm_config()
-            )
+            llm_config = config_manager.get_llm_config()
+            self.llm_backend = self._initialize_llm_backend(llm_config)
         except Exception as e:
             self.logger.warning(f"Failed to initialize LLM backend: {e}")
             # Continue without LLM backend - some features will be limited
@@ -136,45 +135,129 @@ class AnalysisOrchestrator(QObject):
     
     def _run_analysis_pipeline(self):
         """Execute the complete analysis pipeline."""
+        pipeline_errors = []
+        stages_completed = 0
+        total_stages = 8
+        
         try:
-            # Stage 1: Project Ingestion (10%)
-            self._run_stage("Project Ingestion", self._stage_project_ingestion, 10)
+            # Stage 1: Project Ingestion (10%) - CRITICAL STAGE
+            try:
+                self._run_stage("Project Ingestion", self._stage_project_ingestion, 10)
+                stages_completed += 1
+            except Exception as e:
+                error_msg = f"Critical stage 'Project Ingestion' failed: {e}"
+                self.logger.error(error_msg)
+                pipeline_errors.append(error_msg)
+                self.analysis_failed.emit(error_msg)
+                return  # Cannot continue without project ingestion
             
-            # Stage 2: Code Parsing (20%)
-            self._run_stage("Code Parsing", self._stage_code_parsing, 20)
+            # Stage 2: Code Parsing (20%) - CRITICAL STAGE
+            try:
+                self._run_stage("Code Parsing", self._stage_code_parsing, 20)
+                stages_completed += 1
+            except Exception as e:
+                error_msg = f"Critical stage 'Code Parsing' failed: {e}"
+                self.logger.error(error_msg)
+                pipeline_errors.append(error_msg)
+                self.analysis_failed.emit(error_msg)
+                return  # Cannot continue without code parsing
             
-            # Stage 3: Feature Extraction (40%)
+            # Stage 3: Feature Extraction (40%) - OPTIONAL STAGE
             if self.feature_extractor:
-                self._run_stage("Feature Extraction", self._stage_feature_extraction, 40)
+                try:
+                    self._run_stage("Feature Extraction", self._stage_feature_extraction, 40)
+                    stages_completed += 1
+                except Exception as e:
+                    error_msg = f"Feature extraction failed: {e}"
+                    self.logger.warning(error_msg)
+                    pipeline_errors.append(error_msg)
+                    self.stage_failed.emit("Feature Extraction", error_msg)
+                    # Continue with analysis - this stage is optional
+                    self.progress_updated.emit(40)
             else:
-                self.logger.info("Skipping feature extraction - LLM backend not available")
+                self.logger.warning("Skipping feature extraction - LLM backend not available")
+                self.stage_failed.emit("Feature Extraction", "LLM backend not available")
                 self.progress_updated.emit(40)
             
-            # Stage 4: Hazard Identification (60%)
+            # Stage 4: Hazard Identification (60%) - OPTIONAL STAGE
             if self.hazard_identifier:
-                self._run_stage("Hazard Identification", self._stage_hazard_identification, 60)
+                try:
+                    self._run_stage("Hazard Identification", self._stage_hazard_identification, 60)
+                    stages_completed += 1
+                except Exception as e:
+                    error_msg = f"Hazard identification failed: {e}"
+                    self.logger.warning(error_msg)
+                    pipeline_errors.append(error_msg)
+                    self.stage_failed.emit("Hazard Identification", error_msg)
+                    # Continue with analysis - this stage is optional
+                    self.progress_updated.emit(60)
             else:
-                self.logger.info("Skipping hazard identification - LLM backend not available")
+                self.logger.warning("Skipping hazard identification - LLM backend not available")
+                self.stage_failed.emit("Hazard Identification", "LLM backend not available")
                 self.progress_updated.emit(60)
             
-            # Stage 5: Risk Analysis (70%)
-            self._run_stage("Risk Analysis", self._stage_risk_analysis, 70)
+            # Stage 5: Risk Analysis (70%) - OPTIONAL STAGE
+            try:
+                self._run_stage("Risk Analysis", self._stage_risk_analysis, 70)
+                stages_completed += 1
+            except Exception as e:
+                error_msg = f"Risk analysis failed: {e}"
+                self.logger.warning(error_msg)
+                pipeline_errors.append(error_msg)
+                self.stage_failed.emit("Risk Analysis", error_msg)
+                # Continue with analysis - this stage is optional
+                self.progress_updated.emit(70)
             
-            # Stage 6: Test Generation (80%)
-            self._run_stage("Test Generation", self._stage_test_generation, 80)
+            # Stage 6: Test Generation (80%) - OPTIONAL STAGE
+            try:
+                self._run_stage("Test Generation", self._stage_test_generation, 80)
+                stages_completed += 1
+            except Exception as e:
+                error_msg = f"Test generation failed: {e}"
+                self.logger.warning(error_msg)
+                pipeline_errors.append(error_msg)
+                self.stage_failed.emit("Test Generation", error_msg)
+                # Continue with analysis - this stage is optional
+                self.progress_updated.emit(80)
             
-            # Stage 7: Traceability Analysis (90%)
-            self._run_stage("Traceability Analysis", self._stage_traceability_analysis, 90)
+            # Stage 7: Traceability Analysis (90%) - OPTIONAL STAGE
+            try:
+                self._run_stage("Traceability Analysis", self._stage_traceability_analysis, 90)
+                stages_completed += 1
+            except Exception as e:
+                error_msg = f"Traceability analysis failed: {e}"
+                self.logger.warning(error_msg)
+                pipeline_errors.append(error_msg)
+                self.stage_failed.emit("Traceability Analysis", error_msg)
+                # Continue with analysis - this stage is optional
+                self.progress_updated.emit(90)
             
-            # Stage 8: Results Compilation (100%)
-            self._run_stage("Results Compilation", self._stage_results_compilation, 100)
+            # Stage 8: Results Compilation (100%) - ALWAYS RUN
+            try:
+                self._run_stage("Results Compilation", self._stage_results_compilation, 100)
+                stages_completed += 1
+            except Exception as e:
+                error_msg = f"Results compilation failed: {e}"
+                self.logger.error(error_msg)
+                pipeline_errors.append(error_msg)
+                # Even if results compilation fails, we still completed the analysis
             
-            # Analysis completed successfully
+            # Analysis completed (with possible warnings)
+            completion_message = f"Analysis completed with {stages_completed}/{total_stages} stages successful"
+            if pipeline_errors:
+                completion_message += f" ({len(pipeline_errors)} errors/warnings)"
+                self.logger.warning(completion_message)
+                # Add error summary to results
+                self.current_analysis['results']['pipeline_errors'] = pipeline_errors
+                self.current_analysis['results']['stages_completed'] = stages_completed
+                self.current_analysis['results']['total_stages'] = total_stages
+            else:
+                self.logger.info(completion_message)
+            
             self.analysis_completed.emit(self.current_analysis['results'])
-            self.logger.info("Analysis completed successfully")
             
         except Exception as e:
-            self.logger.error(f"Analysis pipeline failed: {e}")
+            self.logger.error(f"Unexpected error in analysis pipeline: {e}")
             self.analysis_failed.emit(str(e))
         finally:
             self.is_running = False
@@ -189,12 +272,15 @@ class AnalysisOrchestrator(QObject):
             self.current_analysis['results'][stage_name.lower().replace(' ', '_')] = results
             self.stage_completed.emit(stage_name, results)
             self.progress_updated.emit(progress_percentage)
-            self.logger.info(f"Completed stage: {stage_name}")
+            self.logger.info(f"Completed stage: {stage_name} successfully")
             
         except Exception as e:
             error_msg = f"Stage '{stage_name}' failed: {str(e)}"
             self.logger.error(error_msg)
             self.stage_failed.emit(stage_name, error_msg)
+            # Add more detailed error information
+            import traceback
+            self.logger.debug(f"Full traceback for {stage_name}: {traceback.format_exc()}")
             raise
     
     def _stage_project_ingestion(self) -> Dict[str, Any]:
@@ -406,9 +492,114 @@ class AnalysisOrchestrator(QObject):
             'services_available': {
                 'llm_backend': self.llm_backend is not None,
                 'feature_extractor': self.feature_extractor is not None,
-                'hazard_identifier': self.hazard_identifier is not None
+                'hazard_identifier': self.hazard_identifier is not None,
+                'ingestion_service': hasattr(self, 'ingestion_service'),
+                'parser_service': hasattr(self, 'parser_service'),
+                'test_generator': hasattr(self, 'test_generator'),
+                'traceability_service': hasattr(self, 'traceability_service'),
+                'risk_register': hasattr(self, 'risk_register')
             }
         }
+    
+    def get_service_capabilities(self) -> Dict[str, Any]:
+        """Get detailed information about service capabilities and limitations."""
+        capabilities = {
+            'critical_services': {
+                'project_ingestion': hasattr(self, 'ingestion_service'),
+                'code_parsing': hasattr(self, 'parser_service')
+            },
+            'optional_services': {
+                'feature_extraction': self.feature_extractor is not None,
+                'hazard_identification': self.hazard_identifier is not None,
+                'risk_analysis': hasattr(self, 'risk_register'),
+                'test_generation': hasattr(self, 'test_generator'),
+                'traceability_analysis': hasattr(self, 'traceability_service')
+            },
+            'llm_dependent_services': {
+                'feature_extraction': {
+                    'available': self.feature_extractor is not None,
+                    'requires_llm': True,
+                    'fallback': 'Analysis will continue without feature extraction'
+                },
+                'hazard_identification': {
+                    'available': self.hazard_identifier is not None,
+                    'requires_llm': True,
+                    'fallback': 'Analysis will continue without hazard identification'
+                }
+            },
+            'limitations': []
+        }
+        
+        # Add limitations based on missing services
+        if not self.llm_backend:
+            capabilities['limitations'].append("LLM backend not available - feature extraction and hazard identification will be skipped")
+        
+        if not capabilities['critical_services']['project_ingestion']:
+            capabilities['limitations'].append("Project ingestion service not available - analysis cannot proceed")
+        
+        if not capabilities['critical_services']['code_parsing']:
+            capabilities['limitations'].append("Code parsing service not available - analysis cannot proceed")
+        
+        return capabilities
+    
+    def _initialize_llm_backend(self, llm_config):
+        """
+        Initialize LLM backend from LLMConfig object.
+        
+        Args:
+            llm_config: LLMConfig object with backend configurations
+            
+        Returns:
+            LLMBackend instance or None if initialization fails
+        """
+        if not hasattr(llm_config, 'get_enabled_backends'):
+            # Handle case where config is a simple dict (legacy)
+            return LLMBackend.create_from_config(llm_config)
+        
+        # Get enabled backends sorted by priority
+        enabled_backends = llm_config.get_enabled_backends()
+        
+        if not enabled_backends:
+            self.logger.warning("No enabled backends found in LLM configuration")
+            return None
+        
+        # Try each backend in priority order
+        for backend_config in enabled_backends:
+            try:
+                self.logger.info(f"Trying to initialize {backend_config.name} backend ({backend_config.backend_type})")
+                
+                # Convert BackendConfig to dict format expected by create_from_config
+                config_dict = backend_config.config.copy()
+                
+                # Map backend_type to the expected backend key
+                if backend_config.backend_type == 'LocalServerBackend':
+                    config_dict['backend'] = 'local_server'
+                elif backend_config.backend_type == 'LlamaCppBackend':
+                    config_dict['backend'] = 'llama_cpp'
+                else:
+                    config_dict['backend'] = 'fallback'
+                
+                # Add default values from LLMConfig
+                config_dict.setdefault('temperature', llm_config.default_temperature)
+                config_dict.setdefault('max_tokens', llm_config.default_max_tokens)
+                
+                # Try to create the backend
+                backend = LLMBackend.create_from_config(config_dict)
+                
+                # Test if backend is available
+                if backend.is_available():
+                    self.logger.info(f"Successfully initialized {backend_config.name} backend")
+                    return backend
+                else:
+                    self.logger.warning(f"{backend_config.name} backend not available")
+                    
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize {backend_config.name} backend: {e}")
+                continue
+        
+        # If no backends worked, return None
+        self.logger.error("All LLM backends failed to initialize")
+        return None
     
     def _get_file_type_summary(self, file_paths: List[str]) -> Dict[str, int]:
         """
