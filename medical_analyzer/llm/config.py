@@ -136,7 +136,7 @@ class LLMConfig:
                 enabled=True,
                 priority=2,
                 config={
-                    "base_url": "http://localhost:8080",
+                    "base_url": "http://localhost:1234",
                     "api_key": "",
                     "timeout": 30
                 }

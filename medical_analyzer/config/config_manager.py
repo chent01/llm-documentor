@@ -11,13 +11,14 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, asdict
 import logging
+from ..llm.config import LLMConfig as LLMBackendConfig, BackendConfig
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class LLMConfig:
-    """Configuration for LLM backend settings."""
+class LLMConfigLegacy:
+    """Legacy configuration for LLM backend settings - kept for backward compatibility."""
     backend_type: str  # 'mock', 'llama_cpp', 'local_server', 'openai', 'anthropic'
     model_path: Optional[str] = None
     server_url: Optional[str] = None
@@ -48,6 +49,53 @@ class LLMConfig:
         if self.backend_type in ['openai', 'anthropic'] and not self.api_key:
             logger.error(f"API key is required for {self.backend_type} backend")
             return False
+    
+    def to_backend_config(self) -> LLMBackendConfig:
+        """Convert legacy config to new backend config format."""
+        backends = []
+        
+        # Create backend config based on backend_type
+        if self.backend_type == 'llama_cpp':
+            backends.append(BackendConfig(
+                name="llama-cpp",
+                backend_type="LlamaCppBackend",
+                enabled=True,
+                priority=3,
+                config={
+                    "model_path": self.model_path or "",
+                    "n_ctx": self.context_window,
+                    "n_threads": -1,
+                    "verbose": False
+                }
+            ))
+        elif self.backend_type == 'local_server':
+            backends.append(BackendConfig(
+                name="local-server",
+                backend_type="LocalServerBackend",
+                enabled=True,
+                priority=2,
+                config={
+                    "base_url": self.server_url or "http://localhost:8080",
+                    "api_key": self.api_key or "",
+                    "timeout": self.timeout
+                }
+            ))
+        
+        # Always add fallback backend
+        backends.append(BackendConfig(
+            name="fallback",
+            backend_type="FallbackLLMBackend",
+            enabled=True,
+            priority=1,
+            config={}
+        ))
+        
+        return LLMBackendConfig(
+            backends=backends,
+            default_temperature=self.temperature,
+            default_max_tokens=self.max_tokens,
+            enable_fallback=True
+        )
             
         return True
 
@@ -125,7 +173,8 @@ class ConfigManager:
         self.user_config_file = self.config_dir / "user_config.json"
         
         # Default configurations
-        self.llm_config = LLMConfig(backend_type="mock")
+        self.llm_config_legacy = LLMConfigLegacy(backend_type="mock")
+        self.llm_config = self._create_default_llm_config()
         self.database_config = DatabaseConfig()
         self.export_config = ExportConfig()
         self.ui_config = UIConfig()
@@ -188,13 +237,14 @@ class ConfigManager:
             logger.info("No default configuration template found, using built-in defaults")
             
             # Set default LLM configuration if no template found
-            self.llm_config = LLMConfig(
-            backend_type="mock",
-            max_tokens=1000,
-            temperature=0.1,
-            timeout=30,
-            retry_attempts=3
-        )
+            self.llm_config_legacy = LLMConfigLegacy(
+                backend_type="mock",
+                max_tokens=1000,
+                temperature=0.1,
+                timeout=30,
+                retry_attempts=3
+            )
+            self.llm_config = self.llm_config_legacy.to_backend_config()
         
         # Set default database configuration
         db_path = self.config_dir / "medical_analyzer.db"
@@ -258,7 +308,7 @@ class ConfigManager:
             # Load LLM configuration
             if 'llm' in config_data:
                 llm_data = config_data['llm']
-                self.llm_config = LLMConfig(
+                self.llm_config_legacy = LLMConfigLegacy(
                     backend_type=llm_data.get('backend_type', 'mock'),
                     model_path=llm_data.get('model_path'),
                     server_url=llm_data.get('server_url'),
@@ -272,6 +322,7 @@ class ConfigManager:
                     context_window=llm_data.get('context_window', 4096),
                     embedding_model=llm_data.get('embedding_model')
                 )
+                self.llm_config = self.llm_config_legacy.to_backend_config()
             
             # Load database configuration
             if 'database' in config_data:
@@ -384,7 +435,7 @@ class ConfigManager:
         # Apply LLM configuration
         if 'llm' in config_data:
             llm_data = config_data['llm']
-            self.llm_config = LLMConfig(
+            self.llm_config_legacy = LLMConfigLegacy(
                 backend_type=llm_data.get('backend_type', 'mock'),
                 model_path=llm_data.get('model_path'),
                 server_url=llm_data.get('server_url'),
@@ -398,6 +449,7 @@ class ConfigManager:
                 context_window=llm_data.get('context_window', 4096),
                 embedding_model=llm_data.get('embedding_model')
             )
+            self.llm_config = self.llm_config_legacy.to_backend_config()
         
         # Apply database configuration
         if 'database' in config_data:
@@ -462,9 +514,13 @@ class ConfigManager:
         if 'custom' in config_data:
             self.custom_settings = config_data['custom']
     
-    def get_llm_config(self) -> Dict[str, Any]:
-        """Get LLM configuration as a dictionary."""
-        return asdict(self.llm_config)
+    def get_llm_config(self) -> LLMBackendConfig:
+        """Get LLM configuration as LLMBackendConfig object."""
+        return self.llm_config
+    
+    def _create_default_llm_config(self) -> LLMBackendConfig:
+        """Create default LLM configuration with fallback backend."""
+        return LLMBackendConfig.get_default_config()
     
     def get_database_config(self) -> Dict[str, Any]:
         """Get database configuration as a dictionary."""

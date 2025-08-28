@@ -507,7 +507,42 @@ def run_headless_mode(config_manager: ConfigManager, app_settings: AppSettings, 
         
         # Initialize services
         db_manager = DatabaseManager(db_path=":memory:")
-        llm_backend = LLMBackend.create_from_config(config_manager.get_llm_config())
+        
+        # Initialize LLM backend using the same approach as AnalysisOrchestrator
+        llm_config = config_manager.get_llm_config()
+        llm_backend = None
+        
+        if hasattr(llm_config, 'get_enabled_backends'):
+            # New LLMBackendConfig format
+            enabled_backends = llm_config.get_enabled_backends()
+            for backend_config in enabled_backends:
+                try:
+                    config_dict = backend_config.config.copy()
+                    
+                    # Map backend_type to the expected backend key
+                    if backend_config.backend_type == 'LocalServerBackend':
+                        config_dict['backend'] = 'local_server'
+                    elif backend_config.backend_type == 'LlamaCppBackend':
+                        config_dict['backend'] = 'llama_cpp'
+                    else:
+                        config_dict['backend'] = 'fallback'
+                    
+                    config_dict.setdefault('temperature', llm_config.default_temperature)
+                    config_dict.setdefault('max_tokens', llm_config.default_max_tokens)
+                    
+                    backend = LLMBackend.create_from_config(config_dict)
+                    if backend.is_available():
+                        llm_backend = backend
+                        break
+                except Exception:
+                    continue
+        else:
+            # Legacy dict format
+            llm_backend = LLMBackend.create_from_config(llm_config)
+        
+        if llm_backend is None:
+            # Fallback to mock backend
+            llm_backend = LLMBackend.create_from_config({'backend': 'fallback'})
         
         ingestion_service = IngestionService()
         parser_service = ParserService()
