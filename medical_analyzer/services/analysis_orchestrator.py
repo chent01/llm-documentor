@@ -466,12 +466,22 @@ class AnalysisOrchestrator(QObject):
             software_requirements = []
             
             for i, feature in enumerate(features):
+                # Handle both object and dictionary formats
+                if isinstance(feature, dict):
+                    feature_id = feature.get('id', f"F-{i+1:03d}")
+                    feature_desc = feature.get('description', str(feature))
+                    feature_evidence = feature.get('evidence', [])
+                else:
+                    feature_id = getattr(feature, 'id', f"F-{i+1:03d}")
+                    feature_desc = getattr(feature, 'description', str(feature))
+                    feature_evidence = getattr(feature, 'evidence', [])
+                
                 # Create user requirement from feature
                 ur_id = f"UR-{i+1:03d}"
                 user_req = {
                     'id': ur_id,
-                    'description': getattr(feature, 'description', str(feature)),
-                    'acceptance_criteria': [f"Feature {getattr(feature, 'id', i+1)} shall be implemented"],
+                    'description': feature_desc,
+                    'acceptance_criteria': [f"Feature {feature_id} shall be implemented"],
                     'derived_from': []
                 }
                 user_requirements.append(user_req)
@@ -480,9 +490,9 @@ class AnalysisOrchestrator(QObject):
                 sr_id = f"SR-{i+1:03d}"
                 software_req = {
                     'id': sr_id,
-                    'description': f"System shall implement {getattr(feature, 'description', str(feature))}",
+                    'description': f"System shall implement {feature_desc}",
                     'derived_from': [ur_id],
-                    'code_references': getattr(feature, 'evidence', [])
+                    'code_references': feature_evidence
                 }
                 software_requirements.append(software_req)
             
@@ -490,42 +500,79 @@ class AnalysisOrchestrator(QObject):
                 'user_requirements': user_requirements,
                 'software_requirements': software_requirements
             }
+        else:
+            final_results['requirements'] = {
+                'user_requirements': [],
+                'software_requirements': []
+            }
         
         # Extract risks from hazard identification and risk analysis
         risks = []
         if 'hazard_identification' in results:
             hazards = results['hazard_identification'].get('hazards', [])
-            for hazard in hazards:
-                risk_item = {
-                    'id': getattr(hazard, 'id', f"R-{len(risks)+1:03d}"),
-                    'hazard': getattr(hazard, 'hazard', str(hazard)),
-                    'cause': getattr(hazard, 'cause', 'Unknown cause'),
-                    'effect': getattr(hazard, 'effect', 'Unknown effect'),
-                    'severity': getattr(hazard, 'severity', 'Minor'),
-                    'probability': getattr(hazard, 'probability', 'Low'),
-                    'risk_level': getattr(hazard, 'risk_level', 'Low'),
-                    'mitigation': getattr(hazard, 'mitigation', 'To be determined'),
-                    'verification': getattr(hazard, 'verification', 'To be determined'),
-                    'related_requirements': getattr(hazard, 'related_requirements', [])
-                }
+            for i, hazard in enumerate(hazards):
+                # Handle both object and dictionary formats
+                if isinstance(hazard, dict):
+                    risk_item = {
+                        'id': hazard.get('id', f"R-{len(risks)+1:03d}"),
+                        'hazard': hazard.get('hazard', str(hazard)),
+                        'cause': hazard.get('cause', 'Unknown cause'),
+                        'effect': hazard.get('effect', 'Unknown effect'),
+                        'severity': hazard.get('severity', 'Minor'),
+                        'probability': hazard.get('probability', 'Low'),
+                        'risk_level': hazard.get('risk_level', 'Low'),
+                        'mitigation': hazard.get('mitigation', 'To be determined'),
+                        'verification': hazard.get('verification', 'To be determined'),
+                        'related_requirements': hazard.get('related_requirements', [])
+                    }
+                else:
+                    # Handle object format
+                    risk_item = {
+                        'id': getattr(hazard, 'id', f"R-{len(risks)+1:03d}"),
+                        'hazard': getattr(hazard, 'hazard', str(hazard)),
+                        'cause': getattr(hazard, 'cause', 'Unknown cause'),
+                        'effect': getattr(hazard, 'effect', 'Unknown effect'),
+                        'severity': str(getattr(hazard, 'severity', 'Minor')),
+                        'probability': str(getattr(hazard, 'probability', 'Low')),
+                        'risk_level': str(getattr(hazard, 'risk_level', 'Low')),
+                        'mitigation': getattr(hazard, 'mitigation', 'To be determined'),
+                        'verification': getattr(hazard, 'verification', 'To be determined'),
+                        'related_requirements': getattr(hazard, 'related_requirements', [])
+                    }
                 risks.append(risk_item)
         
         if 'risk_analysis' in results and 'risk_register' in results['risk_analysis']:
             risk_register = results['risk_analysis']['risk_register']
             if hasattr(risk_register, 'risk_items'):
                 for risk in risk_register.risk_items:
-                    risk_item = {
-                        'id': getattr(risk, 'id', f"R-{len(risks)+1:03d}"),
-                        'hazard': getattr(risk, 'hazard', str(risk)),
-                        'cause': getattr(risk, 'cause', 'Unknown cause'),
-                        'effect': getattr(risk, 'effect', 'Unknown effect'),
-                        'severity': getattr(risk, 'severity', 'Minor'),
-                        'probability': getattr(risk, 'probability', 'Low'),
-                        'risk_level': getattr(risk, 'risk_level', 'Low'),
-                        'mitigation': getattr(risk, 'mitigation', 'To be determined'),
-                        'verification': getattr(risk, 'verification', 'To be determined'),
-                        'related_requirements': getattr(risk, 'related_requirements', [])
-                    }
+                    # Handle both object and dictionary formats
+                    if isinstance(risk, dict):
+                        risk_item = {
+                            'id': risk.get('id', f"R-{len(risks)+1:03d}"),
+                            'hazard': risk.get('hazard', str(risk)),
+                            'cause': risk.get('cause', 'Unknown cause'),
+                            'effect': risk.get('effect', 'Unknown effect'),
+                            'severity': risk.get('severity', 'Minor'),
+                            'probability': risk.get('probability', 'Low'),
+                            'risk_level': risk.get('risk_level', 'Low'),
+                            'mitigation': risk.get('mitigation', 'To be determined'),
+                            'verification': risk.get('verification', 'To be determined'),
+                            'related_requirements': risk.get('related_requirements', [])
+                        }
+                    else:
+                        # Handle object format
+                        risk_item = {
+                            'id': getattr(risk, 'id', f"R-{len(risks)+1:03d}"),
+                            'hazard': getattr(risk, 'hazard', str(risk)),
+                            'cause': getattr(risk, 'cause', 'Unknown cause'),
+                            'effect': getattr(risk, 'effect', 'Unknown effect'),
+                            'severity': str(getattr(risk, 'severity', 'Minor')),
+                            'probability': str(getattr(risk, 'probability', 'Low')),
+                            'risk_level': str(getattr(risk, 'risk_level', 'Low')),
+                            'mitigation': getattr(risk, 'mitigation', 'To be determined'),
+                            'verification': getattr(risk, 'verification', 'To be determined'),
+                            'related_requirements': getattr(risk, 'related_requirements', [])
+                        }
                     risks.append(risk_item)
         
         final_results['risks'] = risks
@@ -533,15 +580,51 @@ class AnalysisOrchestrator(QObject):
         # Extract traceability matrix
         if 'traceability_analysis' in results:
             traceability_matrix = results['traceability_analysis'].get('traceability_matrix')
-            if traceability_matrix:
+            if traceability_matrix and hasattr(traceability_matrix, 'links'):
+                # Convert TraceabilityMatrix object to dictionary format expected by GUI
+                matrix_dict = {
+                    'metadata': getattr(traceability_matrix, 'metadata', {}),
+                    'links': getattr(traceability_matrix, 'links', []),
+                    'code_to_requirements': getattr(traceability_matrix, 'code_to_requirements', {}),
+                    'user_to_software_requirements': getattr(traceability_matrix, 'user_to_software_requirements', {}),
+                    'requirements_to_risks': getattr(traceability_matrix, 'requirements_to_risks', {})
+                }
+                
+                # Generate matrix rows for tabular display
+                matrix_rows = []
+                if hasattr(traceability_matrix, 'links'):
+                    for link in traceability_matrix.links:
+                        row = {
+                            'source_type': getattr(link, 'source_type', ''),
+                            'source_id': getattr(link, 'source_id', ''),
+                            'target_type': getattr(link, 'target_type', ''),
+                            'target_id': getattr(link, 'target_id', ''),
+                            'link_type': getattr(link, 'link_type', ''),
+                            'confidence': getattr(link, 'confidence', 0.0),
+                            'metadata': getattr(link, 'metadata', {})
+                        }
+                        matrix_rows.append(row)
+                
                 final_results['traceability'] = {
-                    'matrix': traceability_matrix,
-                    'total_links': results['traceability_analysis'].get('total_links', 0)
+                    'matrix': matrix_dict,
+                    'matrix_rows': matrix_rows,
+                    'gaps': [],  # TODO: Implement gap analysis
+                    'total_links': len(getattr(traceability_matrix, 'links', []))
                 }
             else:
-                final_results['traceability'] = {'matrix': None, 'total_links': 0}
+                final_results['traceability'] = {
+                    'matrix': {'metadata': {}, 'links': []}, 
+                    'matrix_rows': [],
+                    'gaps': [],
+                    'total_links': 0
+                }
         else:
-            final_results['traceability'] = {'matrix': None, 'total_links': 0}
+            final_results['traceability'] = {
+                'matrix': {'metadata': {}, 'links': []}, 
+                'matrix_rows': [],
+                'gaps': [],
+                'total_links': 0
+            }
         
         # Extract test results
         if 'test_generation' in results:
