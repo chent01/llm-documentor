@@ -59,7 +59,7 @@ class AnalysisOrchestrator(QObject):
         self.app_settings = app_settings
         
         # Initialize database and LLM backend
-        self.db_manager = DatabaseManager(db_path=":memory:")
+        self.db_manager = DatabaseManager(db_path="medical_analyzer.db")
         self.llm_backend = None
         
         try:
@@ -254,7 +254,24 @@ class AnalysisOrchestrator(QObject):
             else:
                 self.logger.info(completion_message)
             
-            self.analysis_completed.emit(self.current_analysis['results'])
+            # Emit the compiled final results instead of raw stage results
+            final_results = self.current_analysis['results'].get('results_compilation', {})
+            if not final_results:
+                # Fallback: if results compilation failed, create a minimal structure
+                final_results = {
+                    'summary': self._generate_analysis_summary(),
+                    'requirements': {'user_requirements': [], 'software_requirements': []},
+                    'risks': [],
+                    'traceability': {'matrix': None, 'total_links': 0},
+                    'tests': {'total_tests': 0, 'test_frameworks': [], 'passed_tests': 0, 'failed_tests': 0, 'skipped_tests': 0},
+                    'analysis_stages': self.current_analysis['results']
+                }
+                if pipeline_errors:
+                    final_results['summary']['pipeline_errors'] = pipeline_errors
+                    final_results['summary']['stages_completed'] = stages_completed
+                    final_results['summary']['total_stages'] = total_stages
+            
+            self.analysis_completed.emit(final_results)
             
         except Exception as e:
             self.logger.error(f"Unexpected error in analysis pipeline: {e}")
@@ -432,12 +449,123 @@ class AnalysisOrchestrator(QObject):
     def _stage_results_compilation(self) -> Dict[str, Any]:
         """Stage 8: Compile and prepare final results."""
         # Compile all results into a comprehensive analysis result
+        results = self.current_analysis['results']
+        
+        # Extract and format results for GUI consumption
         final_results = {
             'project_path': self.current_analysis['project_path'],
             'description': self.current_analysis['description'],
-            'analysis_stages': self.current_analysis['results'],
             'summary': self._generate_analysis_summary()
         }
+        
+        # Extract requirements from feature extraction if available
+        if 'feature_extraction' in results:
+            features = results['feature_extraction'].get('features', [])
+            # Convert features to requirements format for GUI
+            user_requirements = []
+            software_requirements = []
+            
+            for i, feature in enumerate(features):
+                # Create user requirement from feature
+                ur_id = f"UR-{i+1:03d}"
+                user_req = {
+                    'id': ur_id,
+                    'description': getattr(feature, 'description', str(feature)),
+                    'acceptance_criteria': [f"Feature {getattr(feature, 'id', i+1)} shall be implemented"],
+                    'derived_from': []
+                }
+                user_requirements.append(user_req)
+                
+                # Create corresponding software requirement
+                sr_id = f"SR-{i+1:03d}"
+                software_req = {
+                    'id': sr_id,
+                    'description': f"System shall implement {getattr(feature, 'description', str(feature))}",
+                    'derived_from': [ur_id],
+                    'code_references': getattr(feature, 'evidence', [])
+                }
+                software_requirements.append(software_req)
+            
+            final_results['requirements'] = {
+                'user_requirements': user_requirements,
+                'software_requirements': software_requirements
+            }
+        
+        # Extract risks from hazard identification and risk analysis
+        risks = []
+        if 'hazard_identification' in results:
+            hazards = results['hazard_identification'].get('hazards', [])
+            for hazard in hazards:
+                risk_item = {
+                    'id': getattr(hazard, 'id', f"R-{len(risks)+1:03d}"),
+                    'hazard': getattr(hazard, 'hazard', str(hazard)),
+                    'cause': getattr(hazard, 'cause', 'Unknown cause'),
+                    'effect': getattr(hazard, 'effect', 'Unknown effect'),
+                    'severity': getattr(hazard, 'severity', 'Minor'),
+                    'probability': getattr(hazard, 'probability', 'Low'),
+                    'risk_level': getattr(hazard, 'risk_level', 'Low'),
+                    'mitigation': getattr(hazard, 'mitigation', 'To be determined'),
+                    'verification': getattr(hazard, 'verification', 'To be determined'),
+                    'related_requirements': getattr(hazard, 'related_requirements', [])
+                }
+                risks.append(risk_item)
+        
+        if 'risk_analysis' in results and 'risk_register' in results['risk_analysis']:
+            risk_register = results['risk_analysis']['risk_register']
+            if hasattr(risk_register, 'risk_items'):
+                for risk in risk_register.risk_items:
+                    risk_item = {
+                        'id': getattr(risk, 'id', f"R-{len(risks)+1:03d}"),
+                        'hazard': getattr(risk, 'hazard', str(risk)),
+                        'cause': getattr(risk, 'cause', 'Unknown cause'),
+                        'effect': getattr(risk, 'effect', 'Unknown effect'),
+                        'severity': getattr(risk, 'severity', 'Minor'),
+                        'probability': getattr(risk, 'probability', 'Low'),
+                        'risk_level': getattr(risk, 'risk_level', 'Low'),
+                        'mitigation': getattr(risk, 'mitigation', 'To be determined'),
+                        'verification': getattr(risk, 'verification', 'To be determined'),
+                        'related_requirements': getattr(risk, 'related_requirements', [])
+                    }
+                    risks.append(risk_item)
+        
+        final_results['risks'] = risks
+        
+        # Extract traceability matrix
+        if 'traceability_analysis' in results:
+            traceability_matrix = results['traceability_analysis'].get('traceability_matrix')
+            if traceability_matrix:
+                final_results['traceability'] = {
+                    'matrix': traceability_matrix,
+                    'total_links': results['traceability_analysis'].get('total_links', 0)
+                }
+            else:
+                final_results['traceability'] = {'matrix': None, 'total_links': 0}
+        else:
+            final_results['traceability'] = {'matrix': None, 'total_links': 0}
+        
+        # Extract test results
+        if 'test_generation' in results:
+            test_suite = results['test_generation'].get('test_suite')
+            final_results['tests'] = {
+                'total_tests': results['test_generation'].get('total_tests', 0),
+                'test_frameworks': results['test_generation'].get('test_frameworks', []),
+                'test_suite': test_suite,
+                'passed_tests': 0,  # Will be updated when tests are actually run
+                'failed_tests': 0,
+                'skipped_tests': 0
+            }
+        else:
+            final_results['tests'] = {
+                'total_tests': 0,
+                'test_frameworks': [],
+                'test_suite': None,
+                'passed_tests': 0,
+                'failed_tests': 0,
+                'skipped_tests': 0
+            }
+        
+        # Keep the raw analysis stages for debugging/export
+        final_results['analysis_stages'] = results
         
         return final_results
     
