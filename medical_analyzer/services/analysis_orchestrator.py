@@ -465,36 +465,48 @@ class AnalysisOrchestrator(QObject):
             user_requirements = []
             software_requirements = []
             
-            for i, feature in enumerate(features):
-                # Handle both object and dictionary formats
-                if isinstance(feature, dict):
-                    feature_id = feature.get('id', f"F-{i+1:03d}")
-                    feature_desc = feature.get('description', str(feature))
-                    feature_evidence = feature.get('evidence', [])
-                else:
-                    feature_id = getattr(feature, 'id', f"F-{i+1:03d}")
-                    feature_desc = getattr(feature, 'description', str(feature))
-                    feature_evidence = getattr(feature, 'evidence', [])
+            # Group features by category to create more meaningful requirements
+            feature_categories = self._categorize_features(features)
+            
+            ur_counter = 1
+            sr_counter = 1
+            
+            for category, category_features in feature_categories.items():
+                if not category_features:
+                    continue
                 
-                # Create user requirement from feature
-                ur_id = f"UR-{i+1:03d}"
+                # Create user requirement for this category
+                ur_id = f"UR-{ur_counter:03d}"
                 user_req = {
                     'id': ur_id,
-                    'description': feature_desc,
-                    'acceptance_criteria': [f"Feature {feature_id} shall be implemented"],
+                    'description': self._generate_user_requirement_description(category, category_features),
+                    'acceptance_criteria': self._generate_acceptance_criteria(category, category_features),
                     'derived_from': []
                 }
                 user_requirements.append(user_req)
+                ur_counter += 1
                 
-                # Create corresponding software requirement
-                sr_id = f"SR-{i+1:03d}"
-                software_req = {
-                    'id': sr_id,
-                    'description': f"System shall implement {feature_desc}",
-                    'derived_from': [ur_id],
-                    'code_references': feature_evidence
-                }
-                software_requirements.append(software_req)
+                # Create software requirements for individual features in this category
+                for feature in category_features:
+                    # Handle both object and dictionary formats
+                    if isinstance(feature, dict):
+                        feature_id = feature.get('id', f"F-{sr_counter:03d}")
+                        feature_desc = feature.get('description', str(feature))
+                        feature_evidence = feature.get('evidence', [])
+                    else:
+                        feature_id = getattr(feature, 'id', f"F-{sr_counter:03d}")
+                        feature_desc = getattr(feature, 'description', str(feature))
+                        feature_evidence = getattr(feature, 'evidence', [])
+                    
+                    sr_id = f"SR-{sr_counter:03d}"
+                    software_req = {
+                        'id': sr_id,
+                        'description': self._generate_software_requirement_description(feature_desc),
+                        'derived_from': [ur_id],
+                        'code_references': feature_evidence
+                    }
+                    software_requirements.append(software_req)
+                    sr_counter += 1
             
             final_results['requirements'] = {
                 'user_requirements': user_requirements,
@@ -656,36 +668,239 @@ class AnalysisOrchestrator(QObject):
         """Generate a summary of the analysis results."""
         results = self.current_analysis['results']
         
-        summary = {
-            'total_files_analyzed': 0,
-            'total_code_chunks': 0,
-            'total_features': 0,
-            'total_hazards': 0,
-            'total_risks': 0,
-            'total_tests': 0,
-            'analysis_stages_completed': len(results)
-        }
+        # Count totals from each stage
+        total_files = 0
+        total_features = 0
+        total_hazards = 0
+        total_risks = 0
+        total_tests = 0
         
-        # Extract counts from each stage
         if 'project_ingestion' in results:
-            summary['total_files_analyzed'] = results['project_ingestion']['total_files']
-        
-        if 'code_parsing' in results:
-            summary['total_code_chunks'] = results['code_parsing']['total_chunks']
+            total_files = results['project_ingestion']['total_files']
         
         if 'feature_extraction' in results:
-            summary['total_features'] = results['feature_extraction']['total_features']
+            total_features = results['feature_extraction']['total_features']
         
         if 'hazard_identification' in results:
-            summary['total_hazards'] = results['hazard_identification']['total_hazards']
+            total_hazards = results['hazard_identification']['total_hazards']
         
         if 'risk_analysis' in results:
-            summary['total_risks'] = results['risk_analysis']['total_risks']
+            total_risks = results['risk_analysis']['total_risks']
         
         if 'test_generation' in results:
-            summary['total_tests'] = results['test_generation']['total_tests']
+            total_tests = results['test_generation']['total_tests']
+        
+        # Generate summary in the format expected by the UI
+        summary = {
+            'project_path': self.current_analysis.get('project_path', 'Unknown'),
+            'files_analyzed': total_files,
+            'analysis_date': self._get_current_timestamp(),
+            'features_found': total_features,
+            'requirements_generated': total_features * 2,  # UR + SR for each feature
+            'risks_identified': total_risks,
+            'confidence': self._calculate_overall_confidence(),
+            'errors': [],
+            'warnings': []
+        }
+        
+        # Add pipeline errors if any
+        if 'pipeline_errors' in self.current_analysis.get('results', {}):
+            pipeline_errors = self.current_analysis['results']['pipeline_errors']
+            summary['errors'] = pipeline_errors
+        
+        # Add warnings for low confidence or missing data
+        if total_features == 0:
+            summary['warnings'].append("No features extracted - check if supported file types are present")
+        
+        if total_risks == 0:
+            summary['warnings'].append("No risks identified - manual risk assessment recommended")
+        
+        if summary['confidence'] < 70:
+            summary['warnings'].append("Low overall confidence - results may need manual review")
         
         return summary
+    
+    def _calculate_overall_confidence(self) -> int:
+        """Calculate overall confidence score based on analysis results."""
+        results = self.current_analysis['results']
+        confidence_scores = []
+        
+        # Base confidence on successful stages
+        total_stages = 8  # Total expected stages
+        completed_stages = len([k for k in results.keys() if not k.startswith('pipeline')])
+        stage_confidence = (completed_stages / total_stages) * 100
+        confidence_scores.append(stage_confidence)
+        
+        # Factor in feature extraction confidence if available
+        if 'feature_extraction' in results:
+            metadata = results['feature_extraction'].get('extraction_metadata', {})
+            if 'confidence' in metadata:
+                confidence_scores.append(metadata['confidence'] * 100)
+        
+        # Factor in hazard identification confidence if available
+        if 'hazard_identification' in results:
+            metadata = results['hazard_identification'].get('identification_metadata', {})
+            if 'confidence' in metadata:
+                confidence_scores.append(metadata['confidence'] * 100)
+        
+        # Return average confidence, or stage confidence if no other scores
+        if confidence_scores:
+            return int(sum(confidence_scores) / len(confidence_scores))
+        else:
+            return int(stage_confidence)
+    
+    def _get_current_timestamp(self) -> str:
+        """Get current timestamp in a readable format."""
+        from datetime import datetime
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    def _categorize_features(self, features: List) -> Dict[str, List]:
+        """Categorize features into logical groups for better requirement organization."""
+        categories = {
+            'authentication': [],
+            'data_management': [],
+            'user_interface': [],
+            'monitoring': [],
+            'communication': [],
+            'security': [],
+            'configuration': [],
+            'general': []
+        }
+        
+        for feature in features:
+            # Handle both object and dictionary formats
+            if isinstance(feature, dict):
+                feature_desc = feature.get('description', str(feature)).lower()
+            else:
+                feature_desc = getattr(feature, 'description', str(feature)).lower()
+            
+            # Categorize based on keywords in description
+            if any(keyword in feature_desc for keyword in ['auth', 'login', 'password', 'credential', 'session']):
+                categories['authentication'].append(feature)
+            elif any(keyword in feature_desc for keyword in ['data', 'database', 'storage', 'save', 'load', 'file']):
+                categories['data_management'].append(feature)
+            elif any(keyword in feature_desc for keyword in ['ui', 'interface', 'display', 'window', 'dialog', 'button']):
+                categories['user_interface'].append(feature)
+            elif any(keyword in feature_desc for keyword in ['monitor', 'track', 'watch', 'observe', 'sensor']):
+                categories['monitoring'].append(feature)
+            elif any(keyword in feature_desc for keyword in ['network', 'communication', 'message', 'protocol', 'api']):
+                categories['communication'].append(feature)
+            elif any(keyword in feature_desc for keyword in ['security', 'encrypt', 'decrypt', 'secure', 'protection']):
+                categories['security'].append(feature)
+            elif any(keyword in feature_desc for keyword in ['config', 'setting', 'parameter', 'option', 'preference']):
+                categories['configuration'].append(feature)
+            else:
+                categories['general'].append(feature)
+        
+        # Remove empty categories
+        return {k: v for k, v in categories.items() if v}
+    
+    def _generate_user_requirement_description(self, category: str, features: List) -> str:
+        """Generate a meaningful user requirement description for a category of features."""
+        category_descriptions = {
+            'authentication': 'The system shall provide secure user authentication and session management',
+            'data_management': 'The system shall provide reliable data storage and retrieval capabilities',
+            'user_interface': 'The system shall provide an intuitive and responsive user interface',
+            'monitoring': 'The system shall provide comprehensive monitoring and tracking capabilities',
+            'communication': 'The system shall provide reliable communication and networking features',
+            'security': 'The system shall implement robust security measures to protect data and operations',
+            'configuration': 'The system shall provide flexible configuration and customization options',
+            'general': 'The system shall provide core functionality to support user operations'
+        }
+        
+        return category_descriptions.get(category, f'The system shall provide {category} functionality')
+    
+    def _generate_acceptance_criteria(self, category: str, features: List) -> List[str]:
+        """Generate meaningful acceptance criteria for a category of features."""
+        criteria_templates = {
+            'authentication': [
+                'System shall validate user credentials securely',
+                'System shall manage user sessions appropriately',
+                'System shall handle authentication failures gracefully'
+            ],
+            'data_management': [
+                'System shall store data reliably and securely',
+                'System shall retrieve data efficiently',
+                'System shall handle data validation and integrity checks'
+            ],
+            'user_interface': [
+                'Interface shall be responsive and user-friendly',
+                'Interface shall provide clear feedback to user actions',
+                'Interface shall be accessible and follow usability standards'
+            ],
+            'monitoring': [
+                'System shall monitor relevant parameters continuously',
+                'System shall provide alerts for abnormal conditions',
+                'System shall maintain monitoring data for analysis'
+            ],
+            'communication': [
+                'System shall establish reliable communication channels',
+                'System shall handle communication errors gracefully',
+                'System shall maintain data integrity during transmission'
+            ],
+            'security': [
+                'System shall protect against unauthorized access',
+                'System shall encrypt sensitive data appropriately',
+                'System shall maintain audit trails for security events'
+            ],
+            'configuration': [
+                'System shall allow authorized configuration changes',
+                'System shall validate configuration parameters',
+                'System shall maintain configuration consistency'
+            ],
+            'general': [
+                'System shall perform required functionality reliably',
+                'System shall handle errors and exceptions appropriately',
+                'System shall meet performance requirements'
+            ]
+        }
+        
+        base_criteria = criteria_templates.get(category, ['System shall meet functional requirements'])
+        
+        # Add feature-specific criteria
+        feature_criteria = []
+        for i, feature in enumerate(features[:3]):  # Limit to first 3 features to avoid too many criteria
+            if isinstance(feature, dict):
+                feature_desc = feature.get('description', str(feature))
+            else:
+                feature_desc = getattr(feature, 'description', str(feature))
+            
+            # Create a specific criterion for this feature
+            feature_criteria.append(f"System shall implement {feature_desc.lower()}")
+        
+        return base_criteria + feature_criteria
+    
+    def _generate_software_requirement_description(self, feature_desc: str) -> str:
+        """Generate a more specific software requirement description from a feature."""
+        # Clean up the feature description and make it more technical
+        if not feature_desc or len(feature_desc.strip()) == 0:
+            return "Software component shall implement required functionality"
+        
+        # Make it more specific and technical
+        feature_lower = feature_desc.lower().strip()
+        
+        if 'function' in feature_lower:
+            return f"Software shall implement {feature_desc} with appropriate error handling and validation"
+        elif 'class' in feature_lower or 'object' in feature_lower:
+            return f"Software shall provide {feature_desc} with proper encapsulation and interface design"
+        elif 'interface' in feature_lower or 'api' in feature_lower:
+            return f"Software shall expose {feature_desc} following established interface standards"
+        elif 'module' in feature_lower:
+            return f"Software shall provide {feature_desc} with proper modularity and maintainability"
+        elif 'logic' in feature_lower or 'algorithm' in feature_lower:
+            return f"Software shall implement {feature_desc} with verified correctness and performance"
+        elif 'validation' in feature_lower or 'verification' in feature_lower:
+            return f"Software shall implement {feature_desc} with comprehensive input validation"
+        elif 'storage' in feature_lower or 'database' in feature_lower:
+            return f"Software shall implement {feature_desc} with data integrity and persistence guarantees"
+        elif 'authentication' in feature_lower or 'security' in feature_lower:
+            return f"Software shall implement {feature_desc} following security best practices and standards"
+        elif 'monitoring' in feature_lower or 'sensor' in feature_lower:
+            return f"Software shall implement {feature_desc} with real-time processing and reliability"
+        elif 'configuration' in feature_lower or 'setting' in feature_lower:
+            return f"Software shall implement {feature_desc} with validation and persistence mechanisms"
+        else:
+            return f"Software component shall implement {feature_desc} according to design specifications"
     
     def cancel_analysis(self):
         """Cancel the current analysis if running."""
