@@ -63,6 +63,7 @@ class LLMConfigLegacy:
                 priority=3,
                 config={
                     "model_path": self.model_path or "",
+                    "model": self.model_name,
                     "n_ctx": self.context_window,
                     "n_threads": -1,
                     "verbose": False
@@ -76,6 +77,7 @@ class LLMConfigLegacy:
                 priority=2,
                 config={
                     "base_url": self.server_url or "http://localhost:8080",
+                    "model": self.model_name,
                     "api_key": self.api_key or "",
                     "timeout": self.timeout
                 }
