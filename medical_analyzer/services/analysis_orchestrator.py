@@ -102,13 +102,14 @@ class AnalysisOrchestrator(QObject):
             self.logger.error(f"Failed to initialize analysis services: {e}")
             raise
     
-    def start_analysis(self, project_path: str, description: str = "") -> None:
+    def start_analysis(self, project_path: str, description: str = "", selected_files: Optional[List[str]] = None) -> None:
         """
         Start the complete analysis workflow for a project.
         
         Args:
             project_path: Path to the project directory to analyze
             description: Optional project description
+            selected_files: Optional list of specific files to analyze (if None, analyzes all supported files)
         """
         if self.is_running:
             self.logger.warning("Analysis already in progress")
@@ -119,6 +120,7 @@ class AnalysisOrchestrator(QObject):
         self.current_analysis = {
             'project_path': project_path,
             'description': description,
+            'selected_files': selected_files,
             'results': {}
         }
         
@@ -303,7 +305,14 @@ class AnalysisOrchestrator(QObject):
     def _stage_project_ingestion(self) -> Dict[str, Any]:
         """Stage 1: Project ingestion and file discovery."""
         project_path = self.current_analysis['project_path']
-        project_structure = self.ingestion_service.scan_project(project_path)
+        description = self.current_analysis['description']
+        selected_files = self.current_analysis['selected_files']
+        
+        project_structure = self.ingestion_service.scan_project(
+            project_path, 
+            description=description, 
+            selected_files=selected_files
+        )
         
         return {
             'project_structure': project_structure,

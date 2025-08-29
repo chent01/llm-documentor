@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
     
     # Signals
     project_selected = pyqtSignal(str)
-    analysis_requested = pyqtSignal(str, str)
+    analysis_requested = pyqtSignal(str, str, list)
     analysis_cancelled = pyqtSignal()
     
     def __init__(self, config_manager=None, app_settings=None):
@@ -252,7 +252,7 @@ class MainWindow(QMainWindow):
         
         # Emit analysis requested signal with selected files
         selected_files = self.file_tree_widget.get_selected_files()
-        self.analysis_requested.emit(self.selected_project_path, description)
+        self.analysis_requested.emit(self.selected_project_path, description, selected_files)
         
     def clear_project(self):
         """Clear the current project selection."""

@@ -19,9 +19,10 @@ def main():
     def on_project_selected(path):
         print(f"Project selected: {path}")
         
-    def on_analysis_requested(path, description):
+    def on_analysis_requested(path, description, selected_files):
         print(f"Analysis requested for: {path}")
         print(f"Description: {description}")
+        print(f"Selected files: {len(selected_files) if selected_files else 0} files")
         # Simulate analysis completion after a short delay
         from PyQt6.QtCore import QTimer
         timer = QTimer()

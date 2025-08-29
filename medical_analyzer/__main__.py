@@ -449,7 +449,9 @@ def run_gui_mode(config_manager: ConfigManager, app_settings: AppSettings) -> in
     main_window = MainWindow(config_manager, app_settings)
     
     # Connect the analysis_requested signal to the orchestrator
-    main_window.analysis_requested.connect(analysis_orchestrator.start_analysis)
+    main_window.analysis_requested.connect(
+        lambda path, desc, files: analysis_orchestrator.start_analysis(path, desc, files)
+    )
     
     # Connect orchestrator signals to main window for progress updates
     analysis_orchestrator.analysis_started.connect(

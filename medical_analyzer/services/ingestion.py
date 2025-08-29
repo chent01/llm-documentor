@@ -36,13 +36,14 @@ class IngestionService:
         """Initialize the ingestion service."""
         pass
     
-    def scan_project(self, root_path: str, description: str = "") -> ProjectStructure:
+    def scan_project(self, root_path: str, description: str = "", selected_files: Optional[List[str]] = None) -> ProjectStructure:
         """
         Scan a project directory and create a ProjectStructure.
         
         Args:
             root_path: Root directory path to scan
             description: Optional project description
+            selected_files: Optional list of specific files to analyze (if None, discovers all files)
             
         Returns:
             ProjectStructure with discovered files
@@ -73,11 +74,48 @@ class IngestionService:
                 )
                 raise ValueError(f"Path is not a directory: {root_path}")
             
-            # Discover all files in the project
-            all_files = self._discover_files(root_path)
-            
-            # Filter to supported file types
-            supported_files = self.filter_files(all_files)
+            # Use selected files if provided, otherwise discover all files
+            if selected_files is not None:
+                # Validate that selected files exist and are within the project root
+                validated_files = []
+                for file_path in selected_files:
+                    abs_file_path = os.path.abspath(file_path)
+                    abs_root_path = os.path.abspath(root_path)
+                    
+                    # Check if file is within project root
+                    if not abs_file_path.startswith(abs_root_path):
+                        handle_error(
+                            category=ErrorCategory.FILE_SYSTEM,
+                            message=f"Selected file is outside project root: {file_path}",
+                            severity=ErrorSeverity.MEDIUM,
+                            recoverable=True,
+                            stage="project_scanning",
+                            file_path=file_path
+                        )
+                        continue
+                    
+                    # Check if file exists
+                    if not os.path.exists(abs_file_path):
+                        handle_error(
+                            category=ErrorCategory.FILE_SYSTEM,
+                            message=f"Selected file does not exist: {file_path}",
+                            severity=ErrorSeverity.MEDIUM,
+                            recoverable=True,
+                            stage="project_scanning",
+                            file_path=file_path
+                        )
+                        continue
+                    
+                    validated_files.append(abs_file_path)
+                
+                all_files = validated_files
+                supported_files = self.filter_files(all_files)
+            else:
+                # Discover all files in the project
+                all_files = self._discover_files(root_path)
+                
+                # Filter to supported file types
+                supported_files = self.filter_files(all_files)
             
             # Generate file metadata with error handling
             file_metadata = []

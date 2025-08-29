@@ -65,21 +65,21 @@ class TestSignalConnections(DeterministicTestMixin):
         # Verify connection by checking signal emission
         analysis_calls = []
         
-        def capture_analysis_call(project_path, description):
-            analysis_calls.append((project_path, description))
+        def capture_analysis_call(project_path, description, selected_files):
+            analysis_calls.append((project_path, description, selected_files))
         
         # Connect our capture function
         main_window.analysis_requested.connect(capture_analysis_call)
         
         # Emit the signal
-        main_window.analysis_requested.emit("/test/path", "test description")
+        main_window.analysis_requested.emit("/test/path", "test description", [])
         
         # Process events to ensure signal is handled
         UITestHelper.process_events()
         
         # Verify the signal was received
         assert len(analysis_calls) == 1
-        assert analysis_calls[0] == ("/test/path", "test description")
+        assert analysis_calls[0] == ("/test/path", "test description", [])
     
     def test_orchestrator_signals_exist(self, analysis_orchestrator):
         """Test that the orchestrator has all required signals."""
@@ -153,13 +153,13 @@ class TestSignalConnections(DeterministicTestMixin):
         # Emit the signal
         test_path = "/test/project/path"
         test_description = "Test project description"
-        main_window.analysis_requested.emit(test_path, test_description)
+        main_window.analysis_requested.emit(test_path, test_description, [])
         
         # Process events
         UITestHelper.process_events()
         
         # Verify the mock was called
-        mock_orchestrator.start_analysis.assert_called_once_with(test_path, test_description)
+        mock_orchestrator.start_analysis.assert_called_once_with(test_path, test_description, [])
     
     def test_orchestrator_initialization_with_config(self, config_manager, app_settings):
         """Test that orchestrator initializes properly with configuration."""
@@ -251,6 +251,7 @@ class TestSignalConnections(DeterministicTestMixin):
                 orchestrator.current_analysis = {
                     'project_path': '/test/path',
                     'description': 'Test project',
+                    'selected_files': None,
                     'results': {}
                 }
                 
