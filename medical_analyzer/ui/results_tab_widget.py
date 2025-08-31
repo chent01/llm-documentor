@@ -713,8 +713,41 @@ class RiskRegisterTab(QWidget):
     def update_risks(self, risks: List[Dict]):
         """Update the risk register display."""
         self.risks = risks.copy()
+        
+        # Check if risks are empty and show helpful message
+        if not self.risks:
+            self._show_empty_risks_message()
+        else:
+            self._hide_empty_risks_message()
+            
         self.apply_filters()
         self.update_statistics()
+        
+    def _show_empty_risks_message(self):
+        """Show a helpful message when no risks are found."""
+        # Clear the table
+        self.risk_table.setRowCount(0)
+        
+        # Add a message row
+        self.risk_table.setRowCount(1)
+        self.risk_table.setColumnCount(8)
+        
+        message = QTableWidgetItem("No risks identified. This may be because:\n"
+                                 "• LLM backend is not configured (using mock backend)\n"
+                                 "• No hazards were identified in the code\n"
+                                 "• Analysis completed with errors\n\n"
+                                 "To enable risk analysis:\n"
+                                 "1. Configure a real LLM backend (local server or llama.cpp)\n"
+                                 "2. Ensure your code contains identifiable risk patterns\n"
+                                 "3. Check the Summary tab for analysis errors")
+        message.setFlags(Qt.ItemFlag.ItemIsEnabled)
+        self.risk_table.setItem(0, 0, message)
+        self.risk_table.setSpan(0, 0, 1, 8)
+        
+    def _hide_empty_risks_message(self):
+        """Hide the empty risks message when risks are available."""
+        # This will be called when risks are actually populated
+        pass
 
 
 class TraceabilityTab(QWidget):
@@ -830,11 +863,45 @@ class TraceabilityTab(QWidget):
         self.matrix_rows = traceability_data.get('matrix_rows', [])
         self.gaps = traceability_data.get('gaps', [])
         
+        # Check if traceability data is empty and show helpful message
+        total_links = traceability_data.get('total_links', 0)
+        if total_links == 0 and not self.matrix_rows:
+            self._show_empty_traceability_message()
+        else:
+            self._hide_empty_traceability_message()
+        
         # Update statistics
         self.update_statistics()
         
         # Update the current view
         self.update_view()
+        
+    def _show_empty_traceability_message(self):
+        """Show a helpful message when no traceability links are found."""
+        # Clear the table
+        self.matrix_table.setRowCount(0)
+        
+        # Add a message row
+        self.matrix_table.setRowCount(1)
+        self.matrix_table.setColumnCount(7)
+        
+        message = QTableWidgetItem("No traceability links found. This may be because:\n"
+                                 "• LLM backend is not configured (using mock backend)\n"
+                                 "• No features were extracted from the code\n"
+                                 "• No requirements or risks were generated\n"
+                                 "• Analysis completed with errors\n\n"
+                                 "To enable traceability analysis:\n"
+                                 "1. Configure a real LLM backend (local server or llama.cpp)\n"
+                                 "2. Ensure your code contains identifiable features\n"
+                                 "3. Check the Summary tab for analysis errors")
+        message.setFlags(Qt.ItemFlag.ItemIsEnabled)
+        self.matrix_table.setItem(0, 0, message)
+        self.matrix_table.setSpan(0, 0, 1, 7)
+        
+    def _hide_empty_traceability_message(self):
+        """Hide the empty traceability message when links are available."""
+        # This will be called when traceability links are actually populated
+        pass
         
     def update_statistics(self):
         """Update traceability statistics display."""
@@ -1565,6 +1632,17 @@ class SummaryTab(QWidget):
         
         layout.addWidget(metrics_group)
         
+        # Analysis Log - Detailed step-by-step progress
+        self.analysis_log_group = QGroupBox("Analysis Log")
+        log_layout = QVBoxLayout(self.analysis_log_group)
+        
+        self.analysis_log_text = QTextEdit()
+        self.analysis_log_text.setReadOnly(True)
+        self.analysis_log_text.setFont(QFont("Consolas", 9))  # Monospace font for better readability
+        log_layout.addWidget(self.analysis_log_text)
+        
+        layout.addWidget(self.analysis_log_group)
+        
         # Errors and warnings
         self.errors_group = QGroupBox("Errors and Warnings")
         errors_layout = QVBoxLayout(self.errors_group)
@@ -1595,6 +1673,9 @@ class SummaryTab(QWidget):
         self.risks_identified_label.setText(f"Risks Identified: {summary_data.get('risks_identified', 0)}")
         self.confidence_label.setText(f"Overall Confidence: {summary_data.get('confidence', 0)}%")
         
+        # Update analysis log with detailed step information
+        self._update_analysis_log(summary_data)
+        
         # Update errors and warnings
         errors = summary_data.get('errors', [])
         warnings = summary_data.get('warnings', [])
@@ -1609,6 +1690,144 @@ class SummaryTab(QWidget):
             self.errors_group.setVisible(True)
         else:
             self.errors_group.setVisible(False)
+    
+    def _update_analysis_log(self, summary_data: Dict):
+        """Update the analysis log with detailed step-by-step information."""
+        log_lines = []
+        
+        # Add header
+        log_lines.append("=" * 60)
+        log_lines.append("MEDICAL SOFTWARE ANALYZER - ANALYSIS LOG")
+        log_lines.append("=" * 60)
+        log_lines.append("")
+        
+        # Add timestamp
+        analysis_date = summary_data.get('analysis_date', 'Unknown')
+        log_lines.append(f"Analysis Date: {analysis_date}")
+        log_lines.append("")
+        
+        # Get analysis stages information from the parent results
+        # This will be passed from the main results in the update_results method
+        analysis_stages = getattr(self, '_analysis_stages', {})
+        pipeline_errors = summary_data.get('pipeline_errors', [])
+        stages_completed = summary_data.get('stages_completed', 0)
+        total_stages = summary_data.get('total_stages', 8)
+        
+        # Analysis overview
+        log_lines.append("ANALYSIS OVERVIEW:")
+        log_lines.append("-" * 20)
+        log_lines.append(f"Stages Completed: {stages_completed}/{total_stages}")
+        log_lines.append(f"Success Rate: {(stages_completed/total_stages*100):.1f}%" if total_stages > 0 else "Success Rate: 0%")
+        log_lines.append(f"Total Errors: {len(pipeline_errors)}")
+        log_lines.append("")
+        
+        # Define the expected stages in order
+        expected_stages = [
+            ("project_ingestion", "Project Ingestion", "Scanning project files and structure"),
+            ("code_parsing", "Code Parsing", "Parsing source code files"),
+            ("feature_extraction", "Feature Extraction", "Extracting features using LLM"),
+            ("hazard_identification", "Hazard Identification", "Identifying potential hazards"),
+            ("risk_analysis", "Risk Analysis", "Analyzing risks and generating risk register"),
+            ("test_generation", "Test Generation", "Generating test suites"),
+            ("traceability_analysis", "Traceability Analysis", "Building traceability matrix"),
+            ("results_compilation", "Results Compilation", "Compiling final results")
+        ]
+        
+        # Detailed stage information
+        log_lines.append("DETAILED STAGE EXECUTION:")
+        log_lines.append("-" * 30)
+        
+        for i, (stage_key, stage_name, stage_desc) in enumerate(expected_stages, 1):
+            log_lines.append(f"{i}. {stage_name}")
+            log_lines.append(f"   Description: {stage_desc}")
+            
+            # Check if stage was executed and get results
+            stage_data = analysis_stages.get(stage_key, {})
+            
+            if stage_data:
+                log_lines.append("   Status: ✓ COMPLETED")
+                
+                # Add stage-specific details
+                if stage_key == "project_ingestion":
+                    total_files = stage_data.get('total_files', 0)
+                    file_types = stage_data.get('file_types', {})
+                    log_lines.append(f"   Files Found: {total_files}")
+                    if file_types:
+                        log_lines.append(f"   File Types: {', '.join(f'{k}({v})' for k, v in file_types.items())}")
+                
+                elif stage_key == "code_parsing":
+                    parsed_files = stage_data.get('parsed_files', 0)
+                    parsing_errors = stage_data.get('parsing_errors', 0)
+                    log_lines.append(f"   Files Parsed: {parsed_files}")
+                    if parsing_errors > 0:
+                        log_lines.append(f"   Parsing Errors: {parsing_errors}")
+                
+                elif stage_key == "feature_extraction":
+                    features_found = stage_data.get('features_found', 0)
+                    confidence = stage_data.get('confidence', 0)
+                    log_lines.append(f"   Features Extracted: {features_found}")
+                    log_lines.append(f"   Confidence: {confidence}%")
+                
+                elif stage_key == "hazard_identification":
+                    hazards_found = stage_data.get('hazards_identified', 0)
+                    log_lines.append(f"   Hazards Identified: {hazards_found}")
+                
+                elif stage_key == "risk_analysis":
+                    risks_generated = stage_data.get('risks_generated', 0)
+                    log_lines.append(f"   Risks Generated: {risks_generated}")
+                
+                elif stage_key == "test_generation":
+                    tests_generated = stage_data.get('tests_generated', 0)
+                    log_lines.append(f"   Tests Generated: {tests_generated}")
+                
+                elif stage_key == "traceability_analysis":
+                    total_links = stage_data.get('total_links', 0)
+                    log_lines.append(f"   Traceability Links: {total_links}")
+                
+                elif stage_key == "results_compilation":
+                    log_lines.append("   Final results compiled successfully")
+                    
+            else:
+                # Check if this stage failed
+                stage_error = None
+                for error in pipeline_errors:
+                    if stage_name.lower() in error.lower():
+                        stage_error = error
+                        break
+                
+                if stage_error:
+                    log_lines.append("   Status: ✗ FAILED")
+                    log_lines.append(f"   Error: {stage_error}")
+                else:
+                    log_lines.append("   Status: ⚠ SKIPPED")
+                    log_lines.append("   Reason: LLM backend not available or stage dependency failed")
+            
+            log_lines.append("")
+        
+        # Add pipeline errors summary if any
+        if pipeline_errors:
+            log_lines.append("PIPELINE ERRORS:")
+            log_lines.append("-" * 16)
+            for i, error in enumerate(pipeline_errors, 1):
+                log_lines.append(f"{i}. {error}")
+            log_lines.append("")
+        
+        # Add final status
+        log_lines.append("ANALYSIS RESULT:")
+        log_lines.append("-" * 16)
+        if stages_completed == total_stages and not pipeline_errors:
+            log_lines.append("✓ Analysis completed successfully with no errors")
+        elif stages_completed >= 2:  # At least critical stages completed
+            log_lines.append(f"⚠ Analysis completed with warnings ({len(pipeline_errors)} errors)")
+            log_lines.append("  Core functionality available, some features may be limited")
+        else:
+            log_lines.append("✗ Analysis failed - critical stages could not be completed")
+        
+        log_lines.append("")
+        log_lines.append("=" * 60)
+        
+        # Set the log text
+        self.analysis_log_text.setPlainText("\n".join(log_lines))
 
 
 class ResultsTabWidget(QTabWidget):
@@ -1717,6 +1936,9 @@ class ResultsTabWidget(QTabWidget):
         
         # Update each tab
         if 'summary' in results:
+            # Pass analysis stages data to summary tab for detailed logging
+            if 'analysis_stages' in results:
+                self.summary_tab._analysis_stages = results['analysis_stages']
             self.summary_tab.update_summary(results['summary'])
             
         if 'requirements' in results:

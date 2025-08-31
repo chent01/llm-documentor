@@ -186,7 +186,7 @@ class MainWindow(QMainWindow):
                     "message": "Error scanning project: path does not exist"
                 }
                 
-            supported_extensions = {'.c', '.h', '.js', '.ts', '.jsx', '.tsx'}
+            supported_extensions = {'.c', '.h', '.js', '.ts', '.jsx', '.tsx', '.json'}
             supported_files = []
             
             for root, dirs, files in os.walk(folder_path):

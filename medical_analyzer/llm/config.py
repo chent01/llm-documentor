@@ -36,6 +36,39 @@ class LLMConfig:
     enable_fallback: bool = True
     chunk_overlap: int = 200  # Characters of overlap between chunks
     
+    # Legacy attributes for backward compatibility with tests
+    backend_type: str = "mock"
+    timeout: int = 30
+    retry_attempts: int = 3
+    model_name: Optional[str] = None
+    api_key: Optional[str] = None
+    model_path: Optional[str] = None
+    server_url: Optional[str] = None
+    batch_size: int = 8
+    context_window: int = 4096
+    embedding_model: Optional[str] = None
+    _max_tokens: int = field(default=1000, init=False)  # Private field for max_tokens
+    
+    @property
+    def max_tokens(self) -> int:
+        """Get max tokens (alias for default_max_tokens)."""
+        return self.default_max_tokens
+    
+    @max_tokens.setter
+    def max_tokens(self, value: int) -> None:
+        """Set max tokens (updates default_max_tokens)."""
+        self.default_max_tokens = value
+    
+    @property
+    def temperature(self) -> float:
+        """Get temperature (alias for default_temperature)."""
+        return self.default_temperature
+    
+    @temperature.setter
+    def temperature(self, value: float) -> None:
+        """Set temperature (updates default_temperature)."""
+        self.default_temperature = value
+    
     @classmethod
     def load_from_file(cls, config_path: str) -> 'LLMConfig':
         """
@@ -202,9 +235,9 @@ class LLMConfig:
         self.backends = [b for b in self.backends if b.name != name]
         return len(self.backends) < original_count
     
-    def validate(self) -> List[str]:
+    def get_validation_errors(self) -> List[str]:
         """
-        Validate the configuration.
+        Get detailed validation error messages.
         
         Returns:
             List of validation error messages (empty if valid)
@@ -237,7 +270,23 @@ class LLMConfig:
             if backend.priority < 1:
                 errors.append(f"Backend priority must be >= 1 for {backend.name}")
         
+        # Legacy validation for backward compatibility
+        if hasattr(self, 'backend_type') and self.backend_type:
+            if self.backend_type in ['openai', 'anthropic'] and not self.api_key:
+                errors.append(f"API key is required for {self.backend_type} backend")
+            if self.backend_type in ['local', 'llama_cpp'] and not self.model_path:
+                errors.append(f"Model path is required for {self.backend_type} backend")
+        
         return errors
+    
+    def validate(self) -> bool:
+        """
+        Validate the configuration.
+        
+        Returns:
+            True if configuration is valid, False otherwise
+        """
+        return len(self.get_validation_errors()) == 0
 
 
 def get_config_path() -> str:

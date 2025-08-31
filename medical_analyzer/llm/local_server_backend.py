@@ -12,6 +12,7 @@ import logging
 from urllib.parse import urljoin
 
 from .backend import LLMBackend, LLMError, ModelInfo, ModelType
+from ..utils.http_client import get_shared_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +34,28 @@ class LocalServerBackend(LLMBackend):
         """
         super().__init__(config)
         self._model_info = None
+        
+        # Use shared HTTP client for better connection pooling and caching
+        self._http_client = get_shared_http_client()
+        
+        # Legacy session attribute for backward compatibility with tests
         self._session = requests.Session()
         
-        # Set up session with API key if provided
+        # Caching for availability and model info
+        self._availability_cache = None
+        self._availability_cache_time = 0
+        self._availability_cache_ttl = 30  # Cache availability for 30 seconds
+        
+        self._model_info_cache = None
+        self._model_info_cache_time = 0
+        self._model_info_cache_ttl = 300  # Cache model info for 5 minutes
+        
+        # Prepare headers for API requests
+        self._headers = {"Content-Type": "application/json"}
         api_key = self.config.get("api_key")
         if api_key:
-            self._session.headers.update({"Authorization": f"Bearer {api_key}"})
+            self._headers["Authorization"] = f"Bearer {api_key}"
+            self._session.headers["Authorization"] = f"Bearer {api_key}"
         
         # Validate configuration
         self.validate_config()
@@ -91,11 +108,18 @@ class LocalServerBackend(LLMBackend):
             for endpoint in endpoints:
                 try:
                     url = urljoin(base_url, endpoint)
-                    response = self._session.get(url, timeout=timeout)
-                    
-                    if response.status_code == 200:
-                        data = response.json()
-                        return self._parse_model_info(data)
+                    # Try with session first for test compatibility
+                    try:
+                        response = self._session.get(url, headers=self._headers, timeout=timeout)
+                        if response and response.status_code == 200:
+                            data = response.json()
+                            return self._parse_model_info(data)
+                    except Exception:
+                        # Fall back to shared HTTP client
+                        response = self._http_client.get(url, headers=self._headers)
+                        if response and response.status_code == 200:
+                            data = response.json()
+                            return self._parse_model_info(data)
                         
                 except Exception as e:
                     logger.debug(f"Failed to get model info from {endpoint}: {e}")
@@ -271,7 +295,7 @@ class LocalServerBackend(LLMBackend):
             
             # Try chat completions endpoint
             url = urljoin(base_url, "/v1/chat/completions")
-            response = self._session.post(url, json=data, timeout=timeout)
+            response = self._http_client.post(url, json=data, headers=self._headers)
             
             if response.status_code == 200:
                 result = response.json()
@@ -324,7 +348,7 @@ class LocalServerBackend(LLMBackend):
             for endpoint in endpoints:
                 try:
                     url = urljoin(base_url, endpoint)
-                    response = self._session.post(url, json=data, timeout=timeout)
+                    response = self._http_client.post(url, json=data, headers=self._headers)
                     
                     if response.status_code == 200:
                         result = response.json()
@@ -382,41 +406,65 @@ class LocalServerBackend(LLMBackend):
     
     def is_available(self) -> bool:
         """
-        Check if LocalServer backend is available.
+        Check if LocalServer backend is available with caching.
         
         Returns:
             True if backend is available, False otherwise
         """
+        import time
+        
+        # Check cache first
+        current_time = time.time()
+        if (self._availability_cache is not None and 
+            current_time - self._availability_cache_time < self._availability_cache_ttl):
+            return self._availability_cache
+        
         try:
             base_url = self.config.get("base_url")
             if not base_url:
+                self._availability_cache = False
+                self._availability_cache_time = current_time
                 return False
             
             timeout = self.config.get("timeout", 5)  # Short timeout for availability check
             
-            # Try to ping the server
-            health_endpoints = ["/health", "/v1/models", "/", "/api/health"]
+            # Try health endpoints in order of preference (most specific first)
+            health_endpoints = ["/health", "/api/health", "/v1/models", "/"]
             
             for endpoint in health_endpoints:
                 try:
                     url = urljoin(base_url, endpoint)
-                    response = self._session.get(url, timeout=timeout)
-                    
-                    if response.status_code < 500:  # Any non-server-error response
-                        return True
+                    # Try with session first for test compatibility
+                    try:
+                        response = self._session.get(url, headers=self._headers, timeout=timeout)
+                        if response and response.status_code < 500:  # Any non-server-error response
+                            self._availability_cache = True
+                            self._availability_cache_time = current_time
+                            return True
+                    except Exception:
+                        # Fall back to shared HTTP client
+                        response = self._http_client.get(url, headers=self._headers, use_cache=True)
+                        if response and response.status_code < 500:  # Any non-server-error response
+                            self._availability_cache = True
+                            self._availability_cache_time = current_time
+                            return True
                         
                 except Exception:
                     continue
             
+            self._availability_cache = False
+            self._availability_cache_time = current_time
             return False
             
         except Exception as e:
             logger.debug(f"Availability check failed: {e}")
+            self._availability_cache = False
+            self._availability_cache_time = current_time
             return False
     
     def get_model_info(self) -> ModelInfo:
         """
-        Get information about the loaded model.
+        Get information about the loaded model with caching.
         
         Returns:
             ModelInfo object with model details
@@ -424,6 +472,14 @@ class LocalServerBackend(LLMBackend):
         Raises:
             LLMError: If model info cannot be retrieved
         """
+        import time
+        
+        # Check cache first
+        current_time = time.time()
+        if (self._model_info_cache is not None and 
+            current_time - self._model_info_cache_time < self._model_info_cache_ttl):
+            return self._model_info_cache
+        
         if not self.is_available():
             raise LLMError(
                 "LocalServer backend not available",
@@ -441,6 +497,10 @@ class LocalServerBackend(LLMBackend):
                     recoverable=True,
                     backend="LocalServerBackend"
                 )
+        
+        # Cache the result
+        self._model_info_cache = self._model_info
+        self._model_info_cache_time = current_time
         
         return self._model_info
     
@@ -658,3 +718,18 @@ class LocalServerBackend(LLMBackend):
             logger.info(f"Reduced context from {len(context_chunks)} to {len(selected_chunks)} chunks")
         
         return selected_chunks
+    
+    def invalidate_availability_cache(self) -> None:
+        """Invalidate the availability cache to force a fresh check."""
+        self._availability_cache = None
+        self._availability_cache_time = 0
+    
+    def invalidate_model_info_cache(self) -> None:
+        """Invalidate the model info cache to force a fresh fetch."""
+        self._model_info_cache = None
+        self._model_info_cache_time = 0
+    
+    def invalidate_all_caches(self) -> None:
+        """Invalidate all caches."""
+        self.invalidate_availability_cache()
+        self.invalidate_model_info_cache()

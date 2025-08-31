@@ -38,7 +38,7 @@ class ParserService:
         self.max_chunk_size = max_chunk_size
         self.c_parser = CParser()
         self.js_parser = JSParser()
-        self.supported_extensions = {'.c', '.h', '.js', '.ts', '.jsx', '.tsx'}
+        self.supported_extensions = {'.c', '.h', '.js', '.ts', '.jsx', '.tsx', '.json'}
     
     def parse_project(self, project_structure: ProjectStructure) -> List[ParsedFile]:
         """Parse all selected files in a project.

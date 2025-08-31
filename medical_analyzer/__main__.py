@@ -200,7 +200,7 @@ def handle_init_config() -> int:
         # Save the configuration
         try:
             config_manager.save_config(config_path)
-            print(f"✅ Configuration file created successfully at: {config_path}")
+            print(f"Configuration file created successfully at: {config_path}")
             print(f"You can now use --config {config_path} to use this configuration.")
             return 0
         except PermissionError:

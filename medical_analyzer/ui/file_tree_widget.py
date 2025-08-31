@@ -19,7 +19,7 @@ class FileTreeWidget(QWidget):
     selection_changed = pyqtSignal(list)  # Emits list of selected file paths
     
     # Supported file extensions for medical device software analysis
-    SUPPORTED_EXTENSIONS = {'.c', '.h', '.js', '.ts', '.jsx', '.tsx'}
+    SUPPORTED_EXTENSIONS = {'.c', '.h', '.js', '.ts', '.jsx', '.tsx', '.json'}
     
     def __init__(self, parent=None):
         super().__init__(parent)

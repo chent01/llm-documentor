@@ -1,0 +1,106 @@
+{
+  "project_path": "C:\\Users\\tongc\\Downloads\\llm-documentor\\test_project",
+  "description": "Test project for debugging results",
+  "summary": {
+    "project_path": "C:\\Users\\tongc\\Downloads\\llm-documentor\\test_project",
+    "files_analyzed": 1,
+    "analysis_date": "2025-08-30T07:50:37.514294",
+    "features_found": 0,
+    "requirements_generated": 0,
+    "risks_identified": 0,
+    "confidence": 87,
+    "errors": [],
+    "warnings": [
+      "No features extracted - check if supported file types are present",
+      "No risks identified - manual risk assessment recommended"
+    ]
+  },
+  "requirements": {
+    "user_requirements": [],
+    "software_requirements": []
+  },
+  "risks": [],
+  "traceability": {
+    "matrix": {
+      "metadata": {
+        "total_links": 0,
+        "code_feature_links": 0,
+        "feature_ur_links": 0,
+        "ur_sr_links": 0,
+        "sr_risk_links": 0,
+        "code_sr_links": 0
+      },
+      "links": [],
+      "code_to_requirements": {},
+      "user_to_software_requirements": {},
+      "requirements_to_risks": {}
+    },
+    "matrix_rows": [],
+    "gaps": [],
+    "total_links": 0
+  },
+  "tests": {
+    "total_tests": 2,
+    "test_frameworks": [
+      "c",
+      "javascript"
+    ],
+    "test_suite": "TestSuite(project_name='test_project', test_skeletons=[TestSkeleton(test_name='test_authenticate', test_content=\"const { authenticate } = require('../test');\\n\\ndescribe('authenticate', () => {\\n    test('test authenticate', () => {\\n        // Test for function: authenticate\\n        // Parameters: ['username', 'password']\\n        // Async: False\\n        // Method: False\\n        \\n        // Set up test parameters\\n        const username = 'test_value'; // TODO: Set appropriate test value\\n        const password = 'test_value'; // TODO: Set appropriate test value\\n        \\n        // Call the function under test\\n        const result = authenticate(username, password);\\n        \\n        // TODO: Add specific test assertions based on expected behavior\\n        // Example assertions:\\n        // expect(result).toBe(expectedValue);\\n        // expect(result).toEqual(expectedObject);\\n        // expect(result).toBeTruthy();\\n        // expect(result).toBeNull();\\n        \\n        // Placeholder assertion\\n        expect(result).toBeDefined();\\n    });\\n    \\n    test('authenticate handles edge cases', () => {\\n        // TODO: Add edge case tests\\n        // Test with null/undefined inputs\\n        // Test with boundary values\\n        // Test error conditions\\n    });\\n});\\n\", framework='jest', language='javascript', target_function='authenticate', file_path='tests/unit/test.test.js', metadata={'parameters': ['username', 'password'], 'is_async': False, 'is_arrow': False, 'is_method': False, 'class_name': None, 'source_file': 'C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', 'start_line': 2, 'end_line': 7}), TestSkeleton(test_name='test_validateCredentials', test_content=\"const { validateCredentials } = require('../test');\\n\\ndescribe('validateCredentials', () => {\\n    test('test validateCredentials', () => {\\n        // Test for function: validateCredentials\\n        // Parameters: ['username', 'password']\\n        // Async: False\\n        // Method: False\\n        \\n        // Set up test parameters\\n        const username = 'test_value'; // TODO: Set appropriate test value\\n        const password = 'test_value'; // TODO: Set appropriate test value\\n        \\n        // Call the function under test\\n        const result = validateCredentials(username, password);\\n        \\n        // TODO: Add specific test assertions based on expected behavior\\n        // Example assertions:\\n        // expect(result).toBe(expectedValue);\\n        // expect(result).toEqual(expectedObject);\\n        // expect(result).toBeTruthy();\\n        // expect(result).toBeNull();\\n        \\n        // Placeholder assertion\\n        expect(result).toBeDefined();\\n    });\\n    \\n    test('validateCredentials handles edge cases', () => {\\n        // TODO: Add edge case tests\\n        // Test with null/undefined inputs\\n        // Test with boundary values\\n        // Test error conditions\\n    });\\n});\\n\", framework='jest', language='javascript', target_function='validateCredentials', file_path='tests/unit/test.test.js', metadata={'parameters': ['username', 'password'], 'is_async': False, 'is_arrow': False, 'is_method': False, 'class_name': None, 'source_file': 'C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', 'start_line': 9, 'end_line': 12})], framework_configs={'c': {'framework': 'unity', 'config_file': 'unity_config.h', 'runner_template': 'unity_runner.c.template', 'build_script': 'build_unity_tests.sh', 'dependencies': ['unity.c', 'unity.h'], 'compiler_flags': ['-DUNITY_INCLUDE_CONFIG_H'], 'linker_flags': []}, 'javascript': {'framework': 'jest', 'config_file': 'jest.config.js', 'package_dependencies': ['jest', '@types/jest'], 'test_patterns': ['**/*.test.js', '**/*.spec.js'], 'coverage_threshold': {'global': {'branches': 80, 'functions': 80, 'lines': 80, 'statements': 80}}}}, integration_tests=[], created_at=datetime.datetime(2025, 8, 30, 7, 50, 37, 513298))",
+    "passed_tests": 0,
+    "failed_tests": 0,
+    "skipped_tests": 0
+  },
+  "analysis_stages": {
+    "project_ingestion": {
+      "project_structure": "ProjectStructure(root_path='C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project', selected_files=['C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js'], description='Test project for debugging results', metadata={'total_files_discovered': 1, 'supported_files_count': 1, 'successful_metadata_extraction': 1, 'failed_metadata_extraction': 0, 'scan_timestamp': '2025-08-30T07:50:37.510299'}, timestamp=datetime.datetime(2025, 8, 30, 7, 50, 37, 510299), file_metadata=[FileMetadata(file_path='C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', file_size=348, last_modified=datetime.datetime(2025, 8, 30, 7, 50, 37, 487306), file_type='javascript', encoding='utf-8', line_count=12, function_count=2)])",
+      "total_files": 1,
+      "file_types": {
+        ".js": 1
+      }
+    },
+    "code_parsing": {
+      "parsed_files": [
+        "ParsedFile(file_path='C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', file_metadata=FileMetadata(file_path='C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', file_size=348, last_modified=datetime.datetime(2025, 8, 30, 7, 50, 37, 487306), file_type='javascript', encoding='utf-8', line_count=12, function_count=2), code_structure=JSCodeStructure(file_path='C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', functions=[FunctionSignature(name='authenticate', parameters=['username', 'password'], start_line=2, end_line=7, is_async=False, is_arrow=False, is_method=False, class_name=None), FunctionSignature(name='validateCredentials', parameters=['username', 'password'], start_line=9, end_line=12, is_async=False, is_arrow=False, is_method=False, class_name=None)], classes=[], imports=[], exports=[], variables=[], requires=[]), chunks=[CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', start_line=2, end_line=7, content=\"function authenticate(username, password) {\\n    if (!username || !password) {\\n        throw new Error('Username and password required');\\n    }\\n    return validateCredentials(username, password);\\n}\", function_name='authenticate', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'parameters': ['username', 'password'], 'is_async': False, 'is_arrow': False, 'is_method': False, 'class_name': None, 'language': 'javascript'}, embedding=None), CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', start_line=9, end_line=12, content='function validateCredentials(username, password) {\\n    // Validate against database\\n    return database.checkUser(username, password);\\n}', function_name='validateCredentials', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'parameters': ['username', 'password'], 'is_async': False, 'is_arrow': False, 'is_method': False, 'class_name': None, 'language': 'javascript'}, embedding=None)])"
+      ],
+      "total_chunks": 2,
+      "chunks": [
+        "CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', start_line=2, end_line=7, content=\"function authenticate(username, password) {\\n    if (!username || !password) {\\n        throw new Error('Username and password required');\\n    }\\n    return validateCredentials(username, password);\\n}\", function_name='authenticate', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'parameters': ['username', 'password'], 'is_async': False, 'is_arrow': False, 'is_method': False, 'class_name': None, 'language': 'javascript'}, embedding=None)",
+        "CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', start_line=9, end_line=12, content='function validateCredentials(username, password) {\\n    // Validate against database\\n    return database.checkUser(username, password);\\n}', function_name='validateCredentials', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'parameters': ['username', 'password'], 'is_async': False, 'is_arrow': False, 'is_method': False, 'class_name': None, 'language': 'javascript'}, embedding=None)"
+      ]
+    },
+    "feature_extraction": {
+      "features": [],
+      "total_features": 0,
+      "extraction_metadata": {
+        "total_chunks": 2,
+        "successful_chunks": 2,
+        "failed_chunks": 0,
+        "features_per_chunk": 0.0,
+        "llm_backend": "FallbackLLMBackend"
+      }
+    },
+    "hazard_identification": {
+      "hazards": [],
+      "total_hazards": 0,
+      "identification_metadata": {
+        "total_requirements": 0,
+        "identification_method": "none"
+      }
+    },
+    "risk_analysis": {
+      "risk_register": "<medical_analyzer.services.risk_register.RiskRegisterResult object at 0x0000025F8D0FDF90>",
+      "total_risks": 0
+    },
+    "test_generation": {
+      "test_suite": "TestSuite(project_name='test_project', test_skeletons=[TestSkeleton(test_name='test_authenticate', test_content=\"const { authenticate } = require('../test');\\n\\ndescribe('authenticate', () => {\\n    test('test authenticate', () => {\\n        // Test for function: authenticate\\n        // Parameters: ['username', 'password']\\n        // Async: False\\n        // Method: False\\n        \\n        // Set up test parameters\\n        const username = 'test_value'; // TODO: Set appropriate test value\\n        const password = 'test_value'; // TODO: Set appropriate test value\\n        \\n        // Call the function under test\\n        const result = authenticate(username, password);\\n        \\n        // TODO: Add specific test assertions based on expected behavior\\n        // Example assertions:\\n        // expect(result).toBe(expectedValue);\\n        // expect(result).toEqual(expectedObject);\\n        // expect(result).toBeTruthy();\\n        // expect(result).toBeNull();\\n        \\n        // Placeholder assertion\\n        expect(result).toBeDefined();\\n    });\\n    \\n    test('authenticate handles edge cases', () => {\\n        // TODO: Add edge case tests\\n        // Test with null/undefined inputs\\n        // Test with boundary values\\n        // Test error conditions\\n    });\\n});\\n\", framework='jest', language='javascript', target_function='authenticate', file_path='tests/unit/test.test.js', metadata={'parameters': ['username', 'password'], 'is_async': False, 'is_arrow': False, 'is_method': False, 'class_name': None, 'source_file': 'C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', 'start_line': 2, 'end_line': 7}), TestSkeleton(test_name='test_validateCredentials', test_content=\"const { validateCredentials } = require('../test');\\n\\ndescribe('validateCredentials', () => {\\n    test('test validateCredentials', () => {\\n        // Test for function: validateCredentials\\n        // Parameters: ['username', 'password']\\n        // Async: False\\n        // Method: False\\n        \\n        // Set up test parameters\\n        const username = 'test_value'; // TODO: Set appropriate test value\\n        const password = 'test_value'; // TODO: Set appropriate test value\\n        \\n        // Call the function under test\\n        const result = validateCredentials(username, password);\\n        \\n        // TODO: Add specific test assertions based on expected behavior\\n        // Example assertions:\\n        // expect(result).toBe(expectedValue);\\n        // expect(result).toEqual(expectedObject);\\n        // expect(result).toBeTruthy();\\n        // expect(result).toBeNull();\\n        \\n        // Placeholder assertion\\n        expect(result).toBeDefined();\\n    });\\n    \\n    test('validateCredentials handles edge cases', () => {\\n        // TODO: Add edge case tests\\n        // Test with null/undefined inputs\\n        // Test with boundary values\\n        // Test error conditions\\n    });\\n});\\n\", framework='jest', language='javascript', target_function='validateCredentials', file_path='tests/unit/test.test.js', metadata={'parameters': ['username', 'password'], 'is_async': False, 'is_arrow': False, 'is_method': False, 'class_name': None, 'source_file': 'C:\\\\Users\\\\tongc\\\\Downloads\\\\llm-documentor\\\\test_project\\\\test.js', 'start_line': 9, 'end_line': 12})], framework_configs={'c': {'framework': 'unity', 'config_file': 'unity_config.h', 'runner_template': 'unity_runner.c.template', 'build_script': 'build_unity_tests.sh', 'dependencies': ['unity.c', 'unity.h'], 'compiler_flags': ['-DUNITY_INCLUDE_CONFIG_H'], 'linker_flags': []}, 'javascript': {'framework': 'jest', 'config_file': 'jest.config.js', 'package_dependencies': ['jest', '@types/jest'], 'test_patterns': ['**/*.test.js', '**/*.spec.js'], 'coverage_threshold': {'global': {'branches': 80, 'functions': 80, 'lines': 80, 'statements': 80}}}}, integration_tests=[], created_at=datetime.datetime(2025, 8, 30, 7, 50, 37, 513298))",
+      "total_tests": 2,
+      "test_frameworks": [
+        "c",
+        "javascript"
+      ]
+    },
+    "traceability_analysis": {
+      "traceability_matrix": "TraceabilityMatrix(analysis_run_id=587550, links=[], code_to_requirements={}, user_to_software_requirements={}, requirements_to_risks={}, metadata={'total_links': 0, 'code_feature_links': 0, 'feature_ur_links': 0, 'ur_sr_links': 0, 'sr_risk_links': 0, 'code_sr_links': 0}, created_at=datetime.datetime(2025, 8, 30, 7, 50, 37, 514294))",
+      "total_links": 0
+    },
+    "results_compilation": 

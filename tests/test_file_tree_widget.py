@@ -89,7 +89,7 @@ class TestFileTreeWidget:
         
     def test_supported_extensions(self, file_tree_widget):
         """Test supported file extensions."""
-        expected_extensions = {'.c', '.h', '.js', '.ts', '.jsx', '.tsx'}
+        expected_extensions = {'.c', '.h', '.js', '.ts', '.jsx', '.tsx', '.json'}
         assert file_tree_widget.SUPPORTED_EXTENSIONS == expected_extensions
         
     def test_load_directory_structure(self, file_tree_widget, temp_project_dir):

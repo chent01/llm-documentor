@@ -92,12 +92,29 @@ class LLMConfigLegacy:
             config={}
         ))
         
-        return LLMBackendConfig(
+        config = LLMBackendConfig(
             backends=backends,
             default_temperature=self.temperature,
             default_max_tokens=self.max_tokens,
             enable_fallback=True
         )
+        
+        # Ensure max_tokens property is in sync
+        config.default_max_tokens = self.max_tokens
+        
+        # Set legacy attributes for backward compatibility
+        config.backend_type = self.backend_type
+        config.timeout = self.timeout
+        config.retry_attempts = self.retry_attempts
+        config.model_name = self.model_name
+        config.api_key = self.api_key
+        config.model_path = self.model_path
+        config.server_url = self.server_url
+        config.batch_size = self.batch_size
+        config.context_window = self.context_window
+        config.embedding_model = self.embedding_model
+        
+        return config
             
         return True
 
@@ -145,7 +162,7 @@ class AnalysisConfig:
     
     def __post_init__(self):
         if self.supported_extensions is None:
-            self.supported_extensions = ['.c', '.h', '.js', '.ts', '.jsx', '.tsx']
+            self.supported_extensions = ['.c', '.h', '.js', '.ts', '.jsx', '.tsx', '.json']
 
 
 @dataclass
@@ -307,25 +324,33 @@ class ConfigManager:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
             
-            # Load LLM configuration
+            # Load LLM configuration - handle both new and legacy formats
             if 'llm' in config_data:
                 llm_data = config_data['llm']
-                for llmConfigBackends in llm_data['backends']:
-                    self.llm_config_legacy = LLMConfigLegacy(
-                        backend_type=llmConfigBackends.get('backend_type', 'mock'),
-                        model_path=llmConfigBackends.get('model_path'),
-                        server_url=llmConfigBackends.get('server_url'),
-                        api_key=llmConfigBackends.get('api_key'),
-                        model_name=llmConfigBackends.get('model_name'),
-                        max_tokens=llmConfigBackends.get('max_tokens', 1000),
-                        temperature=llmConfigBackends.get('temperature', 0.1),
-                        timeout=llmConfigBackends.get('timeout', 30),
-                        retry_attempts=llmConfigBackends.get('retry_attempts', 3),
-                        batch_size=llmConfigBackends.get('batch_size', 8),
-                        context_window=llmConfigBackends.get('context_window', 4096),
-                        embedding_model=llmConfigBackends.get('embedding_model')
-                    )
-                    self.llm_config = self.llm_config_legacy.to_backend_config()
+                
+                # Check if it's the new format (with backends array) or legacy format
+                if 'backends' in llm_data:
+                    # New format with backends array
+                    for llmConfigBackends in llm_data['backends']:
+                        self.llm_config_legacy = LLMConfigLegacy(
+                            backend_type=llmConfigBackends.get('backend_type', 'mock'),
+                            model_path=llmConfigBackends.get('model_path'),
+                            server_url=llmConfigBackends.get('server_url'),
+                            api_key=llmConfigBackends.get('api_key'),
+                            model_name=llmConfigBackends.get('model_name'),
+                            max_tokens=llmConfigBackends.get('max_tokens', 1000),
+                            temperature=llmConfigBackends.get('temperature', 0.1),
+                            timeout=llmConfigBackends.get('timeout', 30),
+                            retry_attempts=llmConfigBackends.get('retry_attempts', 3),
+                            batch_size=llmConfigBackends.get('batch_size', 8),
+                            context_window=llmConfigBackends.get('context_window', 4096),
+                            embedding_model=llmConfigBackends.get('embedding_model')
+                        )
+                        self.llm_config = self.llm_config_legacy.to_backend_config()
+                else:
+                    # Legacy format - use _apply_config method
+                    self._apply_config(config_data)
+                    return  # _apply_config handles everything
                 
             
             # Load database configuration
@@ -369,7 +394,7 @@ class ConfigManager:
                     max_chunk_size=analysis_data.get('max_chunk_size', 1000),
                     min_confidence=analysis_data.get('min_confidence', 0.5),
                     max_files_per_analysis=analysis_data.get('max_files_per_analysis', 1000),
-                    supported_extensions=analysis_data.get('supported_extensions', ['.c', '.h', '.js', '.ts', '.jsx', '.tsx']),
+                    supported_extensions=analysis_data.get('supported_extensions', ['.c', '.h', '.js', '.ts', '.jsx', '.tsx', '.json']),
                     enable_parallel_processing=analysis_data.get('enable_parallel_processing', True),
                     max_workers=analysis_data.get('max_workers', 4)
                 )
@@ -412,8 +437,24 @@ class ConfigManager:
         logger.info(f"Saving configuration to: {config_path}")
         
         try:
+            # Convert LLM config to legacy format for saving
+            llm_legacy_data = {
+                'backend_type': getattr(self.llm_config, 'backend_type', 'mock'),
+                'model_path': getattr(self.llm_config, 'model_path', None),
+                'server_url': getattr(self.llm_config, 'server_url', None),
+                'api_key': getattr(self.llm_config, 'api_key', None),
+                'model_name': getattr(self.llm_config, 'model_name', None),
+                'max_tokens': self.llm_config.default_max_tokens,
+                'temperature': self.llm_config.default_temperature,
+                'timeout': getattr(self.llm_config, 'timeout', 30),
+                'retry_attempts': getattr(self.llm_config, 'retry_attempts', 3),
+                'batch_size': 8,  # Default value
+                'context_window': 4096,  # Default value
+                'embedding_model': None  # Default value
+            }
+            
             config_data = {
-                'llm': asdict(self.llm_config),
+                'llm': llm_legacy_data,
                 'database': asdict(self.database_config),
                 'export': asdict(self.export_config),
                 'ui': asdict(self.ui_config),
@@ -453,7 +494,11 @@ class ConfigManager:
                 context_window=llm_data.get('context_window', 4096),
                 embedding_model=llm_data.get('embedding_model')
             )
-            self.llm_config = self.llm_config_legacy.to_backend_config()
+            try:
+                self.llm_config = self.llm_config_legacy.to_backend_config()
+            except Exception as e:
+                logger.error(f"Error in to_backend_config: {e}")
+                raise
         
         # Apply database configuration
         if 'database' in config_data:
@@ -524,7 +569,11 @@ class ConfigManager:
     
     def _create_default_llm_config(self) -> LLMBackendConfig:
         """Create default LLM configuration with fallback backend."""
-        return LLMBackendConfig.get_default_config()
+        config = LLMBackendConfig.get_default_config()
+        # Set legacy attributes for backward compatibility
+        config.backend_type = "mock"
+        config.timeout = 30
+        return config
     
     def get_database_config(self) -> Dict[str, Any]:
         """Get database configuration as a dictionary."""
@@ -576,7 +625,7 @@ class ConfigManager:
         
         try:
             # Validate LLM configuration
-            if not self.llm_config.backend_type:
+            if not hasattr(self.llm_config, 'backend_type') or not self.llm_config.backend_type:
                 logger.error("LLM backend type is required")
                 return False
             

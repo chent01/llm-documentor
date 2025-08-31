@@ -169,14 +169,20 @@ class TestLLMConfig:
             chunk_overlap=100
         )
         
-        errors = config.validate()
+        is_valid = config.validate()
+        assert is_valid is True
+        
+        errors = config.get_validation_errors()
         assert errors == []
     
     def test_validate_no_backends(self):
         """Test validation with no backends."""
         config = LLMConfig()
         
-        errors = config.validate()
+        is_valid = config.validate()
+        assert is_valid is False
+        
+        errors = config.get_validation_errors()
         assert "No backends configured" in errors
     
     def test_validate_invalid_temperature(self):
@@ -184,7 +190,10 @@ class TestLLMConfig:
         backend = BackendConfig("test", "TestBackend")
         config = LLMConfig(backends=[backend], default_temperature=1.5)
         
-        errors = config.validate()
+        is_valid = config.validate()
+        assert is_valid is False
+        
+        errors = config.get_validation_errors()
         assert any("temperature must be between 0 and 1" in error for error in errors)
     
     def test_validate_invalid_max_tokens(self):
@@ -192,7 +201,10 @@ class TestLLMConfig:
         backend = BackendConfig("test", "TestBackend")
         config = LLMConfig(backends=[backend], default_max_tokens=-100)
         
-        errors = config.validate()
+        is_valid = config.validate()
+        assert is_valid is False
+        
+        errors = config.get_validation_errors()
         assert any("max_tokens must be positive" in error for error in errors)
     
     def test_validate_negative_chunk_overlap(self):
@@ -200,7 +212,10 @@ class TestLLMConfig:
         backend = BackendConfig("test", "TestBackend")
         config = LLMConfig(backends=[backend], chunk_overlap=-50)
         
-        errors = config.validate()
+        is_valid = config.validate()
+        assert is_valid is False
+        
+        errors = config.get_validation_errors()
         assert any("chunk_overlap must be non-negative" in error for error in errors)
     
     def test_validate_duplicate_backend_names(self):
@@ -211,7 +226,10 @@ class TestLLMConfig:
         ]
         config = LLMConfig(backends=backends)
         
-        errors = config.validate()
+        is_valid = config.validate()
+        assert is_valid is False
+        
+        errors = config.get_validation_errors()
         assert any("Duplicate backend names" in error for error in errors)
     
     def test_validate_empty_backend_name(self):
@@ -219,7 +237,10 @@ class TestLLMConfig:
         backend = BackendConfig("", "TestBackend")
         config = LLMConfig(backends=[backend])
         
-        errors = config.validate()
+        is_valid = config.validate()
+        assert is_valid is False
+        
+        errors = config.get_validation_errors()
         assert any("Backend name cannot be empty" in error for error in errors)
     
     def test_validate_empty_backend_type(self):
@@ -227,7 +248,10 @@ class TestLLMConfig:
         backend = BackendConfig("test", "")
         config = LLMConfig(backends=[backend])
         
-        errors = config.validate()
+        is_valid = config.validate()
+        assert is_valid is False
+        
+        errors = config.get_validation_errors()
         assert any("Backend type cannot be empty" in error for error in errors)
     
     def test_validate_invalid_priority(self):
@@ -235,7 +259,10 @@ class TestLLMConfig:
         backend = BackendConfig("test", "TestBackend", priority=0)
         config = LLMConfig(backends=[backend])
         
-        errors = config.validate()
+        is_valid = config.validate()
+        assert is_valid is False
+        
+        errors = config.get_validation_errors()
         assert any("Backend priority must be >= 1" in error for error in errors)
 
 
