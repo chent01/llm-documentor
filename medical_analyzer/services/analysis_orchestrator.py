@@ -13,6 +13,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from medical_analyzer.services.ingestion import IngestionService
 from medical_analyzer.parsers.parser_service import ParserService
 from medical_analyzer.services.feature_extractor import FeatureExtractor
+from medical_analyzer.services.requirements_generator import RequirementsGenerator
 from medical_analyzer.services.hazard_identifier import HazardIdentifier
 from medical_analyzer.tests.test_generator import TestGenerator
 from medical_analyzer.services.export_service import ExportService
@@ -90,9 +91,11 @@ class AnalysisOrchestrator(QObject):
             # Services that require LLM backend
             if self.llm_backend:
                 self.feature_extractor = FeatureExtractor(self.llm_backend)
+                self.requirements_generator = RequirementsGenerator(self.llm_backend)
                 self.hazard_identifier = HazardIdentifier(self.llm_backend)
             else:
                 self.feature_extractor = None
+                self.requirements_generator = None
                 self.hazard_identifier = None
                 self.logger.warning("LLM-dependent services disabled due to backend initialization failure")
             
@@ -139,7 +142,7 @@ class AnalysisOrchestrator(QObject):
         """Execute the complete analysis pipeline."""
         pipeline_errors = []
         stages_completed = 0
-        total_stages = 8
+        total_stages = 9
         
         try:
             # Stage 1: Project Ingestion (10%) - CRITICAL STAGE
@@ -181,7 +184,24 @@ class AnalysisOrchestrator(QObject):
                 self.stage_failed.emit("Feature Extraction", "LLM backend not available")
                 self.progress_updated.emit(40)
             
-            # Stage 4: Hazard Identification (60%) - OPTIONAL STAGE
+            # Stage 4: Requirements Generation (50%) - OPTIONAL STAGE
+            if self.requirements_generator:
+                try:
+                    self._run_stage("Requirements Generation", self._stage_requirements_generation, 50)
+                    stages_completed += 1
+                except Exception as e:
+                    error_msg = f"Requirements generation failed: {e}"
+                    self.logger.warning(error_msg)
+                    pipeline_errors.append(error_msg)
+                    self.stage_failed.emit("Requirements Generation", error_msg)
+                    # Continue with analysis - this stage is optional
+                    self.progress_updated.emit(50)
+            else:
+                self.logger.warning("Skipping requirements generation - LLM backend not available")
+                self.stage_failed.emit("Requirements Generation", "LLM backend not available")
+                self.progress_updated.emit(50)
+            
+            # Stage 5: Hazard Identification (60%) - OPTIONAL STAGE
             if self.hazard_identifier:
                 try:
                     self._run_stage("Hazard Identification", self._stage_hazard_identification, 60)
@@ -198,7 +218,7 @@ class AnalysisOrchestrator(QObject):
                 self.stage_failed.emit("Hazard Identification", "LLM backend not available")
                 self.progress_updated.emit(60)
             
-            # Stage 5: Risk Analysis (70%) - OPTIONAL STAGE
+            # Stage 6: Risk Analysis (70%) - OPTIONAL STAGE
             try:
                 self._run_stage("Risk Analysis", self._stage_risk_analysis, 70)
                 stages_completed += 1
@@ -210,7 +230,7 @@ class AnalysisOrchestrator(QObject):
                 # Continue with analysis - this stage is optional
                 self.progress_updated.emit(70)
             
-            # Stage 6: Test Generation (80%) - OPTIONAL STAGE
+            # Stage 7: Test Generation (80%) - OPTIONAL STAGE
             try:
                 self._run_stage("Test Generation", self._stage_test_generation, 80)
                 stages_completed += 1
@@ -222,7 +242,7 @@ class AnalysisOrchestrator(QObject):
                 # Continue with analysis - this stage is optional
                 self.progress_updated.emit(80)
             
-            # Stage 7: Traceability Analysis (90%) - OPTIONAL STAGE
+            # Stage 8: Traceability Analysis (90%) - OPTIONAL STAGE
             try:
                 self._run_stage("Traceability Analysis", self._stage_traceability_analysis, 90)
                 stages_completed += 1
@@ -234,7 +254,7 @@ class AnalysisOrchestrator(QObject):
                 # Continue with analysis - this stage is optional
                 self.progress_updated.emit(90)
             
-            # Stage 8: Results Compilation (100%) - ALWAYS RUN
+            # Stage 9: Results Compilation (100%) - ALWAYS RUN
             try:
                 self._run_stage("Results Compilation", self._stage_results_compilation, 100)
                 stages_completed += 1
@@ -347,15 +367,32 @@ class AnalysisOrchestrator(QObject):
             'extraction_metadata': feature_result.metadata
         }
     
+    def _stage_requirements_generation(self) -> Dict[str, Any]:
+        """Stage 4: Requirements generation from features."""
+        # Get features from previous stage
+        features = self.current_analysis['results']['feature_extraction']['features']
+        project_description = self.current_analysis.get('description', '')
+        
+        # Generate requirements from features
+        requirements_result = self.requirements_generator.generate_requirements_from_features(
+            features, project_description
+        )
+        
+        return {
+            'user_requirements': requirements_result.user_requirements,
+            'software_requirements': requirements_result.software_requirements,
+            'total_user_requirements': len(requirements_result.user_requirements),
+            'total_software_requirements': len(requirements_result.software_requirements),
+            'generation_metadata': requirements_result.metadata
+        }
+    
     def _stage_hazard_identification(self) -> Dict[str, Any]:
-        """Stage 4: Hazard identification and analysis."""
-        # Get software requirements if available, otherwise create empty list
+        """Stage 5: Hazard identification and analysis."""
+        # Get software requirements from requirements generation stage
         software_requirements = []
         
-        # Check if we have generated software requirements from previous stages
-        # For now, we'll use an empty list since requirements generation isn't implemented yet
-        if 'software_requirements' in self.current_analysis['results']:
-            software_requirements = self.current_analysis['results']['software_requirements']
+        if 'requirements_generation' in self.current_analysis['results']:
+            software_requirements = self.current_analysis['results']['requirements_generation']['software_requirements']
         
         # Get project description
         project_description = self.current_analysis.get('description', '')
@@ -425,11 +462,18 @@ class AnalysisOrchestrator(QObject):
         }
     
     def _stage_traceability_analysis(self) -> Dict[str, Any]:
-        """Stage 7: Traceability matrix generation."""
+        """Stage 8: Traceability matrix generation."""
         # Get features if available
         features = []
         if 'feature_extraction' in self.current_analysis['results']:
             features = self.current_analysis['results']['feature_extraction']['features']
+        
+        # Get requirements if available
+        user_requirements = []
+        software_requirements = []
+        if 'requirements_generation' in self.current_analysis['results']:
+            user_requirements = self.current_analysis['results']['requirements_generation']['user_requirements']
+            software_requirements = self.current_analysis['results']['requirements_generation']['software_requirements']
         
         # Get risk items if available
         risk_items = []
@@ -445,8 +489,8 @@ class AnalysisOrchestrator(QObject):
         traceability_matrix = self.traceability_service.create_traceability_matrix(
             analysis_run_id=analysis_run_id,
             features=features,
-            user_requirements=[],  # Empty user requirements for now
-            software_requirements=[],  # Empty software requirements for now
+            user_requirements=user_requirements,
+            software_requirements=software_requirements,
             risk_items=risk_items
         )
         
@@ -467,61 +511,46 @@ class AnalysisOrchestrator(QObject):
             'summary': self._generate_analysis_summary()
         }
         
-        # Extract requirements from feature extraction if available
-        if 'feature_extraction' in results:
-            features = results['feature_extraction'].get('features', [])
-            # Convert features to requirements format for GUI
+        # Extract requirements from requirements generation if available
+        if 'requirements_generation' in results:
             user_requirements = []
             software_requirements = []
             
-            # Group features by category to create more meaningful requirements
-            feature_categories = self._categorize_features(features)
-            
-            ur_counter = 1
-            sr_counter = 1
-            
-            for category, category_features in feature_categories.items():
-                if not category_features:
-                    continue
-                
-                # Create user requirement for this category
-                ur_id = f"UR-{ur_counter:03d}"
-                user_req = {
-                    'id': ur_id,
-                    'description': self._generate_user_requirement_description(category, category_features),
-                    'acceptance_criteria': self._generate_acceptance_criteria(category, category_features),
-                    'derived_from': []
-                }
-                user_requirements.append(user_req)
-                ur_counter += 1
-                
-                # Create software requirements for individual features in this category
-                for feature in category_features:
-                    # Handle both object and dictionary formats
-                    if isinstance(feature, dict):
-                        feature_id = feature.get('id', f"F-{sr_counter:03d}")
-                        feature_desc = feature.get('description', str(feature))
-                        feature_evidence = feature.get('evidence', [])
-                    else:
-                        feature_id = getattr(feature, 'id', f"F-{sr_counter:03d}")
-                        feature_desc = getattr(feature, 'description', str(feature))
-                        feature_evidence = getattr(feature, 'evidence', [])
-                    
-                    sr_id = f"SR-{sr_counter:03d}"
-                    software_req = {
-                        'id': sr_id,
-                        'description': self._generate_software_requirement_description(feature_desc),
-                        'derived_from': [ur_id],
-                        'code_references': feature_evidence
+            # Convert requirement objects to dictionaries for GUI
+            for ur in results['requirements_generation'].get('user_requirements', []):
+                if hasattr(ur, 'id'):  # Object format
+                    user_req = {
+                        'id': ur.id,
+                        'description': ur.text,
+                        'acceptance_criteria': ur.acceptance_criteria,
+                        'derived_from': ur.derived_from,
+                        'priority': ur.metadata.get('priority', 'medium'),
+                        'metadata': ur.metadata
                     }
-                    software_requirements.append(software_req)
-                    sr_counter += 1
+                else:  # Dictionary format
+                    user_req = ur
+                user_requirements.append(user_req)
+            
+            for sr in results['requirements_generation'].get('software_requirements', []):
+                if hasattr(sr, 'id'):  # Object format
+                    software_req = {
+                        'id': sr.id,
+                        'description': sr.text,
+                        'acceptance_criteria': sr.acceptance_criteria,
+                        'derived_from': sr.derived_from,
+                        'priority': sr.metadata.get('priority', 'medium'),
+                        'metadata': sr.metadata
+                    }
+                else:  # Dictionary format
+                    software_req = sr
+                software_requirements.append(software_req)
             
             final_results['requirements'] = {
                 'user_requirements': user_requirements,
                 'software_requirements': software_requirements
             }
         else:
+            # Fallback to empty requirements if generation failed
             final_results['requirements'] = {
                 'user_requirements': [],
                 'software_requirements': []
@@ -735,7 +764,7 @@ class AnalysisOrchestrator(QObject):
         confidence_scores = []
         
         # Base confidence on successful stages
-        total_stages = 8  # Total expected stages
+        total_stages = 9  # Total expected stages
         completed_stages = len([k for k in results.keys() if not k.startswith('pipeline')])
         stage_confidence = (completed_stages / total_stages) * 100
         confidence_scores.append(stage_confidence)

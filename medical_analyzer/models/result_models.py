@@ -45,6 +45,15 @@ class SoftwareRequirementGenerationResult:
 
 
 @dataclass
+class RequirementsGenerationResult:
+    """Result of complete requirements generation process (User + Software)."""
+    user_requirements: List[Requirement]
+    software_requirements: List[Requirement]
+    processing_time: float
+    metadata: Dict[str, Any]
+
+
+@dataclass
 class HazardIdentificationResult:
     """Result of hazard identification process."""
     risk_items: List[RiskItem]
