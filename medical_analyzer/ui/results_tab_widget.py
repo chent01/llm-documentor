@@ -21,6 +21,7 @@ from datetime import datetime
 
 from ..services.soup_service import SOUPService
 from .soup_widget import SOUPWidget
+from .requirements_tab_widget import RequirementsTabWidget
 import csv
 import json
 import os
@@ -28,307 +29,8 @@ import io
 from datetime import datetime
 
 
-class RequirementEditDialog(QDialog):
-    """Dialog for editing individual requirements."""
-    
-    def __init__(self, requirement_data: Dict, parent=None):
-        super().__init__(parent)
-        self.requirement_data = requirement_data.copy()
-        self.setup_ui()
-        self.populate_fields()
-        
-    def setup_ui(self):
-        """Initialize the dialog UI."""
-        self.setWindowTitle("Edit Requirement")
-        self.setModal(True)
-        self.resize(600, 400)
-        
-        layout = QVBoxLayout(self)
-        
-        # Form layout for requirement fields
-        form_layout = QFormLayout()
-        
-        self.id_edit = QLineEdit()
-        self.id_edit.setReadOnly(True)  # ID should not be editable
-        form_layout.addRow("ID:", self.id_edit)
-        
-        self.description_edit = QPlainTextEdit()
-        self.description_edit.setMaximumHeight(100)
-        form_layout.addRow("Description:", self.description_edit)
-        
-        self.acceptance_criteria_edit = QPlainTextEdit()
-        self.acceptance_criteria_edit.setPlaceholderText("Enter each criterion on a new line")
-        form_layout.addRow("Acceptance Criteria:", self.acceptance_criteria_edit)
-        
-        # For software requirements, add derived from field
-        self.derived_from_edit = QLineEdit()
-        self.derived_from_edit.setPlaceholderText("Comma-separated requirement IDs")
-        form_layout.addRow("Derived From:", self.derived_from_edit)
-        
-        layout.addLayout(form_layout)
-        
-        # Dialog buttons
-        button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        button_box.accepted.connect(self.accept)
-        button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
-        
-    def populate_fields(self):
-        """Populate fields with requirement data."""
-        self.id_edit.setText(self.requirement_data.get('id', ''))
-        self.description_edit.setPlainText(self.requirement_data.get('description', ''))
-        
-        criteria = self.requirement_data.get('acceptance_criteria', [])
-        if isinstance(criteria, list):
-            self.acceptance_criteria_edit.setPlainText('\n'.join(criteria))
-        else:
-            self.acceptance_criteria_edit.setPlainText(str(criteria))
-            
-        derived_from = self.requirement_data.get('derived_from', [])
-        if isinstance(derived_from, list):
-            self.derived_from_edit.setText(', '.join(derived_from))
-        else:
-            self.derived_from_edit.setText(str(derived_from))
-            
-    def get_requirement_data(self) -> Dict:
-        """Get the edited requirement data."""
-        criteria_text = self.acceptance_criteria_edit.toPlainText().strip()
-        criteria = [line.strip() for line in criteria_text.split('\n') if line.strip()]
-        
-        derived_text = self.derived_from_edit.text().strip()
-        derived_from = [item.strip() for item in derived_text.split(',') if item.strip()]
-        
-        return {
-            'id': self.id_edit.text(),
-            'description': self.description_edit.toPlainText(),
-            'acceptance_criteria': criteria,
-            'derived_from': derived_from,
-            'code_references': self.requirement_data.get('code_references', [])
-        }
-
-
-class RequirementsTab(QWidget):
-    """Tab for displaying and editing requirements."""
-    
-    requirements_updated = pyqtSignal(dict)
-    
-    def __init__(self):
-        super().__init__()
-        self.user_requirements = []
-        self.software_requirements = []
-        self.setup_ui()
-        self.setup_connections()
-        
-    def setup_ui(self):
-        """Initialize the requirements tab UI."""
-        layout = QVBoxLayout(self)
-        
-        # Create splitter for user and software requirements
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        
-        # User Requirements section
-        ur_group = QGroupBox("User Requirements (URs)")
-        ur_layout = QVBoxLayout(ur_group)
-        
-        # UR toolbar
-        ur_toolbar = QHBoxLayout()
-        self.add_ur_button = QPushButton("Add UR")
-        self.edit_ur_button = QPushButton("Edit UR")
-        self.delete_ur_button = QPushButton("Delete UR")
-        ur_toolbar.addWidget(self.add_ur_button)
-        ur_toolbar.addWidget(self.edit_ur_button)
-        ur_toolbar.addWidget(self.delete_ur_button)
-        ur_toolbar.addStretch()
-        ur_layout.addLayout(ur_toolbar)
-        
-        self.ur_table = QTableWidget()
-        self.ur_table.setColumnCount(3)
-        self.ur_table.setHorizontalHeaderLabels(["ID", "Description", "Acceptance Criteria"])
-        self.ur_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.ur_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        ur_layout.addWidget(self.ur_table)
-        
-        # Software Requirements section
-        sr_group = QGroupBox("Software Requirements (SRs)")
-        sr_layout = QVBoxLayout(sr_group)
-        
-        # SR toolbar
-        sr_toolbar = QHBoxLayout()
-        self.add_sr_button = QPushButton("Add SR")
-        self.edit_sr_button = QPushButton("Edit SR")
-        self.delete_sr_button = QPushButton("Delete SR")
-        sr_toolbar.addWidget(self.add_sr_button)
-        sr_toolbar.addWidget(self.edit_sr_button)
-        sr_toolbar.addWidget(self.delete_sr_button)
-        sr_toolbar.addStretch()
-        sr_layout.addLayout(sr_toolbar)
-        
-        self.sr_table = QTableWidget()
-        self.sr_table.setColumnCount(4)
-        self.sr_table.setHorizontalHeaderLabels(["ID", "Description", "Derived From", "Code References"])
-        self.sr_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.sr_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        sr_layout.addWidget(self.sr_table)
-        
-        splitter.addWidget(ur_group)
-        splitter.addWidget(sr_group)
-        splitter.setSizes([400, 400])
-        
-        layout.addWidget(splitter)
-        
-        # Action buttons
-        button_layout = QHBoxLayout()
-        self.export_button = QPushButton("Export Requirements")
-        self.save_button = QPushButton("Save Changes")
-        self.refresh_button = QPushButton("Refresh")
-        button_layout.addStretch()
-        button_layout.addWidget(self.save_button)
-        button_layout.addWidget(self.refresh_button)
-        button_layout.addWidget(self.export_button)
-        layout.addLayout(button_layout)
-        
-    def setup_connections(self):
-        """Set up signal connections."""
-        # UR buttons
-        self.add_ur_button.clicked.connect(self.add_user_requirement)
-        self.edit_ur_button.clicked.connect(self.edit_user_requirement)
-        self.delete_ur_button.clicked.connect(self.delete_user_requirement)
-        
-        # SR buttons
-        self.add_sr_button.clicked.connect(self.add_software_requirement)
-        self.edit_sr_button.clicked.connect(self.edit_software_requirement)
-        self.delete_sr_button.clicked.connect(self.delete_software_requirement)
-        
-        # Table double-click editing
-        self.ur_table.doubleClicked.connect(self.edit_user_requirement)
-        self.sr_table.doubleClicked.connect(self.edit_software_requirement)
-        
-        # Save button
-        self.save_button.clicked.connect(self.save_changes)
-        
-    def add_user_requirement(self):
-        """Add a new user requirement."""
-        new_id = f"UR-{len(self.user_requirements) + 1:03d}"
-        new_req = {
-            'id': new_id,
-            'description': 'New user requirement',
-            'acceptance_criteria': ['Acceptance criterion 1']
-        }
-        
-        dialog = RequirementEditDialog(new_req, self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            edited_req = dialog.get_requirement_data()
-            self.user_requirements.append(edited_req)
-            self.refresh_ur_table()
-            self.requirements_updated.emit({'user_requirements': self.user_requirements})
-            
-    def edit_user_requirement(self):
-        """Edit selected user requirement."""
-        current_row = self.ur_table.currentRow()
-        if current_row >= 0 and current_row < len(self.user_requirements):
-            req_data = self.user_requirements[current_row]
-            dialog = RequirementEditDialog(req_data, self)
-            if dialog.exec() == QDialog.DialogCode.Accepted:
-                edited_req = dialog.get_requirement_data()
-                self.user_requirements[current_row] = edited_req
-                self.refresh_ur_table()
-                self.requirements_updated.emit({'user_requirements': self.user_requirements})
-                
-    def delete_user_requirement(self):
-        """Delete selected user requirement."""
-        current_row = self.ur_table.currentRow()
-        if current_row >= 0 and current_row < len(self.user_requirements):
-            reply = QMessageBox.question(
-                self, "Delete Requirement",
-                f"Are you sure you want to delete requirement {self.user_requirements[current_row]['id']}?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                del self.user_requirements[current_row]
-                self.refresh_ur_table()
-                self.requirements_updated.emit({'user_requirements': self.user_requirements})
-                
-    def add_software_requirement(self):
-        """Add a new software requirement."""
-        new_id = f"SR-{len(self.software_requirements) + 1:03d}"
-        new_req = {
-            'id': new_id,
-            'description': 'New software requirement',
-            'derived_from': [],
-            'code_references': []
-        }
-        
-        dialog = RequirementEditDialog(new_req, self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            edited_req = dialog.get_requirement_data()
-            self.software_requirements.append(edited_req)
-            self.refresh_sr_table()
-            self.requirements_updated.emit({'software_requirements': self.software_requirements})
-            
-    def edit_software_requirement(self):
-        """Edit selected software requirement."""
-        current_row = self.sr_table.currentRow()
-        if current_row >= 0 and current_row < len(self.software_requirements):
-            req_data = self.software_requirements[current_row]
-            dialog = RequirementEditDialog(req_data, self)
-            if dialog.exec() == QDialog.DialogCode.Accepted:
-                edited_req = dialog.get_requirement_data()
-                self.software_requirements[current_row] = edited_req
-                self.refresh_sr_table()
-                self.requirements_updated.emit({'software_requirements': self.software_requirements})
-                
-    def delete_software_requirement(self):
-        """Delete selected software requirement."""
-        current_row = self.sr_table.currentRow()
-        if current_row >= 0 and current_row < len(self.software_requirements):
-            reply = QMessageBox.question(
-                self, "Delete Requirement",
-                f"Are you sure you want to delete requirement {self.software_requirements[current_row]['id']}?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                del self.software_requirements[current_row]
-                self.refresh_sr_table()
-                self.requirements_updated.emit({'software_requirements': self.software_requirements})
-                
-    def save_changes(self):
-        """Save all changes to requirements."""
-        self.requirements_updated.emit({
-            'user_requirements': self.user_requirements,
-            'software_requirements': self.software_requirements
-        })
-        QMessageBox.information(self, "Saved", "Requirements changes have been saved.")
-        
-    def refresh_ur_table(self):
-        """Refresh the user requirements table."""
-        self.ur_table.setRowCount(len(self.user_requirements))
-        for i, req in enumerate(self.user_requirements):
-            self.ur_table.setItem(i, 0, QTableWidgetItem(req.get('id', '')))
-            self.ur_table.setItem(i, 1, QTableWidgetItem(req.get('description', '')))
-            criteria = req.get('acceptance_criteria', [])
-            criteria_text = '\n'.join(criteria) if isinstance(criteria, list) else str(criteria)
-            self.ur_table.setItem(i, 2, QTableWidgetItem(criteria_text))
-            
-    def refresh_sr_table(self):
-        """Refresh the software requirements table."""
-        self.sr_table.setRowCount(len(self.software_requirements))
-        for i, req in enumerate(self.software_requirements):
-            self.sr_table.setItem(i, 0, QTableWidgetItem(req.get('id', '')))
-            self.sr_table.setItem(i, 1, QTableWidgetItem(req.get('description', '')))
-            derived_from = req.get('derived_from', [])
-            derived_text = ', '.join(derived_from) if isinstance(derived_from, list) else str(derived_from)
-            self.sr_table.setItem(i, 2, QTableWidgetItem(derived_text))
-            code_refs = req.get('code_references', [])
-            self.sr_table.setItem(i, 3, QTableWidgetItem(str(len(code_refs))))
-        
-    def update_requirements(self, user_requirements: List[Dict], software_requirements: List[Dict]):
-        """Update the requirements display."""
-        self.user_requirements = user_requirements.copy()
-        self.software_requirements = software_requirements.copy()
-        self.refresh_ur_table()
-        self.refresh_sr_table()
+# Old RequirementsTab and RequirementEditDialog classes removed
+# They have been replaced by the enhanced RequirementsTabWidget
 
 
 class RiskEditDialog(QDialog):
@@ -1850,8 +1552,8 @@ class ResultsTabWidget(QTabWidget):
         self.summary_tab = SummaryTab()
         self.addTab(self.summary_tab, "Summary")
         
-        # Requirements tab
-        self.requirements_tab = RequirementsTab()
+        # Enhanced Requirements tab
+        self.requirements_tab = RequirementsTabWidget()
         self.addTab(self.requirements_tab, "Requirements")
         
         # Risk register tab
@@ -1878,10 +1580,8 @@ class ResultsTabWidget(QTabWidget):
         
     def setup_connections(self):
         """Set up signal-slot connections."""
-        # Connect export buttons from requirements tab
-        self.requirements_tab.export_button.clicked.connect(
-            lambda: self.export_requested.emit("requirements", "csv")
-        )
+        # Connect export buttons from requirements tab with multiple formats
+        self.requirements_tab.export_button.clicked.connect(self.handle_requirements_export)
         
         # Connect export buttons from risk tab
         self.risk_tab.export_button.clicked.connect(
@@ -1903,10 +1603,10 @@ class ResultsTabWidget(QTabWidget):
             lambda config: self.export_requested.emit("test_execution", str(config))
         )
         
-        # Connect refresh buttons
-        self.requirements_tab.refresh_button.clicked.connect(
-            lambda: self.refresh_requested.emit("requirements")
-        )
+        # Connect refresh buttons - requirements tab doesn't have refresh button in new implementation
+        # self.requirements_tab.refresh_button.clicked.connect(
+        #     lambda: self.refresh_requested.emit("requirements")
+        # )
         self.risk_tab.refresh_button.clicked.connect(
             lambda: self.refresh_requested.emit("risks")
         )
@@ -1919,7 +1619,16 @@ class ResultsTabWidget(QTabWidget):
         
         # Connect data update signals from editable tabs
         self.requirements_tab.requirements_updated.connect(self.on_requirements_updated)
+        self.requirements_tab.traceability_update_requested.connect(
+            lambda: self.refresh_requested.emit("traceability")
+        )
         self.risk_tab.risks_updated.connect(self.on_risks_updated)
+        
+        # Connect requirements validation updates to visual indicators
+        self.requirements_tab.requirements_updated.connect(self.update_requirements_validation_indicators)
+        
+        # Enhanced traceability matrix refresh on requirements changes
+        self.requirements_tab.requirements_updated.connect(self.trigger_traceability_refresh)
         
         # Connect SOUP tab signals if available
         if self.soup_tab:
@@ -1993,6 +1702,98 @@ class ResultsTabWidget(QTabWidget):
         """Get the name of the currently active tab."""
         return self.tabText(self.currentIndex())
         
+    def handle_requirements_export(self):
+        """Handle requirements export with format selection dialog and immediate export."""
+        from PyQt6.QtWidgets import QInputDialog
+        
+        # Check if there are requirements to export
+        if not self.requirements_tab.user_requirements and not self.requirements_tab.software_requirements:
+            QMessageBox.information(self, "No Data", "No requirements available to export.")
+            return
+        
+        formats = ["CSV", "JSON", "Excel (CSV)", "PDF (Text)"]
+        format_choice, ok = QInputDialog.getItem(
+            self, "Export Format", "Select export format:", formats, 0, False
+        )
+        
+        if ok and format_choice:
+            # Handle export directly here for immediate feedback
+            try:
+                if format_choice == "CSV":
+                    content = self._export_requirements_csv()
+                    self.save_export_file(content, "requirements_export.csv", "CSV files (*.csv)")
+                elif format_choice == "JSON":
+                    content = self._export_requirements_json()
+                    self.save_export_file(content, "requirements_export.json", "JSON files (*.json)")
+                elif format_choice == "Excel (CSV)":
+                    content = self._export_requirements_excel()
+                    self.save_export_file(content, "requirements_export.csv", "CSV files (*.csv)")
+                elif format_choice == "PDF (Text)":
+                    content = self._export_requirements_pdf()
+                    self.save_export_file(content, "requirements_export.txt", "Text files (*.txt)")
+                    
+                # Also emit the signal for any external handlers
+                format_lower = format_choice.lower().split()[0]  # Get first word (csv, json, excel, pdf)
+                self.export_requested.emit("requirements", format_lower)
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Export Error", f"Failed to export requirements: {str(e)}")
+    
+    def update_requirements_validation_indicators(self, data: Dict):
+        """Update visual validation indicators for requirements tab."""
+        # Get validation status without showing dialogs
+        validation_status = self.get_requirements_validation_status()
+        validation_passed = validation_status['validation_passed']
+        
+        # Count requirements for better status display
+        ur_count = len(self.requirements_tab.user_requirements)
+        sr_count = len(self.requirements_tab.software_requirements)
+        total_count = ur_count + sr_count
+        
+        # Update tab text with validation indicator and count
+        tab_index = self.indexOf(self.requirements_tab)
+        if validation_passed:
+            self.setTabText(tab_index, f"Requirements ✓ ({total_count})")
+            self.setTabToolTip(tab_index, f"All {total_count} requirements are valid\nUR: {ur_count}, SR: {sr_count}")
+        else:
+            self.setTabText(tab_index, f"Requirements ⚠ ({total_count})")
+            self.setTabToolTip(tab_index, f"Some of {total_count} requirements have validation errors\nUR: {ur_count}, SR: {sr_count}")
+            
+        # Update tab style based on validation status
+        if validation_passed:
+            self.setStyleSheet(f"""
+                QTabBar::tab:nth-child({tab_index + 1}) {{
+                    color: #2E7D32;
+                    font-weight: bold;
+                }}
+            """)
+        else:
+            self.setStyleSheet(f"""
+                QTabBar::tab:nth-child({tab_index + 1}) {{
+                    color: #D32F2F;
+                    font-weight: bold;
+                }}
+            """)
+    
+    def trigger_traceability_refresh(self, data: Dict):
+        """Trigger traceability matrix refresh when requirements are updated."""
+        # Emit refresh signal for traceability matrix
+        self.refresh_requested.emit("traceability")
+        
+        # Update internal analysis results with new requirements data
+        if 'user_requirements' in data or 'software_requirements' in data:
+            if 'requirements' not in self.analysis_results:
+                self.analysis_results['requirements'] = {}
+            
+            if 'user_requirements' in data:
+                self.analysis_results['requirements']['user_requirements'] = data['user_requirements']
+            if 'software_requirements' in data:
+                self.analysis_results['requirements']['software_requirements'] = data['software_requirements']
+                
+            # Notify that requirements have changed and traceability needs update
+            print(f"Requirements updated: UR={len(data.get('user_requirements', []))}, SR={len(data.get('software_requirements', []))}")
+            print("Traceability matrix refresh requested")
+    
     def on_requirements_updated(self, data: Dict):
         """Handle requirements update from requirements tab."""
         # Update internal data and emit signal for persistence
@@ -2010,8 +1811,15 @@ class ResultsTabWidget(QTabWidget):
     def export_data(self, tab_name: str, export_format: str) -> Optional[str]:
         """Export data from specified tab in requested format."""
         try:
-            if tab_name == "requirements" and export_format == "csv":
-                return self._export_requirements_csv()
+            if tab_name == "requirements":
+                if export_format == "csv":
+                    return self._export_requirements_csv()
+                elif export_format == "json":
+                    return self._export_requirements_json()
+                elif export_format == "excel":
+                    return self._export_requirements_excel()
+                elif export_format == "pdf":
+                    return self._export_requirements_pdf()
             elif tab_name == "risks" and export_format == "csv":
                 return self._export_risks_csv()
             elif tab_name == "traceability":
@@ -2036,26 +1844,191 @@ class ResultsTabWidget(QTabWidget):
         output = io.StringIO()
         writer = csv.writer(output)
         
-        # Export User Requirements
-        writer.writerow(["USER REQUIREMENTS"])
-        writer.writerow(["ID", "Description", "Acceptance Criteria"])
+        # Write header
+        writer.writerow(['Type', 'ID', 'Description', 'Priority', 'Status', 'Acceptance Criteria', 'Derived From', 'Code References'])
         
+        # Write user requirements
         for req in self.requirements_tab.user_requirements:
-            criteria = "; ".join(req.get('acceptance_criteria', []))
-            writer.writerow([req.get('id', ''), req.get('description', ''), criteria])
+            criteria = '; '.join(req.get('acceptance_criteria', []))
+            writer.writerow([
+                'User', req.get('id', ''), req.get('description', ''),
+                req.get('priority', ''), req.get('status', ''), criteria, '', ''
+            ])
             
-        writer.writerow([])  # Empty row
-        
-        # Export Software Requirements
-        writer.writerow(["SOFTWARE REQUIREMENTS"])
-        writer.writerow(["ID", "Description", "Derived From", "Code References"])
-        
+        # Write software requirements
         for req in self.requirements_tab.software_requirements:
-            derived_from = "; ".join(req.get('derived_from', []))
-            code_refs = str(len(req.get('code_references', [])))
-            writer.writerow([req.get('id', ''), req.get('description', ''), derived_from, code_refs])
+            criteria = '; '.join(req.get('acceptance_criteria', []))
+            derived_from = '; '.join(req.get('derived_from', []))
+            
+            # Handle both string and dict formats for code references
+            code_refs_raw = req.get('code_references', [])
+            if isinstance(code_refs_raw, list) and code_refs_raw:
+                code_refs_str = []
+                for ref in code_refs_raw:
+                    if isinstance(ref, dict):
+                        code_refs_str.append(f"{ref.get('file', 'unknown')}:{ref.get('line', 'unknown')}")
+                    else:
+                        code_refs_str.append(str(ref))
+                code_refs = '; '.join(code_refs_str)
+            else:
+                code_refs = ''
+                
+            writer.writerow([
+                'Software', req.get('id', ''), req.get('description', ''),
+                req.get('priority', ''), req.get('status', ''), criteria, derived_from, code_refs
+            ])
             
         return output.getvalue()
+    
+    def _export_requirements_json(self) -> str:
+        """Export requirements to JSON format."""
+        data = {
+            'user_requirements': self.requirements_tab.user_requirements,
+            'software_requirements': self.requirements_tab.software_requirements,
+            'metadata': {
+                'export_timestamp': datetime.now().isoformat(),
+                'total_user_requirements': len(self.requirements_tab.user_requirements),
+                'total_software_requirements': len(self.requirements_tab.software_requirements),
+                'validation_status': self.requirements_tab.validate_all_requirements()
+            }
+        }
+        return json.dumps(data, indent=2, ensure_ascii=False)
+    
+    def _export_requirements_excel(self) -> str:
+        """Export requirements to Excel format (returns CSV with enhanced formatting)."""
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write metadata header
+        writer.writerow(['Requirements Export Report'])
+        writer.writerow(['Generated:', datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
+        writer.writerow(['Total User Requirements:', len(self.requirements_tab.user_requirements)])
+        writer.writerow(['Total Software Requirements:', len(self.requirements_tab.software_requirements)])
+        writer.writerow([])  # Empty row
+        
+        # Write detailed header
+        writer.writerow(['Type', 'ID', 'Description', 'Priority', 'Status', 'Acceptance Criteria', 'Derived From', 'Code References', 'Validation Status'])
+        
+        # Write user requirements with validation
+        for req in self.requirements_tab.user_requirements:
+            criteria = '; '.join(req.get('acceptance_criteria', []))
+            validation_errors = self.requirements_tab._validate_requirement(req, "user")
+            validation_status = "Valid" if not validation_errors else f"Errors: {'; '.join(validation_errors)}"
+            
+            writer.writerow([
+                'User', req.get('id', ''), req.get('description', ''),
+                req.get('priority', ''), req.get('status', ''), criteria, '', '', validation_status
+            ])
+            
+        # Write software requirements with validation
+        for req in self.requirements_tab.software_requirements:
+            criteria = '; '.join(req.get('acceptance_criteria', []))
+            derived_from = '; '.join(req.get('derived_from', []))
+            
+            # Handle both string and dict formats for code references
+            code_refs_raw = req.get('code_references', [])
+            if isinstance(code_refs_raw, list) and code_refs_raw:
+                code_refs_str = []
+                for ref in code_refs_raw:
+                    if isinstance(ref, dict):
+                        code_refs_str.append(f"{ref.get('file', 'unknown')}:{ref.get('line', 'unknown')}")
+                    else:
+                        code_refs_str.append(str(ref))
+                code_refs = '; '.join(code_refs_str)
+            else:
+                code_refs = ''
+                
+            validation_errors = self.requirements_tab._validate_requirement(req, "software")
+            validation_status = "Valid" if not validation_errors else f"Errors: {'; '.join(validation_errors)}"
+            
+            writer.writerow([
+                'Software', req.get('id', ''), req.get('description', ''),
+                req.get('priority', ''), req.get('status', ''), criteria, derived_from, code_refs, validation_status
+            ])
+            
+        return output.getvalue()
+    
+    def _export_requirements_pdf(self) -> str:
+        """Export requirements to PDF format (returns formatted text for now)."""
+        lines = []
+        lines.append("REQUIREMENTS SPECIFICATION DOCUMENT")
+        lines.append("=" * 50)
+        lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("")
+        
+        # Summary
+        ur_count = len(self.requirements_tab.user_requirements)
+        sr_count = len(self.requirements_tab.software_requirements)
+        validation_passed = self.requirements_tab.validate_all_requirements()
+        
+        lines.append("DOCUMENT SUMMARY")
+        lines.append("-" * 20)
+        lines.append(f"Total User Requirements: {ur_count}")
+        lines.append(f"Total Software Requirements: {sr_count}")
+        lines.append(f"Validation Status: {'PASSED' if validation_passed else 'FAILED'}")
+        lines.append("")
+        
+        # User Requirements
+        if self.requirements_tab.user_requirements:
+            lines.append("USER REQUIREMENTS")
+            lines.append("-" * 20)
+            for i, req in enumerate(self.requirements_tab.user_requirements, 1):
+                lines.append(f"{i}. {req.get('id', 'N/A')}: {req.get('description', 'No description')}")
+                lines.append(f"   Priority: {req.get('priority', 'N/A')}")
+                lines.append(f"   Status: {req.get('status', 'N/A')}")
+                
+                criteria = req.get('acceptance_criteria', [])
+                if criteria:
+                    lines.append("   Acceptance Criteria:")
+                    for j, criterion in enumerate(criteria, 1):
+                        lines.append(f"     {j}. {criterion}")
+                
+                validation_errors = self.requirements_tab._validate_requirement(req, "user")
+                if validation_errors:
+                    lines.append(f"   ⚠ Validation Issues: {'; '.join(validation_errors)}")
+                
+                lines.append("")
+        
+        # Software Requirements
+        if self.requirements_tab.software_requirements:
+            lines.append("SOFTWARE REQUIREMENTS")
+            lines.append("-" * 25)
+            for i, req in enumerate(self.requirements_tab.software_requirements, 1):
+                lines.append(f"{i}. {req.get('id', 'N/A')}: {req.get('description', 'No description')}")
+                lines.append(f"   Priority: {req.get('priority', 'N/A')}")
+                lines.append(f"   Status: {req.get('status', 'N/A')}")
+                
+                derived_from = req.get('derived_from', [])
+                if derived_from:
+                    lines.append(f"   Derived From: {', '.join(derived_from)}")
+                
+                code_refs = req.get('code_references', [])
+                if code_refs:
+                    # Handle both string and dict formats for code references
+                    if isinstance(code_refs, list) and code_refs:
+                        code_refs_str = []
+                        for ref in code_refs:
+                            if isinstance(ref, dict):
+                                code_refs_str.append(f"{ref.get('file', 'unknown')}:{ref.get('line', 'unknown')}")
+                            else:
+                                code_refs_str.append(str(ref))
+                        lines.append(f"   Code References: {', '.join(code_refs_str)}")
+                    else:
+                        lines.append(f"   Code References: {code_refs}")
+                
+                criteria = req.get('acceptance_criteria', [])
+                if criteria:
+                    lines.append("   Acceptance Criteria:")
+                    for j, criterion in enumerate(criteria, 1):
+                        lines.append(f"     {j}. {criterion}")
+                
+                validation_errors = self.requirements_tab._validate_requirement(req, "software")
+                if validation_errors:
+                    lines.append(f"   ⚠ Validation Issues: {'; '.join(validation_errors)}")
+                
+                lines.append("")
+        
+        return "\n".join(lines)
         
     def _export_risks_csv(self) -> str:
         """Export risks to CSV format."""
@@ -2193,3 +2166,85 @@ class ResultsTabWidget(QTabWidget):
                 comp for comp in self.analysis_results['soup'] 
                 if comp.id != component_id
             ]
+    
+    def get_requirements_validation_status(self) -> Dict[str, Any]:
+        """Get comprehensive validation status for requirements."""
+        ur_errors = []
+        sr_errors = []
+        
+        for i, req in enumerate(self.requirements_tab.user_requirements):
+            errors = self.requirements_tab._validate_requirement(req, "user")
+            if errors:
+                ur_errors.extend([f"UR {i+1} ({req.get('id', 'N/A')}): {error}" for error in errors])
+                
+        for i, req in enumerate(self.requirements_tab.software_requirements):
+            errors = self.requirements_tab._validate_requirement(req, "software")
+            if errors:
+                sr_errors.extend([f"SR {i+1} ({req.get('id', 'N/A')}): {error}" for error in errors])
+        
+        return {
+            'total_requirements': len(self.requirements_tab.user_requirements) + len(self.requirements_tab.software_requirements),
+            'user_requirements_count': len(self.requirements_tab.user_requirements),
+            'software_requirements_count': len(self.requirements_tab.software_requirements),
+            'validation_passed': len(ur_errors) == 0 and len(sr_errors) == 0,
+            'total_errors': len(ur_errors) + len(sr_errors),
+            'user_requirement_errors': ur_errors,
+            'software_requirement_errors': sr_errors,
+            'all_errors': ur_errors + sr_errors
+        }
+    
+    def refresh_requirements_display(self):
+        """Refresh the requirements display and update all related components."""
+        # Update validation indicators
+        self.update_requirements_validation_indicators({
+            'user_requirements': self.requirements_tab.user_requirements,
+            'software_requirements': self.requirements_tab.software_requirements
+        })
+        
+        # Trigger traceability refresh
+        self.trigger_traceability_refresh({
+            'user_requirements': self.requirements_tab.user_requirements,
+            'software_requirements': self.requirements_tab.software_requirements
+        })
+        
+        # Update statistics in requirements tab
+        self.requirements_tab.update_statistics()
+        
+    def export_all_requirements_formats(self, base_filename: str = "requirements_export"):
+        """Export requirements in all supported formats."""
+        if not self.requirements_tab.user_requirements and not self.requirements_tab.software_requirements:
+            QMessageBox.information(self, "No Data", "No requirements available to export.")
+            return
+            
+        try:
+            # Export CSV
+            csv_content = self._export_requirements_csv()
+            with open(f"{base_filename}.csv", 'w', encoding='utf-8') as f:
+                f.write(csv_content)
+                
+            # Export JSON
+            json_content = self._export_requirements_json()
+            with open(f"{base_filename}.json", 'w', encoding='utf-8') as f:
+                f.write(json_content)
+                
+            # Export Excel (CSV)
+            excel_content = self._export_requirements_excel()
+            with open(f"{base_filename}_detailed.csv", 'w', encoding='utf-8') as f:
+                f.write(excel_content)
+                
+            # Export PDF (Text)
+            pdf_content = self._export_requirements_pdf()
+            with open(f"{base_filename}.txt", 'w', encoding='utf-8') as f:
+                f.write(pdf_content)
+                
+            QMessageBox.information(
+                self, "Export Complete", 
+                f"Requirements exported in all formats:\n"
+                f"• {base_filename}.csv\n"
+                f"• {base_filename}.json\n"
+                f"• {base_filename}_detailed.csv\n"
+                f"• {base_filename}.txt"
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Export Error", f"Failed to export requirements: {str(e)}")

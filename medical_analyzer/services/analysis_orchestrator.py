@@ -16,6 +16,8 @@ from medical_analyzer.services.feature_extractor import FeatureExtractor
 from medical_analyzer.services.requirements_generator import RequirementsGenerator
 from medical_analyzer.services.hazard_identifier import HazardIdentifier
 from medical_analyzer.tests.test_generator import TestGenerator
+from medical_analyzer.services.test_case_generator import TestCaseGenerator
+from medical_analyzer.services.test_requirements_integration import TestRequirementsIntegration
 from medical_analyzer.services.export_service import ExportService
 from medical_analyzer.services.soup_service import SOUPService
 from medical_analyzer.services.risk_register import RiskRegister
@@ -93,10 +95,21 @@ class AnalysisOrchestrator(QObject):
                 self.feature_extractor = FeatureExtractor(self.llm_backend)
                 self.requirements_generator = RequirementsGenerator(self.llm_backend)
                 self.hazard_identifier = HazardIdentifier(self.llm_backend)
+                
+                # Enhanced test case generator with LLM support
+                self.test_case_generator = TestCaseGenerator(self.llm_backend)
+                self.test_requirements_integration = TestRequirementsIntegration(
+                    self.test_case_generator, self.requirements_generator
+                )
             else:
                 self.feature_extractor = None
                 self.requirements_generator = None
                 self.hazard_identifier = None
+                
+                # Basic test case generator without LLM
+                self.test_case_generator = TestCaseGenerator()
+                self.test_requirements_integration = TestRequirementsIntegration(self.test_case_generator)
+                
                 self.logger.warning("LLM-dependent services disabled due to backend initialization failure")
             
             self.logger.info("Analysis services initialized successfully")
@@ -446,20 +459,127 @@ class AnalysisOrchestrator(QObject):
         }
     
     def _stage_test_generation(self) -> Dict[str, Any]:
-        """Stage 6: Test generation and validation."""
+        """Stage 6: Enhanced test generation and validation."""
         project_structure = self.current_analysis['results']['project_ingestion']['project_structure']
         parsed_files = self.current_analysis['results']['code_parsing']['parsed_files']
         
+        # Legacy test suite generation for code-based tests
         test_suite = self.test_generator.generate_test_suite(project_structure, parsed_files)
+        
+        # Enhanced test case generation for requirements-based tests
+        test_outline = None
+        integration_report = None
+        
+        # Check if we have requirements to generate test cases from
+        if 'requirements_generation' in self.current_analysis['results']:
+            requirements_data = self.current_analysis['results']['requirements_generation']
+            if 'user_requirements' in requirements_data and 'software_requirements' in requirements_data:
+                # Combine user and software requirements
+                all_requirements = []
+                all_requirements.extend(requirements_data.get('user_requirements', []))
+                all_requirements.extend(requirements_data.get('software_requirements', []))
+                
+                if all_requirements:
+                    try:
+                        # Set requirements in integration service
+                        self.test_requirements_integration.set_requirements(all_requirements)
+                        
+                        # Generate test cases
+                        test_outline = self.test_case_generator.generate_test_cases(all_requirements)
+                        
+                        # Generate integration report
+                        integration_report = self.test_requirements_integration.get_test_coverage_analysis()
+                        
+                        self.logger.info(f"Generated {len(test_outline.test_cases)} requirement-based test cases")
+                        
+                    except Exception as e:
+                        self.logger.warning(f"Enhanced test case generation failed: {e}")
+                        # Continue with legacy test generation only
         
         # Extract frameworks from framework_configs
         frameworks_used = list(test_suite.framework_configs.keys()) if test_suite.framework_configs else []
         
-        return {
+        result = {
             'test_suite': test_suite,
             'total_tests': len(test_suite.test_skeletons),
             'test_frameworks': frameworks_used
         }
+        
+        # Add enhanced test case data if available
+        if test_outline:
+            result.update({
+                'test_outline': test_outline,
+                'requirement_test_cases': len(test_outline.test_cases),
+                'coverage_analysis': integration_report,
+                'enhanced_generation_available': True
+            })
+        else:
+            result['enhanced_generation_available'] = False
+        
+        return result
+    
+    def update_requirements_and_regenerate_tests(self, updated_requirements: List[Any]) -> Dict[str, Any]:
+        """Update requirements and automatically regenerate test cases if needed.
+        
+        Args:
+            updated_requirements: List of updated requirements
+            
+        Returns:
+            Dictionary containing regeneration results
+        """
+        if not hasattr(self, 'test_requirements_integration'):
+            return {"error": "Test-requirements integration not available"}
+        
+        try:
+            # Update requirements in integration service
+            self.test_requirements_integration.set_requirements(updated_requirements)
+            
+            # Get current test outline
+            current_outline = self.test_requirements_integration.current_test_outline
+            
+            # Validate test cases against updated requirements
+            validation_issues = self.test_requirements_integration.validate_test_cases_against_requirements()
+            
+            # Get coverage analysis
+            coverage_analysis = self.test_requirements_integration.get_test_coverage_analysis()
+            
+            return {
+                "success": True,
+                "requirements_updated": len(updated_requirements),
+                "test_cases_count": len(current_outline.test_cases) if current_outline else 0,
+                "validation_issues": len(validation_issues),
+                "coverage_analysis": coverage_analysis,
+                "regeneration_recommended": any(
+                    issue.severity.value == "error" for issue in validation_issues
+                ) if validation_issues else False
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to update requirements and regenerate tests: {e}")
+            return {"error": str(e)}
+    
+    def export_test_cases(self, format_type: str = "text", **options) -> Optional[str]:
+        """Export generated test cases in specified format.
+        
+        Args:
+            format_type: Export format ('text', 'json', 'xml', 'csv', 'html', 'markdown')
+            **options: Additional export options
+            
+        Returns:
+            Exported test cases as string, or None if not available
+        """
+        if not hasattr(self, 'test_requirements_integration'):
+            return None
+        
+        current_outline = self.test_requirements_integration.current_test_outline
+        if not current_outline:
+            return None
+        
+        try:
+            return self.test_case_generator.export_test_cases(current_outline, format_type, **options)
+        except Exception as e:
+            self.logger.error(f"Failed to export test cases: {e}")
+            return None
     
     def _stage_traceability_analysis(self) -> Dict[str, Any]:
         """Stage 8: Traceability matrix generation."""

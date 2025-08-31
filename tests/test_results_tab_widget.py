@@ -11,10 +11,11 @@ from PyQt6.QtGui import QColor
 import sys
 
 from medical_analyzer.ui.results_tab_widget import (
-    ResultsTabWidget, RequirementsTab, RiskRegisterTab, 
+    ResultsTabWidget, RiskRegisterTab, 
     TraceabilityTab, TestingResultsTab, SummaryTab, TestExecutionDialog,
-    RequirementEditDialog, RiskEditDialog
+    RiskEditDialog
 )
+from medical_analyzer.ui.requirements_tab_widget import RequirementsTabWidget
 from tests.test_utils import DeterministicTestMixin, UITestHelper
 
 
@@ -27,8 +28,8 @@ def results_widget(app):
 
 @pytest.fixture
 def requirements_tab(app):
-    """Create RequirementsTab instance for testing."""
-    tab = RequirementsTab()
+    """Create RequirementsTabWidget instance for testing."""
+    tab = RequirementsTabWidget()
     return tab
 
 
@@ -123,14 +124,14 @@ def sample_summary():
 
 
 class TestRequirementsTab(DeterministicTestMixin):
-    """Test cases for RequirementsTab."""
+    """Test cases for RequirementsTabWidget."""
     
     def test_initialization(self, requirements_tab):
         """Test requirements tab initialization."""
         assert requirements_tab.user_requirements == []
         assert requirements_tab.software_requirements == []
-        assert requirements_tab.ur_table.columnCount() == 3
-        assert requirements_tab.sr_table.columnCount() == 4
+        assert requirements_tab.ur_table.columnCount() == 5
+        assert requirements_tab.sr_table.columnCount() == 6
         
     def test_update_requirements(self, requirements_tab, sample_requirements):
         """Test updating requirements display."""
@@ -148,8 +149,8 @@ class TestRequirementsTab(DeterministicTestMixin):
         assert requirements_tab.sr_table.rowCount() == 1
         assert requirements_tab.sr_table.item(0, 0).text() == 'SR-001'
         assert 'authentication' in requirements_tab.sr_table.item(0, 1).text()
-        assert 'UR-001' in requirements_tab.sr_table.item(0, 2).text()
-        assert requirements_tab.sr_table.item(0, 3).text() == '2'  # 2 code references
+        assert 'UR-001' in requirements_tab.sr_table.item(0, 4).text()  # Derived From column
+        assert requirements_tab.sr_table.item(0, 5).text() == '2'  # 2 code references
         
     def test_signal_emissions(self, requirements_tab):
         """Test signal emissions from requirements tab."""

@@ -8,12 +8,16 @@ Code → Features → User Requirements → Software Requirements → Risks
 
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+import logging
 
 from ..models.core import Feature, Requirement, CodeReference
 from ..models.enums import RequirementType, FeatureCategory
 from ..llm.backend import LLMBackend, LLMError
+from ..llm.api_response_validator import APIResponseValidator, ValidationResult
 from ..models.result_models import RequirementsGenerationResult
 from .llm_response_parser import LLMResponseParser
+
+logger = logging.getLogger(__name__)
 
 
 class RequirementsGenerator:
@@ -29,6 +33,128 @@ class RequirementsGenerator:
         self.llm_backend = llm_backend
         self.ur_counter = 0
         self.sr_counter = 0
+        
+        # Initialize API response validator for requirements generation
+        self._validator = APIResponseValidator()
+        self._setup_requirements_validation_schemas()
+        
+        # Generation statistics
+        self._generation_stats = {
+            'total_requests': 0,
+            'successful_requests': 0,
+            'failed_requests': 0,
+            'validation_failures': 0,
+            'fallback_generations': 0,
+            'retry_attempts': 0
+        }
+    
+    def _setup_requirements_validation_schemas(self) -> None:
+        """Setup validation schemas specific to requirements generation."""
+        
+        # Schema for user requirements generation response
+        user_requirements_schema = {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": {"type": "string", "minLength": 10},
+                    "rationale": {"type": "string"},
+                    "acceptance_criteria": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": ["high", "medium", "low"]
+                    },
+                    "related_features": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    }
+                },
+                "required": ["description", "acceptance_criteria"]
+            },
+            "minItems": 1,
+            "maxItems": 10
+        }
+        
+        # Schema for software requirements generation response
+        software_requirements_schema = {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": {"type": "string", "minLength": 10},
+                    "type": {
+                        "type": "string",
+                        "enum": ["functional", "performance", "security", "safety", "interface", "data"]
+                    },
+                    "acceptance_criteria": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": ["high", "medium", "low"]
+                    },
+                    "implementation_notes": {"type": "string"}
+                },
+                "required": ["description", "acceptance_criteria"]
+            },
+            "minItems": 1,
+            "maxItems": 8
+        }
+        
+        # Add schemas to validator
+        self._validator.add_schema('user_requirements_generation', {
+            "type": "object",
+            "properties": {
+                "choices": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "message": {
+                                "type": "object",
+                                "properties": {
+                                    "content": {"type": "string"}
+                                },
+                                "required": ["content"]
+                            }
+                        },
+                        "required": ["message"]
+                    },
+                    "minItems": 1
+                }
+            },
+            "required": ["choices"]
+        })
+        
+        self._validator.add_schema('software_requirements_generation', {
+            "type": "object",
+            "properties": {
+                "choices": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "message": {
+                                "type": "object",
+                                "properties": {
+                                    "content": {"type": "string"}
+                                },
+                                "required": ["content"]
+                            }
+                        },
+                        "required": ["message"]
+                    },
+                    "minItems": 1
+                }
+            },
+            "required": ["choices"]
+        })
         
         # User requirements generation prompts
         self.ur_system_prompt = """You are an expert requirements engineer specializing in medical device software. Your task is to analyze extracted software features and generate high-level user requirements that describe what users need from the system.
@@ -171,28 +297,54 @@ Generate 2-5 software requirements for this user requirement."""
             )
             
             try:
-                # Generate user requirements using LLM
-                response = self.llm_backend.generate(
+                self._generation_stats['total_requests'] += 1
+                
+                # Generate user requirements using LLM with validation
+                response_text, validation_result = self._generate_with_validation(
                     prompt=prompt,
                     system_prompt=self.ur_system_prompt,
+                    operation="user_requirements_generation",
                     temperature=0.7,
                     max_tokens=3000
                 )
                 
-                # Parse JSON response
-                ur_data_list = LLMResponseParser.parse_json_response(response)
-                
-                # Convert to Requirement objects
-                for ur_data in ur_data_list:
-                    ur = self._create_user_requirement_from_data(ur_data, category_features)
-                    if ur:
-                        user_requirements.append(ur)
+                if response_text and validation_result and validation_result.is_valid:
+                    self._generation_stats['successful_requests'] += 1
+                    
+                    # Parse JSON response
+                    ur_data_list = LLMResponseParser.parse_json_response(response_text)
+                    
+                    # Validate parsed requirements data
+                    if self._validate_requirements_data(ur_data_list, 'user'):
+                        # Convert to Requirement objects
+                        for ur_data in ur_data_list:
+                            ur = self._create_user_requirement_from_data(ur_data, category_features)
+                            if ur:
+                                user_requirements.append(ur)
+                        
+                        logger.info(f"Generated {len(ur_data_list)} user requirements for category {category}")
+                    else:
+                        logger.warning(f"Generated requirements data failed validation for category {category}")
+                        raise ValueError("Requirements data validation failed")
+                else:
+                    # Log validation issues
+                    if validation_result:
+                        logger.warning(f"User requirements generation validation failed: {[e.error_message for e in validation_result.errors]}")
+                        self._generation_stats['validation_failures'] += 1
+                    
+                    raise LLMError("Requirements generation validation failed")
                         
             except (LLMError, Exception) as e:
+                self._generation_stats['failed_requests'] += 1
+                self._generation_stats['fallback_generations'] += 1
+                
+                logger.warning(f"User requirements generation failed for category {category}: {e}")
+                
                 # Fallback to heuristic generation for this category
                 fallback_ur = self._generate_fallback_user_requirement(category, category_features)
                 if fallback_ur:
                     user_requirements.append(fallback_ur)
+                    logger.info(f"Generated fallback user requirement for category {category}")
         
         return user_requirements
     
@@ -228,27 +380,53 @@ Generate 2-5 software requirements for this user requirement."""
             )
             
             try:
-                # Generate software requirements using LLM
-                response = self.llm_backend.generate(
+                self._generation_stats['total_requests'] += 1
+                
+                # Generate software requirements using LLM with validation
+                response_text, validation_result = self._generate_with_validation(
                     prompt=prompt,
                     system_prompt=self.sr_system_prompt,
+                    operation="software_requirements_generation",
                     temperature=0.6,
                     max_tokens=2500
                 )
                 
-                # Parse JSON response
-                sr_data_list = LLMResponseParser.parse_json_response(response)
-                
-                # Convert to Requirement objects
-                for sr_data in sr_data_list:
-                    sr = self._create_software_requirement_from_data(sr_data, ur, related_features)
-                    if sr:
-                        software_requirements.append(sr)
+                if response_text and validation_result and validation_result.is_valid:
+                    self._generation_stats['successful_requests'] += 1
+                    
+                    # Parse JSON response
+                    sr_data_list = LLMResponseParser.parse_json_response(response_text)
+                    
+                    # Validate parsed requirements data
+                    if self._validate_requirements_data(sr_data_list, 'software'):
+                        # Convert to Requirement objects
+                        for sr_data in sr_data_list:
+                            sr = self._create_software_requirement_from_data(sr_data, ur, related_features)
+                            if sr:
+                                software_requirements.append(sr)
+                        
+                        logger.info(f"Generated {len(sr_data_list)} software requirements for UR {ur.id}")
+                    else:
+                        logger.warning(f"Generated software requirements data failed validation for UR {ur.id}")
+                        raise ValueError("Software requirements data validation failed")
+                else:
+                    # Log validation issues
+                    if validation_result:
+                        logger.warning(f"Software requirements generation validation failed: {[e.error_message for e in validation_result.errors]}")
+                        self._generation_stats['validation_failures'] += 1
+                    
+                    raise LLMError("Software requirements generation validation failed")
                         
             except (LLMError, Exception) as e:
+                self._generation_stats['failed_requests'] += 1
+                self._generation_stats['fallback_generations'] += 1
+                
+                logger.warning(f"Software requirements generation failed for UR {ur.id}: {e}")
+                
                 # Fallback to heuristic generation
                 fallback_srs = self._generate_fallback_software_requirements(ur, related_features)
                 software_requirements.extend(fallback_srs)
+                logger.info(f"Generated {len(fallback_srs)} fallback software requirements for UR {ur.id}")
         
         return software_requirements
     
@@ -497,3 +675,339 @@ Generate 2-5 software requirements for this user requirement."""
                 'requirements_with_traceability': len([sr for sr in software_requirements if sr.derived_from])
             }
         }
+    
+    def _generate_with_validation(
+        self,
+        prompt: str,
+        system_prompt: str,
+        operation: str,
+        temperature: float = 0.7,
+        max_tokens: int = 3000,
+        max_retries: int = 2
+    ) -> tuple[Optional[str], Optional[ValidationResult]]:
+        """
+        Generate text with comprehensive validation and retry logic.
+        
+        Args:
+            prompt: The generation prompt
+            system_prompt: System prompt for context
+            operation: Operation type for validation
+            temperature: Generation temperature
+            max_tokens: Maximum tokens to generate
+            max_retries: Maximum retry attempts
+            
+        Returns:
+            Tuple of (generated_text, validation_result)
+        """
+        last_validation_result = None
+        
+        for attempt in range(max_retries + 1):
+            try:
+                logger.debug(f"Requirements generation attempt {attempt + 1}/{max_retries + 1} for {operation}")
+                
+                # Generate using LLM backend
+                response_text = self.llm_backend.generate(
+                    prompt=prompt,
+                    system_prompt=system_prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                
+                # Validate the response content
+                validation_result = self._validate_requirements_response(response_text, operation)
+                
+                if validation_result.is_valid:
+                    logger.debug(f"Requirements generation successful for {operation} on attempt {attempt + 1}")
+                    return response_text, validation_result
+                
+                # Log validation issues
+                logger.warning(f"Requirements generation validation failed on attempt {attempt + 1}: {[e.error_message for e in validation_result.errors]}")
+                last_validation_result = validation_result
+                
+                # Check if we should retry
+                if not validation_result.should_retry() or attempt >= max_retries:
+                    break
+                
+                self._generation_stats['retry_attempts'] += 1
+                
+                # Adjust parameters for retry
+                if attempt == 0:
+                    # First retry: increase temperature slightly for more creativity
+                    temperature = min(temperature + 0.1, 1.0)
+                elif attempt == 1:
+                    # Second retry: increase max_tokens in case response was truncated
+                    max_tokens = min(max_tokens + 500, 4000)
+                
+            except LLMError as e:
+                logger.error(f"LLM error during requirements generation attempt {attempt + 1}: {e}")
+                if not e.recoverable or attempt >= max_retries:
+                    break
+                self._generation_stats['retry_attempts'] += 1
+            except Exception as e:
+                logger.error(f"Unexpected error during requirements generation attempt {attempt + 1}: {e}")
+                break
+        
+        return None, last_validation_result
+    
+    def _validate_requirements_response(self, response_text: str, operation: str) -> ValidationResult:
+        """
+        Validate requirements generation response content.
+        
+        Args:
+            response_text: The generated response text
+            operation: Operation type for validation
+            
+        Returns:
+            ValidationResult with validation details
+        """
+        from ..llm.api_response_validator import ValidationResult, ValidationStatus, ErrorDetails, ErrorSeverity, RecoveryAction
+        
+        result = ValidationResult(
+            status=ValidationStatus.VALID,
+            is_valid=True,
+            metadata={'operation': operation, 'response_length': len(response_text)}
+        )
+        
+        try:
+            # Basic content validation
+            if not response_text or not response_text.strip():
+                result.add_error(ErrorDetails(
+                    error_code="EMPTY_RESPONSE",
+                    error_message="Generated response is empty",
+                    severity=ErrorSeverity.HIGH,
+                    is_recoverable=True,
+                    suggested_action=RecoveryAction.RETRY
+                ))
+                return result
+            
+            # Check if response looks like JSON
+            response_text = response_text.strip()
+            if not (response_text.startswith('[') or response_text.startswith('{')):
+                result.add_warning("Response does not appear to be JSON format")
+                result.confidence *= 0.8
+            
+            # Try to parse as JSON
+            try:
+                import json
+                parsed_data = json.loads(response_text)
+                
+                # Validate structure based on operation
+                if operation == "user_requirements_generation":
+                    if not self._validate_user_requirements_structure(parsed_data, result):
+                        result.confidence *= 0.7
+                elif operation == "software_requirements_generation":
+                    if not self._validate_software_requirements_structure(parsed_data, result):
+                        result.confidence *= 0.7
+                
+                result.extracted_data = {'parsed_requirements': parsed_data}
+                
+            except json.JSONDecodeError as e:
+                result.add_error(ErrorDetails(
+                    error_code="INVALID_JSON",
+                    error_message=f"Response is not valid JSON: {str(e)}",
+                    error_context={'response_preview': response_text[:200]},
+                    severity=ErrorSeverity.HIGH,
+                    is_recoverable=True,
+                    suggested_action=RecoveryAction.RETRY
+                ))
+            
+            # Check for common error patterns
+            error_patterns = [
+                'i cannot', 'i am unable', 'sorry', 'apologize',
+                'error occurred', 'failed to', 'unable to process'
+            ]
+            
+            response_lower = response_text.lower()
+            for pattern in error_patterns:
+                if pattern in response_lower:
+                    result.add_warning(f"Response may contain error indication: '{pattern}'")
+                    result.confidence *= 0.9
+                    break
+            
+        except Exception as e:
+            result.add_error(ErrorDetails(
+                error_code="VALIDATION_EXCEPTION",
+                error_message=f"Validation failed with exception: {str(e)}",
+                severity=ErrorSeverity.MEDIUM,
+                is_recoverable=True,
+                suggested_action=RecoveryAction.RETRY
+            ))
+        
+        return result
+    
+    def _validate_user_requirements_structure(self, data: Any, result: ValidationResult) -> bool:
+        """Validate user requirements data structure."""
+        if not isinstance(data, list):
+            result.add_error(ErrorDetails(
+                error_code="INVALID_STRUCTURE",
+                error_message="User requirements should be a list",
+                severity=ErrorSeverity.HIGH,
+                is_recoverable=True,
+                suggested_action=RecoveryAction.RETRY
+            ))
+            return False
+        
+        if len(data) == 0:
+            result.add_error(ErrorDetails(
+                error_code="EMPTY_REQUIREMENTS",
+                error_message="No user requirements generated",
+                severity=ErrorSeverity.HIGH,
+                is_recoverable=True,
+                suggested_action=RecoveryAction.RETRY
+            ))
+            return False
+        
+        if len(data) > 10:
+            result.add_warning(f"Generated {len(data)} user requirements, which is more than expected (max 10)")
+        
+        # Validate each requirement
+        for i, req in enumerate(data):
+            if not isinstance(req, dict):
+                result.add_warning(f"User requirement {i+1} is not a dictionary")
+                continue
+            
+            if 'description' not in req:
+                result.add_warning(f"User requirement {i+1} missing description")
+            elif len(req['description'].strip()) < 10:
+                result.add_warning(f"User requirement {i+1} description is too short")
+            
+            if 'acceptance_criteria' not in req:
+                result.add_warning(f"User requirement {i+1} missing acceptance criteria")
+            elif not isinstance(req['acceptance_criteria'], list) or len(req['acceptance_criteria']) == 0:
+                result.add_warning(f"User requirement {i+1} has invalid acceptance criteria")
+        
+        return True
+    
+    def _validate_software_requirements_structure(self, data: Any, result: ValidationResult) -> bool:
+        """Validate software requirements data structure."""
+        if not isinstance(data, list):
+            result.add_error(ErrorDetails(
+                error_code="INVALID_STRUCTURE",
+                error_message="Software requirements should be a list",
+                severity=ErrorSeverity.HIGH,
+                is_recoverable=True,
+                suggested_action=RecoveryAction.RETRY
+            ))
+            return False
+        
+        if len(data) == 0:
+            result.add_error(ErrorDetails(
+                error_code="EMPTY_REQUIREMENTS",
+                error_message="No software requirements generated",
+                severity=ErrorSeverity.HIGH,
+                is_recoverable=True,
+                suggested_action=RecoveryAction.RETRY
+            ))
+            return False
+        
+        if len(data) > 8:
+            result.add_warning(f"Generated {len(data)} software requirements, which is more than expected (max 8)")
+        
+        # Validate each requirement
+        for i, req in enumerate(data):
+            if not isinstance(req, dict):
+                result.add_warning(f"Software requirement {i+1} is not a dictionary")
+                continue
+            
+            if 'description' not in req:
+                result.add_warning(f"Software requirement {i+1} missing description")
+            elif len(req['description'].strip()) < 10:
+                result.add_warning(f"Software requirement {i+1} description is too short")
+            
+            if 'acceptance_criteria' not in req:
+                result.add_warning(f"Software requirement {i+1} missing acceptance criteria")
+            elif not isinstance(req['acceptance_criteria'], list) or len(req['acceptance_criteria']) == 0:
+                result.add_warning(f"Software requirement {i+1} has invalid acceptance criteria")
+            
+            # Validate requirement type if present
+            if 'type' in req:
+                valid_types = ['functional', 'performance', 'security', 'safety', 'interface', 'data']
+                if req['type'] not in valid_types:
+                    result.add_warning(f"Software requirement {i+1} has invalid type: {req['type']}")
+        
+        return True
+    
+    def _validate_requirements_data(self, requirements_data: List[Dict[str, Any]], req_type: str) -> bool:
+        """
+        Validate parsed requirements data for completeness and correctness.
+        
+        Args:
+            requirements_data: List of requirement dictionaries
+            req_type: Type of requirements ('user' or 'software')
+            
+        Returns:
+            True if data is valid, False otherwise
+        """
+        if not requirements_data:
+            logger.warning(f"No {req_type} requirements data to validate")
+            return False
+        
+        valid_count = 0
+        
+        for i, req_data in enumerate(requirements_data):
+            if not isinstance(req_data, dict):
+                logger.warning(f"{req_type.title()} requirement {i+1} is not a dictionary")
+                continue
+            
+            # Check required fields
+            if 'description' not in req_data or not req_data['description'].strip():
+                logger.warning(f"{req_type.title()} requirement {i+1} missing or empty description")
+                continue
+            
+            if 'acceptance_criteria' not in req_data:
+                logger.warning(f"{req_type.title()} requirement {i+1} missing acceptance criteria")
+                continue
+            
+            if not isinstance(req_data['acceptance_criteria'], list) or len(req_data['acceptance_criteria']) == 0:
+                logger.warning(f"{req_type.title()} requirement {i+1} has invalid acceptance criteria")
+                continue
+            
+            # Additional validation for software requirements
+            if req_type == 'software' and 'type' in req_data:
+                valid_types = ['functional', 'performance', 'security', 'safety', 'interface', 'data']
+                if req_data['type'] not in valid_types:
+                    logger.warning(f"Software requirement {i+1} has invalid type: {req_data['type']}")
+            
+            valid_count += 1
+        
+        # At least 50% of requirements should be valid
+        validity_ratio = valid_count / len(requirements_data)
+        if validity_ratio < 0.5:
+            logger.warning(f"Only {validity_ratio:.1%} of {req_type} requirements are valid (minimum 50% required)")
+            return False
+        
+        logger.debug(f"Validated {valid_count}/{len(requirements_data)} {req_type} requirements ({validity_ratio:.1%})")
+        return True
+    
+    def get_generation_statistics(self) -> Dict[str, Any]:
+        """
+        Get statistics about requirements generation performance.
+        
+        Returns:
+            Dictionary with generation statistics
+        """
+        total_requests = self._generation_stats['total_requests']
+        success_rate = (self._generation_stats['successful_requests'] / max(total_requests, 1)) * 100
+        
+        return {
+            'total_requests': total_requests,
+            'successful_requests': self._generation_stats['successful_requests'],
+            'failed_requests': self._generation_stats['failed_requests'],
+            'validation_failures': self._generation_stats['validation_failures'],
+            'fallback_generations': self._generation_stats['fallback_generations'],
+            'retry_attempts': self._generation_stats['retry_attempts'],
+            'success_rate': round(success_rate, 2),
+            'fallback_rate': round((self._generation_stats['fallback_generations'] / max(total_requests, 1)) * 100, 2)
+        }
+    
+    def reset_generation_statistics(self) -> None:
+        """Reset generation statistics."""
+        self._generation_stats = {
+            'total_requests': 0,
+            'successful_requests': 0,
+            'failed_requests': 0,
+            'validation_failures': 0,
+            'fallback_generations': 0,
+            'retry_attempts': 0
+        }
+        logger.info("Requirements generation statistics reset")

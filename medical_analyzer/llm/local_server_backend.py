@@ -7,11 +7,13 @@ supporting various local model servers for medical device software analysis.
 
 import json
 import requests
+import time
 from typing import List, Optional, Dict, Any
 import logging
 from urllib.parse import urljoin
 
 from .backend import LLMBackend, LLMError, ModelInfo, ModelType
+from .api_response_validator import APIResponseValidator, ValidationResult, RecoveryAction
 from ..utils.http_client import get_shared_http_client
 
 logger = logging.getLogger(__name__)
@@ -41,6 +43,9 @@ class LocalServerBackend(LLMBackend):
         # Legacy session attribute for backward compatibility with tests
         self._session = requests.Session()
         
+        # Initialize API response validator
+        self._validator = APIResponseValidator()
+        
         # Caching for availability and model info
         self._availability_cache = None
         self._availability_cache_time = 0
@@ -49,6 +54,14 @@ class LocalServerBackend(LLMBackend):
         self._model_info_cache = None
         self._model_info_cache_time = 0
         self._model_info_cache_ttl = 300  # Cache model info for 5 minutes
+        
+        # Response caching for improved performance
+        self._response_cache: Dict[str, Any] = {}
+        self._response_cache_ttl = 300  # 5 minutes
+        
+        # Retry configuration
+        self._max_retries = config.get('max_retries', 3)
+        self._base_retry_delay = config.get('base_retry_delay', 1.0)
         
         # Prepare headers for API requests
         self._headers = {"Content-Type": "application/json"}
@@ -178,7 +191,7 @@ class LocalServerBackend(LLMBackend):
         system_prompt: Optional[str] = None
     ) -> str:
         """
-        Generate text using local server API.
+        Generate text using local server API with comprehensive response validation.
         
         Args:
             prompt: The main prompt for generation
@@ -200,6 +213,13 @@ class LocalServerBackend(LLMBackend):
                 backend="LocalServerBackend"
             )
         
+        # Check cache first
+        cache_key = self._generate_cache_key(prompt, context_chunks, temperature, max_tokens, system_prompt)
+        cached_response = self._get_cached_response(cache_key)
+        if cached_response:
+            logger.debug("Returning cached response")
+            return cached_response
+        
         try:
             # Validate input length and handle token limits
             if not self.validate_input_length(prompt, context_chunks):
@@ -210,32 +230,38 @@ class LocalServerBackend(LLMBackend):
                     context_chunks = self._reduce_context_for_limits(prompt, context_chunks)
             
             # Prepare the request
-            full_prompt = self._prepare_prompt(prompt, context_chunks, system_prompt)
-            
             if max_tokens is None:
                 max_tokens = self.config.get("max_tokens", 512)
             
-            # Try different API formats
+            # Try different API formats with validation and retry
             response_text = None
+            last_error = None
             
             # Try OpenAI-compatible chat completions first
             if self._model_info and self._model_info.supports_system_prompt:
-                response_text = self._try_chat_completion(
+                response_text, last_error = self._try_chat_completion_with_validation(
                     prompt, context_chunks, system_prompt, temperature, max_tokens
                 )
             
             # Fall back to completion API
             if response_text is None:
-                response_text = self._try_completion(
+                full_prompt = self._prepare_prompt(prompt, context_chunks, system_prompt)
+                response_text, last_error = self._try_completion_with_validation(
                     full_prompt, temperature, max_tokens
                 )
             
             if response_text is None:
+                error_msg = "All API formats failed"
+                if last_error:
+                    error_msg += f". Last error: {last_error}"
                 raise LLMError(
-                    "All API formats failed",
+                    error_msg,
                     recoverable=True,
                     backend="LocalServerBackend"
                 )
+            
+            # Cache successful response
+            self._cache_response(cache_key, response_text)
             
             return response_text.strip()
             
@@ -249,127 +275,214 @@ class LocalServerBackend(LLMBackend):
                 backend="LocalServerBackend"
             )
     
-    def _try_chat_completion(
+    def _try_chat_completion_with_validation(
         self,
         prompt: str,
         context_chunks: Optional[List[str]],
         system_prompt: Optional[str],
         temperature: float,
         max_tokens: int
-    ) -> Optional[str]:
-        """Try OpenAI-compatible chat completion API."""
-        try:
-            base_url = self.config["base_url"]
-            timeout = self.config.get("timeout", 30)
-            
-            # Prepare messages
-            messages = []
-            
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-            
-            # Add context if provided
-            if context_chunks:
-                context_text = "\n\n".join(context_chunks)
-                messages.append({"role": "user", "content": f"Context:\n{context_text}"})
-            
-            messages.append({"role": "user", "content": prompt})
-            
-            # Prepare request data
-            data = {
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                "stream": False
-            }
-            
-            # Add model if specified
-            model = self.config.get("model")
-            if model:
-                data["model"] = model
-            
-            # Add stop sequences if specified
-            stop = self.config.get("stop_sequences")
-            if stop:
-                data["stop"] = stop
-            
-            # Try chat completions endpoint
-            url = urljoin(base_url, "/v1/chat/completions")
-            response = self._http_client.post(url, json=data, headers=self._headers)
-            
-            if response.status_code == 200:
-                result = response.json()
-                if "choices" in result and result["choices"]:
-                    return result["choices"][0]["message"]["content"]
-            
-            return None
-            
-        except Exception as e:
-            logger.debug(f"Chat completion API failed: {e}")
-            return None
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Try OpenAI-compatible chat completion API with validation and retry."""
+        base_url = self.config["base_url"]
+        timeout = self.config.get("timeout", 30)
+        
+        # Prepare messages
+        messages = []
+        
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        
+        # Add context if provided
+        if context_chunks:
+            context_text = "\n\n".join(context_chunks)
+            messages.append({"role": "user", "content": f"Context:\n{context_text}"})
+        
+        messages.append({"role": "user", "content": prompt})
+        
+        # Prepare request data
+        data = {
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": False
+        }
+        
+        # Add model if specified
+        model = self.config.get("model")
+        if model:
+            data["model"] = model
+        
+        # Add stop sequences if specified
+        stop = self.config.get("stop_sequences")
+        if stop:
+            data["stop"] = stop
+        
+        # Try chat completions endpoint with retry logic
+        url = urljoin(base_url, "/v1/chat/completions")
+        
+        for attempt in range(1, self._max_retries + 1):
+            try:
+                logger.debug(f"Chat completion attempt {attempt}/{self._max_retries}")
+                
+                # Make request
+                response = self._http_client.post(url, json=data, headers=self._headers)
+                
+                # Validate response
+                validation_result = self._validator.validate_response(
+                    response, 
+                    operation="text_generation"
+                )
+                
+                # Log validation details
+                if validation_result.errors:
+                    logger.warning(f"Validation errors: {[e.error_message for e in validation_result.errors]}")
+                if validation_result.warnings:
+                    logger.info(f"Validation warnings: {validation_result.warnings}")
+                
+                # Check if response is valid
+                if validation_result.is_valid and validation_result.extracted_data:
+                    content = validation_result.extracted_data.get('content')
+                    if content:
+                        logger.debug(f"Chat completion successful on attempt {attempt}")
+                        return content, None
+                
+                # Check if we should retry
+                if not validation_result.should_retry() or attempt >= self._max_retries:
+                    error_msg = f"Chat completion validation failed: {validation_result.errors[0].error_message if validation_result.errors else 'Unknown error'}"
+                    logger.debug(error_msg)
+                    return None, error_msg
+                
+                # Wait before retry
+                if attempt < self._max_retries:
+                    delay = self._validator.calculate_retry_delay(attempt, self._base_retry_delay)
+                    logger.debug(f"Retrying chat completion in {delay:.2f} seconds")
+                    time.sleep(delay)
+                    
+            except Exception as e:
+                error_msg = f"Chat completion API failed: {e}"
+                logger.debug(error_msg)
+                
+                if attempt >= self._max_retries:
+                    return None, error_msg
+                
+                # Wait before retry
+                delay = self._validator.calculate_retry_delay(attempt, self._base_retry_delay)
+                logger.debug(f"Retrying chat completion after exception in {delay:.2f} seconds")
+                time.sleep(delay)
+        
+        return None, "Chat completion failed after all retries"
     
-    def _try_completion(
+    def _try_completion_with_validation(
         self,
         prompt: str,
         temperature: float,
         max_tokens: int
-    ) -> Optional[str]:
-        """Try completion API."""
-        try:
-            base_url = self.config["base_url"]
-            timeout = self.config.get("timeout", 30)
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Try completion API with validation and retry."""
+        base_url = self.config["base_url"]
+        timeout = self.config.get("timeout", 30)
+        
+        # Prepare request data
+        data = {
+            "prompt": prompt,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": False
+        }
+        
+        # Add model if specified
+        model = self.config.get("model")
+        if model:
+            data["model"] = model
+        
+        # Add stop sequences if specified
+        stop = self.config.get("stop_sequences")
+        if stop:
+            data["stop"] = stop
+        
+        # Try different completion endpoints
+        endpoints = [
+            "/v1/completions",
+            "/api/v1/completions", 
+            "/completions",
+            "/generate"
+        ]
+        
+        last_error = None
+        
+        for endpoint in endpoints:
+            logger.debug(f"Trying completion endpoint: {endpoint}")
             
-            # Prepare request data
-            data = {
-                "prompt": prompt,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                "stream": False
-            }
-            
-            # Add model if specified
-            model = self.config.get("model")
-            if model:
-                data["model"] = model
-            
-            # Add stop sequences if specified
-            stop = self.config.get("stop_sequences")
-            if stop:
-                data["stop"] = stop
-            
-            # Try different completion endpoints
-            endpoints = [
-                "/v1/completions",
-                "/api/v1/completions",
-                "/completions",
-                "/generate"
-            ]
-            
-            for endpoint in endpoints:
+            for attempt in range(1, self._max_retries + 1):
                 try:
                     url = urljoin(base_url, endpoint)
                     response = self._http_client.post(url, json=data, headers=self._headers)
                     
+                    # Validate response
+                    validation_result = self._validator.validate_response(
+                        response, 
+                        operation="text_generation"
+                    )
+                    
+                    # Log validation details
+                    if validation_result.errors:
+                        logger.debug(f"Validation errors for {endpoint}: {[e.error_message for e in validation_result.errors]}")
+                    if validation_result.warnings:
+                        logger.debug(f"Validation warnings for {endpoint}: {validation_result.warnings}")
+                    
+                    # Check if response is valid
+                    if validation_result.is_valid and validation_result.extracted_data:
+                        content = validation_result.extracted_data.get('content')
+                        if content:
+                            logger.debug(f"Completion successful with {endpoint} on attempt {attempt}")
+                            return content, None
+                    
+                    # For completion API, also try alternative response parsing
                     if response.status_code == 200:
-                        result = response.json()
-                        
-                        # Handle different response formats
-                        if "choices" in result and result["choices"]:
-                            return result["choices"][0].get("text", "")
-                        elif "text" in result:
-                            return result["text"]
-                        elif "response" in result:
-                            return result["response"]
+                        try:
+                            result = response.json()
+                            
+                            # Handle different response formats
+                            content = None
+                            if "choices" in result and result["choices"]:
+                                content = result["choices"][0].get("text", "")
+                            elif "text" in result:
+                                content = result["text"]
+                            elif "response" in result:
+                                content = result["response"]
+                            
+                            if content and content.strip():
+                                logger.debug(f"Completion successful with alternative parsing for {endpoint}")
+                                return content.strip(), None
+                                
+                        except Exception as parse_error:
+                            logger.debug(f"Alternative parsing failed for {endpoint}: {parse_error}")
+                    
+                    # Check if we should retry this endpoint
+                    if not validation_result.should_retry() or attempt >= self._max_retries:
+                        last_error = f"Endpoint {endpoint} validation failed: {validation_result.errors[0].error_message if validation_result.errors else 'Unknown error'}"
+                        break
+                    
+                    # Wait before retry
+                    if attempt < self._max_retries:
+                        delay = self._validator.calculate_retry_delay(attempt, self._base_retry_delay)
+                        logger.debug(f"Retrying {endpoint} in {delay:.2f} seconds")
+                        time.sleep(delay)
                         
                 except Exception as e:
-                    logger.debug(f"Completion endpoint {endpoint} failed: {e}")
-                    continue
-            
-            return None
-            
-        except Exception as e:
-            logger.debug(f"Completion API failed: {e}")
-            return None
+                    last_error = f"Completion endpoint {endpoint} failed: {e}"
+                    logger.debug(last_error)
+                    
+                    if attempt >= self._max_retries:
+                        break
+                    
+                    # Wait before retry
+                    delay = self._validator.calculate_retry_delay(attempt, self._base_retry_delay)
+                    logger.debug(f"Retrying {endpoint} after exception in {delay:.2f} seconds")
+                    time.sleep(delay)
+        
+        return None, last_error or "All completion endpoints failed"
     
     def _prepare_prompt(
         self, 
@@ -733,3 +846,77 @@ class LocalServerBackend(LLMBackend):
         """Invalidate all caches."""
         self.invalidate_availability_cache()
         self.invalidate_model_info_cache()
+        self._response_cache.clear()
+    
+    def _generate_cache_key(
+        self, 
+        prompt: str, 
+        context_chunks: Optional[List[str]], 
+        temperature: float, 
+        max_tokens: Optional[int], 
+        system_prompt: Optional[str]
+    ) -> str:
+        """Generate cache key for response caching."""
+        import hashlib
+        
+        # Create a hash of the request parameters
+        cache_data = {
+            'prompt': prompt,
+            'context_chunks': context_chunks or [],
+            'temperature': temperature,
+            'max_tokens': max_tokens,
+            'system_prompt': system_prompt or '',
+            'model': self.config.get('model', ''),
+            'base_url': self.config.get('base_url', '')
+        }
+        
+        cache_str = json.dumps(cache_data, sort_keys=True)
+        return hashlib.md5(cache_str.encode()).hexdigest()
+    
+    def _get_cached_response(self, cache_key: str) -> Optional[str]:
+        """Get cached response if available and not expired."""
+        if cache_key not in self._response_cache:
+            return None
+        
+        cached_data = self._response_cache[cache_key]
+        current_time = time.time()
+        
+        if current_time - cached_data['timestamp'] > self._response_cache_ttl:
+            # Cache expired
+            del self._response_cache[cache_key]
+            return None
+        
+        return cached_data['response']
+    
+    def _cache_response(self, cache_key: str, response: str) -> None:
+        """Cache a successful response."""
+        self._response_cache[cache_key] = {
+            'response': response,
+            'timestamp': time.time()
+        }
+        
+        # Clean up old cache entries (simple LRU-like cleanup)
+        if len(self._response_cache) > 100:  # Limit cache size
+            # Remove oldest entries
+            sorted_items = sorted(
+                self._response_cache.items(), 
+                key=lambda x: x[1]['timestamp']
+            )
+            
+            # Keep only the 50 most recent entries
+            self._response_cache = dict(sorted_items[-50:])
+    
+    def get_validation_statistics(self) -> Dict[str, Any]:
+        """Get statistics about API response validation."""
+        return {
+            'cache_size': len(self._response_cache),
+            'cache_ttl': self._response_cache_ttl,
+            'max_retries': self._max_retries,
+            'base_retry_delay': self._base_retry_delay,
+            'validator_schemas': list(self._validator.expected_schemas.keys())
+        }
+    
+    def clear_response_cache(self) -> None:
+        """Clear the response cache."""
+        self._response_cache.clear()
+        logger.info("Response cache cleared")

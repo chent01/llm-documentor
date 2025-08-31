@@ -3,6 +3,7 @@ Traceability service for creating and managing traceability links.
 
 This service handles the creation of traceability links between different
 analysis artifacts including code references, features, requirements, and risks.
+Enhanced with gap analysis and matrix generation capabilities.
 """
 
 import logging
@@ -17,60 +18,38 @@ from ..models.core import (
     RequirementType
 )
 from ..database.schema import DatabaseManager
+from .traceability_models import TraceabilityMatrix, TraceabilityGap, TraceabilityTableRow
 
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class TraceabilityMatrix:
-    """Complete traceability matrix for an analysis run."""
-    analysis_run_id: int
-    links: List[TraceabilityLink]
-    code_to_requirements: Dict[str, List[str]]  # code_ref_id -> requirement_ids
-    user_to_software_requirements: Dict[str, List[str]]  # ur_id -> sr_ids
-    requirements_to_risks: Dict[str, List[str]]  # requirement_id -> risk_ids
-    metadata: Dict[str, Any]
-    created_at: datetime
-
-
-@dataclass
-class TraceabilityGap:
-    """Represents a gap in traceability coverage."""
-    gap_type: str  # 'orphaned_code', 'orphaned_requirement', 'missing_link', 'weak_link'
-    source_type: str
-    source_id: str
-    target_type: Optional[str] = None
-    target_id: Optional[str] = None
-    description: str = ""
-    severity: str = "medium"  # 'low', 'medium', 'high'
-    recommendation: str = ""
-
-
-@dataclass
-class TraceabilityTableRow:
-    """Row in the tabular traceability matrix display."""
-    code_reference: str
-    file_path: str
-    function_name: str
-    feature_id: str
-    feature_description: str
-    user_requirement_id: str
-    user_requirement_text: str
-    software_requirement_id: str
-    software_requirement_text: str
-    risk_id: str
-    risk_hazard: str
-    confidence: float
-
-
 class TraceabilityService:
-    """Service for creating and managing traceability links."""
+    """Service for creating and managing traceability links with enhanced gap analysis."""
     
     def __init__(self, db_manager: DatabaseManager):
         """Initialize traceability service with database manager."""
         self.db_manager = db_manager
         self.logger = logging.getLogger(__name__)
+        
+        # Initialize enhanced services (delayed import to avoid circular imports)
+        self.gap_analyzer = None
+        self.export_service = None
+        
+        # Matrix caching for performance
+        self._matrix_cache: Dict[int, TraceabilityMatrix] = {}
+        self._cache_timestamps: Dict[int, datetime] = {}
+        self._cache_timeout_minutes = 30
+        
+    def _ensure_services_initialized(self):
+        """Ensure enhanced services are initialized (lazy loading)."""
+        if self.gap_analyzer is None:
+            from .traceability_gap_analyzer import TraceabilityGapAnalyzer
+            self.gap_analyzer = TraceabilityGapAnalyzer()
+            
+        if self.export_service is None:
+            from .traceability_export_service import TraceabilityExportService
+            self.export_service = TraceabilityExportService()
     
     def create_traceability_matrix(
         self,
@@ -1002,3 +981,363 @@ class TraceabilityService:
                 report.append("")
         
         return "\n".join(report)
+    
+    def create_enhanced_traceability_matrix(
+        self,
+        analysis_run_id: int,
+        features: List[Feature],
+        user_requirements: List[Requirement],
+        software_requirements: List[Requirement],
+        risk_items: List[RiskItem],
+        force_refresh: bool = False
+    ) -> Tuple[TraceabilityMatrix, List[TraceabilityTableRow], Any]:
+        """
+        Create enhanced traceability matrix with gap analysis and tabular data.
+        
+        Args:
+            analysis_run_id: ID of the analysis run
+            features: List of extracted features
+            user_requirements: List of user requirements
+            software_requirements: List of software requirements
+            risk_items: List of identified risks
+            force_refresh: Force refresh of cached data
+            
+        Returns:
+            Tuple of (matrix, table_rows, gap_analysis)
+        """
+        self.logger.info(f"Creating enhanced traceability matrix for analysis run {analysis_run_id}")
+        
+        # Check cache first
+        if not force_refresh and self._is_matrix_cached(analysis_run_id):
+            self.logger.info("Using cached traceability matrix")
+            matrix = self._matrix_cache[analysis_run_id]
+        else:
+            # Create base matrix
+            matrix = self.create_traceability_matrix(
+                analysis_run_id, features, user_requirements, software_requirements, risk_items
+            )
+            
+            # Cache the matrix
+            self._cache_matrix(analysis_run_id, matrix)
+        
+        # Generate tabular representation
+        table_rows = self.generate_tabular_matrix(
+            matrix, features, user_requirements, software_requirements, risk_items
+        )
+        
+        # Perform gap analysis
+        self._ensure_services_initialized()
+        gap_analysis = self.gap_analyzer.analyze_gaps(
+            matrix, features, user_requirements, software_requirements, risk_items
+        )
+        
+        self.logger.info(f"Enhanced matrix created with {len(table_rows)} rows and {len(gap_analysis.gaps)} gaps")
+        return matrix, table_rows, gap_analysis
+    
+    def validate_matrix_completeness(self, matrix: TraceabilityMatrix) -> Dict[str, Any]:
+        """
+        Validate traceability matrix for completeness and consistency.
+        Enhanced version with detailed metrics.
+        
+        Args:
+            matrix: The traceability matrix to validate
+            
+        Returns:
+            Detailed validation results
+        """
+        self.logger.info("Validating traceability matrix completeness")
+        
+        validation_results = {
+            "is_valid": True,
+            "issues": [],
+            "warnings": [],
+            "metrics": {},
+            "recommendations": []
+        }
+        
+        # Basic validation from parent method
+        basic_issues = self.validate_traceability_matrix(matrix)
+        validation_results["issues"].extend(basic_issues)
+        
+        # Enhanced validation metrics
+        total_links = len(matrix.links)
+        
+        # Link type distribution
+        link_types = {}
+        confidence_scores = []
+        
+        for link in matrix.links:
+            link_types[link.link_type] = link_types.get(link.link_type, 0) + 1
+            if link.confidence > 0:
+                confidence_scores.append(link.confidence)
+        
+        # Calculate metrics
+        avg_confidence = sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0.0
+        low_confidence_count = sum(1 for c in confidence_scores if c < 0.5)
+        
+        validation_results["metrics"] = {
+            "total_links": total_links,
+            "link_types": link_types,
+            "average_confidence": avg_confidence,
+            "low_confidence_links": low_confidence_count,
+            "confidence_distribution": {
+                "high": sum(1 for c in confidence_scores if c >= 0.8),
+                "medium": sum(1 for c in confidence_scores if 0.5 <= c < 0.8),
+                "low": sum(1 for c in confidence_scores if c < 0.5)
+            }
+        }
+        
+        # Validation checks
+        if avg_confidence < 0.6:
+            validation_results["warnings"].append(
+                f"Average confidence ({avg_confidence:.2f}) is below recommended threshold (0.6)"
+            )
+            validation_results["recommendations"].append(
+                "Review and strengthen traceability evidence for low-confidence links"
+            )
+        
+        if low_confidence_count > total_links * 0.2:  # More than 20% low confidence
+            validation_results["issues"].append(
+                f"High number of low-confidence links ({low_confidence_count}/{total_links})"
+            )
+            validation_results["is_valid"] = False
+        
+        # Check for missing link types
+        expected_link_types = ["implements", "derives_to", "mitigated_by"]
+        missing_types = [lt for lt in expected_link_types if lt not in link_types]
+        
+        if missing_types:
+            validation_results["warnings"].append(
+                f"Missing expected link types: {', '.join(missing_types)}"
+            )
+        
+        # Check for balanced link distribution
+        if link_types:
+            max_type_count = max(link_types.values())
+            min_type_count = min(link_types.values())
+            
+            if max_type_count > min_type_count * 5:  # Highly unbalanced
+                validation_results["warnings"].append(
+                    "Unbalanced link type distribution may indicate incomplete analysis"
+                )
+        
+        self.logger.info(f"Matrix validation completed: {'PASSED' if validation_results['is_valid'] else 'FAILED'}")
+        return validation_results
+    
+    def export_matrix(
+        self,
+        matrix: TraceabilityMatrix,
+        table_rows: List[TraceabilityTableRow],
+        gaps: List[TraceabilityGap],
+        export_format: str,
+        filename: str,
+        **kwargs
+    ) -> bool:
+        """
+        Export traceability matrix in specified format.
+        
+        Args:
+            matrix: The traceability matrix
+            table_rows: Tabular representation of the matrix
+            gaps: List of detected gaps
+            export_format: Export format ('csv', 'excel', 'pdf', 'gaps')
+            filename: Output filename
+            **kwargs: Additional export options
+            
+        Returns:
+            True if export successful, False otherwise
+        """
+        self.logger.info(f"Exporting traceability matrix as {export_format} to {filename}")
+        
+        try:
+            self._ensure_services_initialized()
+            if export_format.lower() == "csv":
+                return self.export_service.export_csv(
+                    table_rows, gaps, filename, 
+                    include_gaps=kwargs.get("include_gaps", True)
+                )
+            elif export_format.lower() == "excel":
+                return self.export_service.export_excel(
+                    table_rows, gaps, filename,
+                    include_formatting=kwargs.get("include_formatting", True)
+                )
+            elif export_format.lower() == "pdf":
+                return self.export_service.export_pdf(
+                    table_rows, gaps, filename,
+                    include_summary=kwargs.get("include_summary", True)
+                )
+            elif export_format.lower() == "gaps":
+                return self.export_service.export_gap_report(gaps, filename)
+            else:
+                self.logger.error(f"Unsupported export format: {export_format}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Export failed: {e}")
+            return False
+    
+    def get_matrix_statistics(
+        self,
+        matrix: TraceabilityMatrix,
+        table_rows: List[TraceabilityTableRow],
+        gaps: List[TraceabilityGap]
+    ) -> Dict[str, Any]:
+        """
+        Get comprehensive statistics for the traceability matrix.
+        
+        Args:
+            matrix: The traceability matrix
+            table_rows: Tabular representation
+            gaps: List of detected gaps
+            
+        Returns:
+            Dictionary of statistics
+        """
+        stats = {
+            "matrix_info": {
+                "analysis_run_id": matrix.analysis_run_id,
+                "created_at": matrix.created_at.isoformat(),
+                "total_links": len(matrix.links),
+                "total_rows": len(table_rows)
+            },
+            "link_statistics": {},
+            "coverage_statistics": {},
+            "gap_statistics": {},
+            "quality_metrics": {}
+        }
+        
+        # Link statistics
+        link_types = {}
+        confidence_scores = []
+        
+        for link in matrix.links:
+            link_types[link.link_type] = link_types.get(link.link_type, 0) + 1
+            if link.confidence > 0:
+                confidence_scores.append(link.confidence)
+        
+        stats["link_statistics"] = {
+            "by_type": link_types,
+            "average_confidence": sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0.0,
+            "confidence_distribution": {
+                "high": sum(1 for c in confidence_scores if c >= 0.8),
+                "medium": sum(1 for c in confidence_scores if 0.5 <= c < 0.8),
+                "low": sum(1 for c in confidence_scores if c < 0.5)
+            }
+        }
+        
+        # Coverage statistics
+        complete_chains = sum(1 for row in table_rows 
+                            if all([row.user_requirement_id, row.software_requirement_id, row.risk_id]))
+        
+        stats["coverage_statistics"] = {
+            "complete_chains": complete_chains,
+            "coverage_percentage": (complete_chains / len(table_rows) * 100) if table_rows else 0,
+            "code_to_requirements": len(matrix.code_to_requirements),
+            "user_to_software_requirements": len(matrix.user_to_software_requirements),
+            "requirements_to_risks": len(matrix.requirements_to_risks)
+        }
+        
+        # Gap statistics
+        gap_by_severity = {}
+        gap_by_type = {}
+        
+        for gap in gaps:
+            gap_by_severity[gap.severity] = gap_by_severity.get(gap.severity, 0) + 1
+            gap_by_type[gap.gap_type] = gap_by_type.get(gap.gap_type, 0) + 1
+        
+        stats["gap_statistics"] = {
+            "total_gaps": len(gaps),
+            "by_severity": gap_by_severity,
+            "by_type": gap_by_type
+        }
+        
+        # Quality metrics
+        high_confidence_links = sum(1 for c in confidence_scores if c >= 0.8)
+        quality_score = (high_confidence_links / len(confidence_scores) * 100) if confidence_scores else 0
+        
+        stats["quality_metrics"] = {
+            "quality_score": quality_score,
+            "completeness_score": stats["coverage_statistics"]["coverage_percentage"],
+            "gap_severity_score": 100 - (gap_by_severity.get("high", 0) * 10 + gap_by_severity.get("medium", 0) * 5),
+            "overall_score": (quality_score + stats["coverage_statistics"]["coverage_percentage"] + 
+                            max(0, 100 - (gap_by_severity.get("high", 0) * 10 + gap_by_severity.get("medium", 0) * 5))) / 3
+        }
+        
+        return stats
+    
+    def _is_matrix_cached(self, analysis_run_id: int) -> bool:
+        """Check if matrix is cached and still valid."""
+        if analysis_run_id not in self._matrix_cache:
+            return False
+            
+        cache_time = self._cache_timestamps.get(analysis_run_id)
+        if not cache_time:
+            return False
+            
+        # Check if cache is still valid (within timeout)
+        time_diff = datetime.now() - cache_time
+        return time_diff.total_seconds() < (self._cache_timeout_minutes * 60)
+    
+    def _cache_matrix(self, analysis_run_id: int, matrix: TraceabilityMatrix):
+        """Cache the matrix for performance."""
+        self._matrix_cache[analysis_run_id] = matrix
+        self._cache_timestamps[analysis_run_id] = datetime.now()
+        
+        # Clean old cache entries
+        self._cleanup_cache()
+    
+    def _cleanup_cache(self):
+        """Clean up expired cache entries."""
+        current_time = datetime.now()
+        expired_keys = []
+        
+        for analysis_id, cache_time in self._cache_timestamps.items():
+            time_diff = current_time - cache_time
+            if time_diff.total_seconds() >= (self._cache_timeout_minutes * 60):
+                expired_keys.append(analysis_id)
+        
+        for key in expired_keys:
+            self._matrix_cache.pop(key, None)
+            self._cache_timestamps.pop(key, None)
+    
+    def clear_cache(self):
+        """Clear all cached matrices."""
+        self._matrix_cache.clear()
+        self._cache_timestamps.clear()
+        self.logger.info("Traceability matrix cache cleared")
+    
+    def get_gap_analysis_summary(self, gaps: List[TraceabilityGap]) -> str:
+        """
+        Get a concise summary of gap analysis results.
+        
+        Args:
+            gaps: List of detected gaps
+            
+        Returns:
+            Formatted summary string
+        """
+        if not gaps:
+            return "No traceability gaps detected. Matrix is complete."
+        
+        # Count by severity
+        severity_counts = {"high": 0, "medium": 0, "low": 0}
+        for gap in gaps:
+            severity_counts[gap.severity] = severity_counts.get(gap.severity, 0) + 1
+        
+        # Count by type
+        type_counts = {}
+        for gap in gaps:
+            type_counts[gap.gap_type] = type_counts.get(gap.gap_type, 0) + 1
+        
+        # Generate summary
+        summary_lines = [
+            f"Gap Analysis Summary: {len(gaps)} total gaps detected",
+            f"Severity: High={severity_counts['high']}, Medium={severity_counts['medium']}, Low={severity_counts['low']}"
+        ]
+        
+        # Top gap types
+        sorted_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)
+        top_types = [f"{gap_type.replace('_', ' ').title()}({count})" for gap_type, count in sorted_types[:3]]
+        summary_lines.append(f"Top Issues: {', '.join(top_types)}")
+        
+        return " | ".join(summary_lines)
