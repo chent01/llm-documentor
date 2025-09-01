@@ -2248,3 +2248,37 @@ class ResultsTabWidget(QTabWidget):
             
         except Exception as e:
             QMessageBox.critical(self, "Export Error", f"Failed to export requirements: {str(e)}")
+    
+    def add_enhanced_tab(self, title: str, widget: QWidget):
+        """Add an enhanced UI component as a new tab."""
+        self.addTab(widget, title)
+        
+        # Set up connections for enhanced components
+        if hasattr(widget, 'requirements_updated'):
+            widget.requirements_updated.connect(self.on_requirements_updated)
+        if hasattr(widget, 'export_requested'):
+            widget.export_requested.connect(self.export_requested)
+        if hasattr(widget, 'gap_selected'):
+            # Handle gap selection for traceability matrix
+            widget.gap_selected.connect(self.on_gap_selected)
+        if hasattr(widget, 'test_cases_generated'):
+            # Handle test case generation completion
+            widget.test_cases_generated.connect(self.on_test_cases_generated)
+        if hasattr(widget, 'component_added'):
+            # Handle SOUP component events
+            widget.component_added.connect(self.on_soup_component_added)
+            widget.component_updated.connect(self.on_soup_component_updated)
+            widget.component_deleted.connect(self.on_soup_component_deleted)
+    
+    def on_gap_selected(self, gap_details: dict):
+        """Handle gap selection from traceability matrix."""
+        # This could be used to highlight related requirements or show gap details
+        print(f"Gap selected: {gap_details}")
+    
+    def on_test_cases_generated(self, test_outline):
+        """Handle test case generation completion."""
+        # Update analysis results with generated test cases
+        if 'tests' not in self.analysis_results:
+            self.analysis_results['tests'] = {}
+        self.analysis_results['tests']['generated_test_cases'] = test_outline
+        print(f"Test cases generated: {len(test_outline.test_cases)} test cases")

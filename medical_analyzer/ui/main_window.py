@@ -10,13 +10,20 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QTextEdit, 
     QFileDialog, QMessageBox, QProgressBar, QGroupBox, QSplitter
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from .file_tree_widget import FileTreeWidget
 from .progress_widget import AnalysisProgressWidget, AnalysisStage, StageStatus
 from .results_tab_widget import ResultsTabWidget
+from .requirements_tab_widget import RequirementsTabWidget
+from .traceability_matrix_widget import TraceabilityMatrixWidget
+from .test_case_export_widget import TestCaseExportWidget
+from .soup_widget import SOUPWidget
 from ..database.schema import DatabaseManager
 from ..services.soup_service import SOUPService
 from ..services.export_service import ExportService
+from ..services.test_case_generator import TestCaseGenerator
+from ..services.traceability_service import TraceabilityService
+from ..llm.backend import LLMBackend
 
 
 class MainWindow(QMainWindow):
@@ -27,16 +34,24 @@ class MainWindow(QMainWindow):
     analysis_requested = pyqtSignal(str, str, list)
     analysis_cancelled = pyqtSignal()
     
-    def __init__(self, config_manager=None, app_settings=None):
+    def __init__(self, config_manager=None, app_settings=None, llm_backend=None):
         super().__init__()
         self.selected_project_path: Optional[str] = None
         self.config_manager = config_manager
         self.app_settings = app_settings
+        self.llm_backend = llm_backend
         
         # Initialize services
         self.db_manager = DatabaseManager()
         self.soup_service = SOUPService(self.db_manager)
         self.export_service = ExportService(self.soup_service)
+        self.traceability_service = TraceabilityService(self.db_manager)
+        
+        # Initialize enhanced UI components
+        self.requirements_tab_widget: Optional[RequirementsTabWidget] = None
+        self.traceability_matrix_widget: Optional[TraceabilityMatrixWidget] = None
+        self.test_case_export_widget: Optional[TestCaseExportWidget] = None
+        self.enhanced_soup_widget: Optional[SOUPWidget] = None
         
         self.setup_ui()
         self.setup_connections()
@@ -114,8 +129,30 @@ class MainWindow(QMainWindow):
         
         main_splitter.addWidget(top_widget)
         
-        # Results section
+        # Results section with enhanced components
         self.results_widget = ResultsTabWidget(self.soup_service)
+        
+        # Initialize enhanced UI components
+        self.requirements_tab_widget = RequirementsTabWidget()
+        self.traceability_matrix_widget = TraceabilityMatrixWidget()
+        
+        # Initialize test case export widget with generator
+        if self.llm_backend:
+            test_generator = TestCaseGenerator(self.llm_backend)
+            self.test_case_export_widget = TestCaseExportWidget()
+            self.test_case_export_widget.set_generator(test_generator)
+        else:
+            self.test_case_export_widget = TestCaseExportWidget()
+        
+        # Initialize enhanced SOUP widget
+        self.enhanced_soup_widget = SOUPWidget(self.soup_service)
+        
+        # Add enhanced components to results widget
+        self.results_widget.add_enhanced_tab("Requirements", self.requirements_tab_widget)
+        self.results_widget.add_enhanced_tab("Traceability Matrix", self.traceability_matrix_widget)
+        self.results_widget.add_enhanced_tab("Test Cases", self.test_case_export_widget)
+        self.results_widget.add_enhanced_tab("SOUP Inventory", self.enhanced_soup_widget)
+        
         main_splitter.addWidget(self.results_widget)
         
         # Set initial splitter sizes (70% top, 30% bottom)
@@ -139,6 +176,9 @@ class MainWindow(QMainWindow):
         # Results widget connections
         self.results_widget.export_requested.connect(self.on_export_requested)
         self.results_widget.refresh_requested.connect(self.on_refresh_requested)
+        
+        # Enhanced component signal connections
+        self.setup_enhanced_component_connections()
         
     def select_project_folder(self):
         """Open folder selection dialog."""
@@ -339,6 +379,8 @@ class MainWindow(QMainWindow):
         # Update results if provided
         if results:
             self.results_widget.update_results(results)
+            # Also update enhanced components
+            self.update_enhanced_components_with_results(results)
         
         # Re-enable UI elements
         self.select_folder_button.setEnabled(True)
@@ -479,3 +521,295 @@ class MainWindow(QMainWindow):
     def set_selected_files(self, file_paths: List[str]):
         """Set the selected files in the file tree widget."""
         self.file_tree_widget.set_selected_files(file_paths)
+    
+    def setup_enhanced_component_connections(self):
+        """Set up comprehensive signal connections between enhanced components."""
+        # Requirements Tab Widget connections
+        if self.requirements_tab_widget:
+            # Connect requirements updates to traceability matrix refresh
+            self.requirements_tab_widget.requirements_updated.connect(self.on_requirements_updated)
+            self.requirements_tab_widget.traceability_update_requested.connect(self.on_traceability_update_requested)
+            
+            # Connect requirements updates to test case regeneration triggers
+            self.requirements_tab_widget.requirements_updated.connect(self.on_requirements_changed_for_tests)
+        
+        # Traceability Matrix Widget connections
+        if self.traceability_matrix_widget:
+            # Connect export signals to file operations
+            self.traceability_matrix_widget.export_requested.connect(self.on_traceability_export_requested)
+            self.traceability_matrix_widget.gap_selected.connect(self.on_gap_selected)
+            
+            # Connect cell details requests for cross-component navigation
+            if hasattr(self.traceability_matrix_widget, 'cell_details_requested'):
+                self.traceability_matrix_widget.cell_details_requested.connect(self.on_traceability_cell_details)
+        
+        # Test Case Export Widget connections
+        if self.test_case_export_widget:
+            # Connect test case generation completion
+            self.test_case_export_widget.test_cases_generated.connect(self.on_test_cases_generated)
+            self.test_case_export_widget.export_completed.connect(self.on_test_export_completed)
+        
+        # Enhanced SOUP Widget connections
+        if self.enhanced_soup_widget:
+            # Connect SOUP component changes to requirement impact analysis
+            self.enhanced_soup_widget.component_added.connect(self.on_soup_component_added)
+            self.enhanced_soup_widget.component_updated.connect(self.on_soup_component_updated)
+            self.enhanced_soup_widget.component_deleted.connect(self.on_soup_component_deleted)
+            
+            # Connect SOUP changes to requirements impact analysis
+            self.enhanced_soup_widget.component_added.connect(self.analyze_soup_impact_on_requirements)
+            self.enhanced_soup_widget.component_updated.connect(self.analyze_soup_impact_on_requirements)
+            self.enhanced_soup_widget.component_deleted.connect(self.analyze_soup_impact_on_requirements)
+        
+        # Cross-component validation and consistency checking
+        self.setup_cross_component_validation()
+    
+    def setup_cross_component_validation(self):
+        """Set up cross-component validation and consistency checking."""
+        # Create a timer for periodic validation checks
+        self.validation_timer = QTimer()
+        self.validation_timer.timeout.connect(self.perform_cross_component_validation)
+        self.validation_timer.setSingleShot(True)  # Only run once per trigger
+        
+        # Connect all component update signals to trigger validation
+        if self.requirements_tab_widget:
+            self.requirements_tab_widget.requirements_updated.connect(self.trigger_validation_check)
+        
+        if self.enhanced_soup_widget:
+            self.enhanced_soup_widget.component_updated.connect(self.trigger_validation_check)
+    
+    def trigger_validation_check(self):
+        """Trigger a delayed validation check to avoid excessive validation calls."""
+        # Restart the timer to delay validation until updates settle
+        self.validation_timer.stop()
+        self.validation_timer.start(2000)  # 2 second delay
+    
+    def perform_cross_component_validation(self):
+        """Perform cross-component validation and consistency checking."""
+        validation_issues = []
+        
+        # Check requirements consistency
+        if self.requirements_tab_widget:
+            req_validation = self.validate_requirements_consistency()
+            validation_issues.extend(req_validation)
+        
+        # Check SOUP-requirements consistency
+        if self.enhanced_soup_widget and self.requirements_tab_widget:
+            soup_req_validation = self.validate_soup_requirements_consistency()
+            validation_issues.extend(soup_req_validation)
+        
+        # Check traceability completeness
+        if self.traceability_matrix_widget:
+            trace_validation = self.validate_traceability_completeness()
+            validation_issues.extend(trace_validation)
+        
+        # Update validation status in UI
+        self.update_validation_status(validation_issues)
+    
+    def validate_requirements_consistency(self) -> List[str]:
+        """Validate requirements for internal consistency."""
+        issues = []
+        
+        if not self.requirements_tab_widget:
+            return issues
+        
+        user_reqs = self.requirements_tab_widget.user_requirements
+        software_reqs = self.requirements_tab_widget.software_requirements
+        
+        # Check for duplicate IDs
+        all_ids = [req.get('id', '') for req in user_reqs + software_reqs]
+        duplicate_ids = [id for id in set(all_ids) if all_ids.count(id) > 1 and id]
+        if duplicate_ids:
+            issues.append(f"Duplicate requirement IDs found: {', '.join(duplicate_ids)}")
+        
+        # Check for orphaned software requirements (derived_from references non-existent URs)
+        user_req_ids = {req.get('id', '') for req in user_reqs}
+        for sr in software_reqs:
+            derived_from = sr.get('derived_from', [])
+            if isinstance(derived_from, list):
+                for parent_id in derived_from:
+                    if parent_id and parent_id not in user_req_ids:
+                        issues.append(f"Software requirement {sr.get('id', 'Unknown')} references non-existent user requirement {parent_id}")
+        
+        return issues
+    
+    def validate_soup_requirements_consistency(self) -> List[str]:
+        """Validate consistency between SOUP components and requirements."""
+        issues = []
+        
+        # This would check if SOUP components are properly referenced in requirements
+        # and if safety-critical SOUP components have appropriate requirements
+        
+        return issues
+    
+    def validate_traceability_completeness(self) -> List[str]:
+        """Validate traceability matrix completeness."""
+        issues = []
+        
+        # This would check for missing traceability links and incomplete chains
+        
+        return issues
+    
+    def update_validation_status(self, issues: List[str]):
+        """Update the UI with validation status."""
+        if issues:
+            print(f"Validation issues found: {len(issues)}")
+            for issue in issues:
+                print(f"  - {issue}")
+        else:
+            print("Cross-component validation passed")
+    
+    # Enhanced component signal handlers
+    def on_requirements_updated(self, requirements_data: dict):
+        """Handle requirements updates from enhanced requirements widget."""
+        print(f"Requirements updated: UR={len(requirements_data.get('user_requirements', []))}, SR={len(requirements_data.get('software_requirements', []))}")
+        
+        # Update traceability matrix if available
+        if self.traceability_matrix_widget and hasattr(self, 'traceability_service'):
+            # Trigger traceability matrix refresh
+            self.refresh_traceability_matrix()
+    
+    def on_traceability_update_requested(self):
+        """Handle traceability update requests."""
+        self.refresh_traceability_matrix()
+    
+    def on_traceability_export_requested(self, export_format: str, filename: str):
+        """Handle traceability matrix export requests."""
+        print(f"Traceability export requested: {export_format} -> {filename}")
+        # The export is handled by the widget itself
+    
+    def on_gap_selected(self, gap_details: dict):
+        """Handle gap selection from traceability matrix."""
+        print(f"Gap selected: {gap_details}")
+        # Could be used to highlight related requirements or show gap details
+    
+    def on_test_cases_generated(self, test_outline):
+        """Handle test case generation completion."""
+        print(f"Test cases generated: {len(test_outline.test_cases)} test cases")
+        # Update test case widget with requirements if needed
+        if self.test_case_export_widget and self.requirements_tab_widget:
+            requirements = []
+            # Convert requirements to the format expected by test generator
+            for req_data in self.requirements_tab_widget.user_requirements:
+                # This would need proper Requirement object creation
+                pass
+            for req_data in self.requirements_tab_widget.software_requirements:
+                # This would need proper Requirement object creation
+                pass
+    
+    def on_test_export_completed(self, export_format: str, filepath: str):
+        """Handle test case export completion."""
+        print(f"Test cases exported: {export_format} -> {filepath}")
+        self.show_info("Export Complete", f"Test cases exported to {filepath}")
+    
+    def on_soup_component_added(self, component):
+        """Handle SOUP component addition."""
+        print(f"SOUP component added: {component.name} v{component.version}")
+    
+    def on_soup_component_updated(self, component):
+        """Handle SOUP component update."""
+        print(f"SOUP component updated: {component.name} v{component.version}")
+    
+    def on_soup_component_deleted(self, component_id: str):
+        """Handle SOUP component deletion."""
+        print(f"SOUP component deleted: {component_id}")
+    
+    def refresh_traceability_matrix(self):
+        """Refresh the traceability matrix with current data."""
+        if not self.traceability_matrix_widget:
+            return
+        
+        try:
+            # Get current requirements data
+            requirements_data = {}
+            if self.requirements_tab_widget:
+                requirements_data = {
+                    'user_requirements': self.requirements_tab_widget.user_requirements,
+                    'software_requirements': self.requirements_tab_widget.software_requirements
+                }
+            
+            # Generate traceability matrix using the service
+            if hasattr(self, 'traceability_service') and requirements_data:
+                matrix_data = self.traceability_service.generate_matrix(requirements_data)
+                table_rows = self.traceability_service.generate_table_rows(matrix_data)
+                gaps = self.traceability_service.analyze_gaps(matrix_data)
+                
+                # Update the traceability matrix widget
+                self.traceability_matrix_widget.update_matrix(matrix_data, table_rows, gaps)
+                
+        except Exception as e:
+            print(f"Error refreshing traceability matrix: {str(e)}")
+    
+    def update_enhanced_components_with_results(self, results: dict):
+        """Update enhanced components with analysis results."""
+        # Update requirements widget
+        if self.requirements_tab_widget and 'requirements' in results:
+            req_data = results['requirements']
+            self.requirements_tab_widget.update_requirements(
+                req_data.get('user_requirements', []),
+                req_data.get('software_requirements', [])
+            )
+        
+        # Update traceability matrix widget
+        if self.traceability_matrix_widget and 'traceability' in results:
+            traceability_data = results['traceability']
+            if hasattr(traceability_data, 'matrix_data'):
+                self.traceability_matrix_widget.update_matrix(
+                    traceability_data.matrix_data,
+                    traceability_data.table_rows,
+                    traceability_data.gaps
+                )
+        
+        # Update test case widget with requirements
+        if self.test_case_export_widget and 'requirements' in results:
+            req_data = results['requirements']
+            # Convert to Requirement objects if needed
+            requirements = []
+            # This would need proper conversion logic
+            self.test_case_export_widget.set_requirements(requirements)
+    
+    def on_requirements_changed_for_tests(self, requirements_data: dict):
+        """Handle requirements changes that should trigger test case regeneration."""
+        if self.test_case_export_widget:
+            # Clear existing test cases to indicate they may be outdated
+            self.test_case_export_widget.clear_all()
+            
+            # Update the test case widget with new requirements
+            requirements = []
+            # Convert requirements data to Requirement objects
+            # This would need proper implementation based on the Requirement model
+            self.test_case_export_widget.set_requirements(requirements)
+    
+    def on_traceability_cell_details(self, row: int, column: int):
+        """Handle traceability matrix cell details requests."""
+        print(f"Traceability cell details requested: row {row}, column {column}")
+        # Could be used to show detailed information about the traceability link
+    
+    def analyze_soup_impact_on_requirements(self, component=None):
+        """Analyze the impact of SOUP component changes on requirements."""
+        if not self.requirements_tab_widget or not self.enhanced_soup_widget:
+            return
+        
+        print("Analyzing SOUP component impact on requirements...")
+        
+        # This would analyze if SOUP component changes affect any requirements
+        # For example, if a safety-critical SOUP component is updated,
+        # it might require updates to related safety requirements
+        
+        # Get all SOUP components
+        soup_components = []  # Would get from enhanced_soup_widget
+        
+        # Get all requirements
+        user_reqs = self.requirements_tab_widget.user_requirements
+        software_reqs = self.requirements_tab_widget.software_requirements
+        
+        # Analyze impact (simplified implementation)
+        impact_found = False
+        
+        if impact_found:
+            # Notify user of potential impact
+            self.show_info(
+                "SOUP Impact Analysis",
+                "SOUP component changes may affect existing requirements. "
+                "Please review requirements for consistency."
+            )

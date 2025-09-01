@@ -67,6 +67,16 @@ class ErrorDetails:
 
 
 @dataclass
+class GenerationResult:
+    """Result of content generation parsing."""
+    success: bool
+    data: Dict[str, Any] = field(default_factory=dict)
+    error_message: Optional[str] = None
+    partial_data: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class ValidationResult:
     """Result of API response validation."""
     status: ValidationStatus

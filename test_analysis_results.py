@@ -134,9 +134,25 @@ function validateCredentials(username, password) {
         print("Analysis did not complete within timeout")
     else:
         print("\n=== Final Results Analysis ===")
-        # Save results to file for inspection
-        with open("analysis_results_debug.json", "w") as f:
-            json.dump(receiver.final_results, f, indent=2, default=str)
+        # Save results to file for inspection (handle circular references)
+        try:
+            with open("analysis_results_debug.json", "w") as f:
+                json.dump(receiver.final_results, f, indent=2, default=str)
+        except ValueError as e:
+            if "Circular reference" in str(e):
+                # Handle circular references by creating a simplified version
+                simplified_results = {}
+                for key, value in receiver.final_results.items():
+                    try:
+                        json.dumps(value, default=str)  # Test if this value can be serialized
+                        simplified_results[key] = value
+                    except (ValueError, TypeError):
+                        simplified_results[key] = f"<Non-serializable {type(value).__name__}>"
+                
+                with open("analysis_results_debug.json", "w") as f:
+                    json.dump(simplified_results, f, indent=2, default=str)
+            else:
+                raise
         print("Results saved to analysis_results_debug.json")
     
     # Cleanup

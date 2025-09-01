@@ -48,6 +48,11 @@ class RequirementsGenerator:
             'retry_attempts': 0
         }
     
+    def set_api_validator(self, validator: APIResponseValidator):
+        """Set a custom API response validator."""
+        self._validator = validator
+        self._setup_requirements_validation_schemas()
+    
     def _setup_requirements_validation_schemas(self) -> None:
         """Setup validation schemas specific to requirements generation."""
         

@@ -22,8 +22,10 @@ from medical_analyzer.services.export_service import ExportService
 from medical_analyzer.services.soup_service import SOUPService
 from medical_analyzer.services.risk_register import RiskRegister
 from medical_analyzer.services.traceability_service import TraceabilityService
+from medical_analyzer.services.soup_detector import SOUPDetector
 from medical_analyzer.database.schema import DatabaseManager
 from medical_analyzer.llm.backend import LLMBackend
+from medical_analyzer.llm.api_response_validator import APIResponseValidator
 # Analysis result models are created dynamically as dictionaries
 
 
@@ -64,10 +66,16 @@ class AnalysisOrchestrator(QObject):
         # Initialize database and LLM backend
         self.db_manager = DatabaseManager(db_path="medical_analyzer.db")
         self.llm_backend = None
+        self.api_validator = None
         
         try:
             llm_config = config_manager.get_llm_config()
             self.llm_backend = self._initialize_llm_backend(llm_config)
+            
+            # Initialize API response validator with expected schemas
+            if self.llm_backend:
+                self.api_validator = APIResponseValidator()
+                
         except Exception as e:
             self.logger.warning(f"Failed to initialize LLM backend: {e}")
             # Continue without LLM backend - some features will be limited
@@ -85,6 +93,7 @@ class AnalysisOrchestrator(QObject):
             self.ingestion_service = IngestionService()
             self.parser_service = ParserService()
             self.soup_service = SOUPService(self.db_manager)
+            self.soup_detector = SOUPDetector(use_llm_classification=bool(self.llm_backend))
             self.export_service = ExportService(self.soup_service)
             self.traceability_service = TraceabilityService(self.db_manager)
             self.risk_register = RiskRegister()
@@ -93,7 +102,12 @@ class AnalysisOrchestrator(QObject):
             # Services that require LLM backend
             if self.llm_backend:
                 self.feature_extractor = FeatureExtractor(self.llm_backend)
+                
+                # Enhanced requirements generator with API validation
                 self.requirements_generator = RequirementsGenerator(self.llm_backend)
+                if self.api_validator:
+                    self.requirements_generator.set_api_validator(self.api_validator)
+                
                 self.hazard_identifier = HazardIdentifier(self.llm_backend)
                 
                 # Enhanced test case generator with LLM support
@@ -155,7 +169,7 @@ class AnalysisOrchestrator(QObject):
         """Execute the complete analysis pipeline."""
         pipeline_errors = []
         stages_completed = 0
-        total_stages = 9
+        total_stages = 10  # Added SOUP detection stage
         
         try:
             # Stage 1: Project Ingestion (10%) - CRITICAL STAGE
@@ -255,7 +269,19 @@ class AnalysisOrchestrator(QObject):
                 # Continue with analysis - this stage is optional
                 self.progress_updated.emit(80)
             
-            # Stage 8: Traceability Analysis (90%) - OPTIONAL STAGE
+            # Stage 8: SOUP Detection (85%) - OPTIONAL STAGE
+            try:
+                self._run_stage("SOUP Detection", self._stage_soup_detection, 85)
+                stages_completed += 1
+            except Exception as e:
+                error_msg = f"SOUP detection failed: {e}"
+                self.logger.warning(error_msg)
+                pipeline_errors.append(error_msg)
+                self.stage_failed.emit("SOUP Detection", error_msg)
+                # Continue with analysis - this stage is optional
+                self.progress_updated.emit(85)
+            
+            # Stage 9: Traceability Analysis (90%) - OPTIONAL STAGE
             try:
                 self._run_stage("Traceability Analysis", self._stage_traceability_analysis, 90)
                 stages_completed += 1
@@ -267,7 +293,7 @@ class AnalysisOrchestrator(QObject):
                 # Continue with analysis - this stage is optional
                 self.progress_updated.emit(90)
             
-            # Stage 9: Results Compilation (100%) - ALWAYS RUN
+            # Stage 10: Results Compilation (100%) - ALWAYS RUN
             try:
                 self._run_stage("Results Compilation", self._stage_results_compilation, 100)
                 stages_completed += 1
@@ -581,6 +607,102 @@ class AnalysisOrchestrator(QObject):
             self.logger.error(f"Failed to export test cases: {e}")
             return None
     
+    def _stage_soup_detection(self) -> Dict[str, Any]:
+        """Stage 8: SOUP component detection and classification."""
+        project_path = self.current_analysis['project_path']
+        
+        try:
+            # Detect SOUP components from project dependency files
+            detected_components = self.soup_detector.detect_soup_components(project_path)
+            
+            # Classify components if LLM is available
+            classified_components = []
+            for component in detected_components:
+                try:
+                    if self.llm_backend:
+                        classification = self.soup_detector.classify_component(component)
+                        component.suggested_classification = classification.safety_class
+                    classified_components.append(component)
+                except Exception as e:
+                    self.logger.warning(f"Failed to classify SOUP component {component.name}: {e}")
+                    classified_components.append(component)
+            
+            # Store detected components in SOUP service for persistence
+            for component in classified_components:
+                try:
+                    # Convert DetectedSOUPComponent to SOUPComponent for storage
+                    soup_component = self._convert_detected_to_soup_component(component)
+                    self.soup_service.add_component(soup_component)
+                except Exception as e:
+                    self.logger.warning(f"Failed to store SOUP component {component.name}: {e}")
+            
+            self.logger.info(f"Detected {len(detected_components)} SOUP components")
+            
+            return {
+                'detected_components': detected_components,
+                'classified_components': classified_components,
+                'total_components': len(detected_components),
+                'detection_summary': {
+                    'package_managers': list(set(c.package_manager for c in detected_components if c.package_manager)),
+                    'confidence_distribution': self._calculate_confidence_distribution(detected_components),
+                    'classification_distribution': self._calculate_classification_distribution(classified_components)
+                }
+            }
+            
+        except Exception as e:
+            self.logger.error(f"SOUP detection failed: {e}")
+            return {
+                'detected_components': [],
+                'classified_components': [],
+                'total_components': 0,
+                'error': str(e)
+            }
+    
+    def _convert_detected_to_soup_component(self, detected_component):
+        """Convert DetectedSOUPComponent to SOUPComponent for storage."""
+        from medical_analyzer.models.core import SOUPComponent
+        import uuid
+        
+        return SOUPComponent(
+            id=str(uuid.uuid4()),
+            name=detected_component.name,
+            version=detected_component.version,
+            usage_reason=f"Detected from {detected_component.source_file}",
+            safety_justification=f"Auto-detected component with {detected_component.confidence:.1%} confidence",
+            supplier=None,
+            license=None,
+            website=None,
+            description=f"Component detected via {detected_component.detection_method.value}",
+            installation_date=None,
+            last_updated=None,
+            criticality_level=None,
+            verification_method=None,
+            anomaly_list=[]
+        )
+    
+    def _calculate_confidence_distribution(self, components) -> Dict[str, int]:
+        """Calculate confidence distribution for detected components."""
+        distribution = {'high': 0, 'medium': 0, 'low': 0}
+        for component in components:
+            if component.confidence >= 0.8:
+                distribution['high'] += 1
+            elif component.confidence >= 0.5:
+                distribution['medium'] += 1
+            else:
+                distribution['low'] += 1
+        return distribution
+    
+    def _calculate_classification_distribution(self, components) -> Dict[str, int]:
+        """Calculate safety classification distribution for components."""
+        distribution = {'Class A': 0, 'Class B': 0, 'Class C': 0, 'Unclassified': 0}
+        for component in components:
+            if hasattr(component, 'suggested_classification') and component.suggested_classification:
+                class_name = f"Class {component.suggested_classification.value}"
+                distribution[class_name] += 1
+            else:
+                distribution['Unclassified'] += 1
+        return distribution
+    
     def _stage_traceability_analysis(self) -> Dict[str, Any]:
         """Stage 8: Traceability matrix generation."""
         # Get features if available
@@ -817,6 +939,25 @@ class AnalysisOrchestrator(QObject):
                 'skipped_tests': 0
             }
         
+        # Extract SOUP components
+        if 'soup_detection' in results:
+            soup_data = results['soup_detection']
+            final_results['soup'] = {
+                'detected_components': soup_data.get('detected_components', []),
+                'classified_components': soup_data.get('classified_components', []),
+                'total_components': soup_data.get('total_components', 0),
+                'detection_summary': soup_data.get('detection_summary', {}),
+                'error': soup_data.get('error')
+            }
+        else:
+            final_results['soup'] = {
+                'detected_components': [],
+                'classified_components': [],
+                'total_components': 0,
+                'detection_summary': {},
+                'error': None
+            }
+        
         # Keep the raw analysis stages for debugging/export
         final_results['analysis_stages'] = results
         
@@ -832,6 +973,7 @@ class AnalysisOrchestrator(QObject):
         total_hazards = 0
         total_risks = 0
         total_tests = 0
+        total_soup_components = 0
         
         if 'project_ingestion' in results:
             total_files = results['project_ingestion']['total_files']
@@ -848,6 +990,9 @@ class AnalysisOrchestrator(QObject):
         if 'test_generation' in results:
             total_tests = results['test_generation']['total_tests']
         
+        if 'soup_detection' in results:
+            total_soup_components = results['soup_detection']['total_components']
+        
         # Generate summary in the format expected by the UI
         summary = {
             'project_path': self.current_analysis.get('project_path', 'Unknown'),
@@ -856,6 +1001,7 @@ class AnalysisOrchestrator(QObject):
             'features_found': total_features,
             'requirements_generated': total_features * 2,  # UR + SR for each feature
             'risks_identified': total_risks,
+            'soup_components_detected': total_soup_components,
             'confidence': self._calculate_overall_confidence(),
             'errors': [],
             'warnings': []
