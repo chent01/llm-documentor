@@ -43,6 +43,22 @@ class LocalServerBackend(LLMBackend):
         # Legacy session attribute for backward compatibility with tests
         self._session = requests.Session()
         
+        # Configure session for better connection handling
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=5,
+            pool_maxsize=10,
+            max_retries=3,
+            pool_block=False
+        )
+        self._session.mount('http://', adapter)
+        self._session.mount('https://', adapter)
+        
+        # Set connection keep-alive headers
+        self._session.headers.update({
+            'Connection': 'keep-alive',
+            'Keep-Alive': 'timeout=30, max=100'
+        })
+        
         # Initialize API response validator
         self._validator = APIResponseValidator()
         
@@ -110,12 +126,9 @@ class LocalServerBackend(LLMBackend):
             base_url = self.config["base_url"]
             timeout = self.config.get("timeout", 30)
             
-            # Try different endpoints for model info
+            # Try only LM Studio compatible endpoints for model info
             endpoints = [
-                "/v1/models",  # OpenAI-compatible
-                "/api/v1/models",  # Alternative
-                "/models",  # Simple endpoint
-                "/info"  # Generic info endpoint
+                "/v1/models"  # LM Studio only supports OpenAI-compatible endpoints
             ]
             
             for endpoint in endpoints:
@@ -325,8 +338,12 @@ class LocalServerBackend(LLMBackend):
             try:
                 logger.debug(f"Chat completion attempt {attempt}/{self._max_retries}")
                 
-                # Make request
-                response = self._http_client.post(url, json=data, headers=self._headers)
+                # Make request with proper connection handling
+                try:
+                    response = self._session.post(url, json=data, headers=self._headers, timeout=timeout)
+                except Exception:
+                    # Fall back to shared HTTP client
+                    response = self._http_client.post(url, json=data, headers=self._headers)
                 
                 # Validate response
                 validation_result = self._validator.validate_response(
@@ -401,12 +418,9 @@ class LocalServerBackend(LLMBackend):
         if stop:
             data["stop"] = stop
         
-        # Try different completion endpoints
+        # Try only LM Studio compatible completion endpoints
         endpoints = [
-            "/v1/completions",
-            "/api/v1/completions", 
-            "/completions",
-            "/generate"
+            "/v1/completions"  # LM Studio only supports OpenAI-compatible endpoints
         ]
         
         last_error = None
@@ -417,7 +431,12 @@ class LocalServerBackend(LLMBackend):
             for attempt in range(1, self._max_retries + 1):
                 try:
                     url = urljoin(base_url, endpoint)
-                    response = self._http_client.post(url, json=data, headers=self._headers)
+                    # Use session first for better connection handling
+                    try:
+                        response = self._session.post(url, json=data, headers=self._headers, timeout=timeout)
+                    except Exception:
+                        # Fall back to shared HTTP client
+                        response = self._http_client.post(url, json=data, headers=self._headers)
                     
                     # Validate response
                     validation_result = self._validator.validate_response(
@@ -541,8 +560,8 @@ class LocalServerBackend(LLMBackend):
             
             timeout = self.config.get("timeout", 5)  # Short timeout for availability check
             
-            # Try health endpoints in order of preference (most specific first)
-            health_endpoints = ["/health", "/api/health", "/v1/models", "/"]
+            # Try health endpoints in order of preference (LM Studio compatible)
+            health_endpoints = ["/v1/models", "/health"]
             
             for endpoint in health_endpoints:
                 try:

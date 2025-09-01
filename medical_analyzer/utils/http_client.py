@@ -96,14 +96,30 @@ class CachedHTTPClient:
         with self._session_lock:
             if base_url not in self._sessions:
                 session = requests.Session()
-                # Configure session for better performance
+                # Configure session for better performance and connection handling
+                from urllib3.util.retry import Retry
+                
+                retry_strategy = Retry(
+                    total=self.max_retries,
+                    status_forcelist=[429, 500, 502, 503, 504],
+                    method_whitelist=["HEAD", "GET", "OPTIONS", "POST"],
+                    backoff_factor=1
+                )
+                
                 adapter = requests.adapters.HTTPAdapter(
                     pool_connections=10,
                     pool_maxsize=20,
-                    max_retries=self.max_retries
+                    max_retries=retry_strategy,
+                    pool_block=False
                 )
                 session.mount('http://', adapter)
                 session.mount('https://', adapter)
+                
+                # Set connection keep-alive headers
+                session.headers.update({
+                    'Connection': 'keep-alive',
+                    'Keep-Alive': 'timeout=30, max=100'
+                })
                 
                 self._sessions[base_url] = session
                 logger.debug(f"Created new session for: {base_url}")
