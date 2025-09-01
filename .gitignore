@@ -175,7 +175,8 @@ exports/
 artifacts/
 
 # LLM model files and caches
-models/
+/models/
+llm_models/
 *.bin
 *.gguf
 *.ggml
