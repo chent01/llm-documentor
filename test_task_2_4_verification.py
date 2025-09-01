@@ -10,6 +10,7 @@ This test verifies all task requirements:
 4. Implement requirements validation with visual status indicators
 """
 
+import pytest
 import sys
 import os
 import tempfile
@@ -28,11 +29,11 @@ from medical_analyzer.services.soup_service import SOUPService
 from medical_analyzer.database.schema import DatabaseManager
 
 
-class TestResultsIntegration:
+class ResultsIntegrationValidator:
     """Test class for verifying Task 2.4 requirements."""
     
-    def __init__(self):
-        self.app = QApplication(sys.argv)
+    def __init__(self, qapp):
+        self.app = qapp
         self.db_manager = DatabaseManager()
         self.soup_service = SOUPService(self.db_manager)
         self.results_widget = ResultsTabWidget(self.soup_service)
@@ -353,11 +354,17 @@ class TestResultsIntegration:
             return False
 
 
-def main():
+def test_task_2_4_verification(qapp):
     """Run the verification test."""
-    tester = TestResultsIntegration()
+    tester = ResultsIntegrationValidator(qapp)
     success = tester.run_all_tests()
-    return success
+    assert success, "Task 2.4 verification tests should pass"
+
+
+def main():
+    """Legacy main function for backward compatibility."""
+    # For standalone execution, use pytest
+    return pytest.main([__file__, "-v"]) == 0
 
 
 if __name__ == "__main__":

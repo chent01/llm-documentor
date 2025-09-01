@@ -20,11 +20,11 @@ import os
 from datetime import datetime
 
 from ..models.core import Requirement
-from ..services.test_case_generator import TestCaseGenerator
-from ..models.test_models import TestOutline, TestCase, TestCasePriority, TestCaseCategory
+from ..services.test_case_generator import CaseGenerator
+from ..models.test_models import CaseOutline, CaseModel, CasePriority, CaseCategory
 
 
-class TestCaseSyntaxHighlighter(QSyntaxHighlighter):
+class CaseModelSyntaxHighlighter(QSyntaxHighlighter):
     """Syntax highlighter for test case preview."""
     
     def __init__(self, parent=None):
@@ -80,10 +80,10 @@ class TestGenerationWorker(QThread):
     """Worker thread for test case generation."""
     
     progress_updated = pyqtSignal(int)
-    generation_completed = pyqtSignal(object)  # TestOutline
+    generation_completed = pyqtSignal(object)  # CaseOutline
     error_occurred = pyqtSignal(str)
     
-    def __init__(self, requirements: List[Requirement], generator: TestCaseGenerator):
+    def __init__(self, requirements: List[Requirement], generator: CaseGenerator):
         super().__init__()
         self.requirements = requirements
         self.generator = generator
@@ -108,17 +108,17 @@ class TestGenerationWorker(QThread):
             self.error_occurred.emit(str(e))
 
 
-class TestCaseExportWidget(QWidget):
+class CaseModelExportWidget(QWidget):
     """Widget for test case generation, preview, and export."""
     
     # Signals
-    test_cases_generated = pyqtSignal(object)  # TestOutline
+    test_cases_generated = pyqtSignal(object)  # CaseOutline
     export_completed = pyqtSignal(str, str)  # format, filepath
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.test_outline: Optional[TestOutline] = None
-        self.generator: Optional[TestCaseGenerator] = None
+        self.test_outline: Optional[CaseOutline] = None
+        self.generator: Optional[CaseGenerator] = None
         self.requirements: List[Requirement] = []
         self.setup_ui()
         self.setup_connections()
@@ -256,7 +256,7 @@ class TestCaseExportWidget(QWidget):
         self.preview_text.setFont(QFont("Consolas", 10))
         
         # Apply syntax highlighter for text format
-        self.syntax_highlighter = TestCaseSyntaxHighlighter(self.preview_text.document())
+        self.syntax_highlighter = CaseModelSyntaxHighlighter(self.preview_text.document())
         
         layout.addWidget(self.preview_text)
         
@@ -389,7 +389,7 @@ class TestCaseExportWidget(QWidget):
         self.browse_button.clicked.connect(self.browse_export_destination)
         self.batch_export_button.clicked.connect(self.batch_export)
     
-    def set_generator(self, generator: TestCaseGenerator):
+    def set_generator(self, generator: CaseGenerator):
         """Set the test case generator instance."""
         self.generator = generator
         self.use_llm_enhancement.setEnabled(generator.llm_backend is not None)
@@ -463,7 +463,7 @@ class TestCaseExportWidget(QWidget):
         self.generation_worker.error_occurred.connect(self.on_generation_error)
         self.generation_worker.start()
     
-    def on_generation_completed(self, test_outline: TestOutline):
+    def on_generation_completed(self, test_outline: CaseOutline):
         """Handle completion of test case generation."""
         self.test_outline = test_outline
         

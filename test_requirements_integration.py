@@ -3,6 +3,7 @@
 Test script to verify requirements display integration with results system.
 """
 
+import pytest
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -12,9 +13,8 @@ from medical_analyzer.ui.results_tab_widget import ResultsTabWidget
 from medical_analyzer.services.soup_service import SOUPService
 from medical_analyzer.database.schema import DatabaseManager
 
-def test_requirements_integration():
+def test_requirements_integration(qapp):
     """Test the requirements integration functionality."""
-    app = QApplication(sys.argv)
     
     # Create test data
     test_user_requirements = [
@@ -108,25 +108,18 @@ def test_requirements_integration():
     results_widget.requirements_tab.emit_requirements_updated()
     
     # Process events to handle signals
-    app.processEvents()
+    qapp.processEvents()
     
     print(f"Signal received: {signal_received}")
     
     print("✓ Requirements integration test completed successfully!")
     
-    return True
+    # Use assertions instead of return values for pytest
+    assert validation_passed, "Requirements validation should pass"
+    assert signal_received, "Requirements update signal should be received"
+    assert len(csv_export) > 0, "CSV export should not be empty"
+    assert len(json_export) > 0, "JSON export should not be empty"
 
 if __name__ == "__main__":
-    try:
-        success = test_requirements_integration()
-        if success:
-            print("All tests passed!")
-            sys.exit(0)
-        else:
-            print("Some tests failed!")
-            sys.exit(1)
-    except Exception as e:
-        print(f"Test failed with error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+    # For standalone execution, use pytest
+    pytest.main([__file__, "-v"])

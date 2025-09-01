@@ -3,6 +3,7 @@
 Test script for enhanced SOUP widget functionality.
 """
 
+import pytest
 import sys
 import tempfile
 import json
@@ -57,9 +58,8 @@ black==23.0.0
     return str(test_dir)
 
 
-def test_soup_widget():
+def test_soup_widget(qapp):
     """Test the enhanced SOUP widget."""
-    app = QApplication(sys.argv)
     
     # Create temporary database
     db_path = tempfile.mktemp(suffix=".db")
@@ -148,8 +148,9 @@ def test_soup_widget():
     print("Test project created at:", create_test_project())
     print("Use this path for auto-detection testing.")
     
-    return app.exec()
+    # Test completed successfully
 
 
 if __name__ == "__main__":
-    sys.exit(test_soup_widget())
+    # For standalone execution, use pytest
+    sys.exit(pytest.main([__file__, "-v"]))

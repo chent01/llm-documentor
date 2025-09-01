@@ -8,7 +8,7 @@ import tempfile
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-from medical_analyzer.tests.test_generator import (
+from medical_analyzer.tests import (
     TestGenerator, TestSkeleton, TestSuite
 )
 from medical_analyzer.models.core import ProjectStructure, FileMetadata

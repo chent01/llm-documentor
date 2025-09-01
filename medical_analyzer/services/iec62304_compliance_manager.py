@@ -365,6 +365,82 @@ class IEC62304ComplianceManager:
             validator="IEC62304ComplianceManager"
         )
     
+    def generate_compliance_report(self, components: List[SOUPComponent], 
+                                 classifications: List[IEC62304Classification]) -> Dict[str, Any]:
+        """
+        Generate a comprehensive compliance report for SOUP components.
+        
+        Args:
+            components: List of SOUP components
+            classifications: List of corresponding classifications
+            
+        Returns:
+            Dictionary containing compliance report data
+        """
+        report = {
+            'soup_inventory': [],
+            'safety_classifications': {},
+            'verification_requirements': {},
+            'documentation_requirements': {},
+            'compliance_summary': {
+                'total_components': len(components),
+                'class_a_count': 0,
+                'class_b_count': 0,
+                'class_c_count': 0
+            }
+        }
+        
+        for component, classification in zip(components, classifications):
+            # Handle both IEC62304Classification and IEC62304SafetyClass
+            if isinstance(classification, IEC62304Classification):
+                safety_class = classification.safety_class
+                justification = classification.justification
+                risk_assessment = classification.risk_assessment
+                classification_date = classification.created_at
+            else:
+                # Assume it's IEC62304SafetyClass directly
+                safety_class = classification
+                justification = "Auto-generated classification"
+                risk_assessment = "Standard risk assessment"
+                classification_date = datetime.now()
+            
+            # Add to inventory
+            report['soup_inventory'].append({
+                'name': component.name,
+                'version': component.version,
+                'safety_class': safety_class.value,
+                'classification_date': classification_date.isoformat()
+            })
+            
+            # Track safety classifications
+            report['safety_classifications'][component.name] = {
+                'safety_class': safety_class.value,
+                'justification': justification,
+                'risk_assessment': risk_assessment
+            }
+            
+            # Add verification requirements (create a temporary classification if needed)
+            if isinstance(classification, IEC62304Classification):
+                verification_reqs = self.generate_verification_requirements(classification)
+            else:
+                temp_classification = IEC62304Classification(
+                    safety_class=safety_class,
+                    justification=justification,
+                    risk_assessment=risk_assessment
+                )
+                verification_reqs = self.generate_verification_requirements(temp_classification)
+            report['verification_requirements'][component.name] = verification_reqs
+            
+            # Count by safety class
+            if safety_class == IEC62304SafetyClass.CLASS_A:
+                report['compliance_summary']['class_a_count'] += 1
+            elif safety_class == IEC62304SafetyClass.CLASS_B:
+                report['compliance_summary']['class_b_count'] += 1
+            elif safety_class == IEC62304SafetyClass.CLASS_C:
+                report['compliance_summary']['class_c_count'] += 1
+        
+        return report
+    
     def _load_classification_templates(self) -> Dict[str, Dict[str, str]]:
         """Load classification templates."""
         return {

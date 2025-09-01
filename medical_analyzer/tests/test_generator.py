@@ -14,7 +14,7 @@ from ..parsers.js_parser import FunctionSignature as JSFunctionSignature
 
 
 @dataclass
-class TestSkeleton:
+class CodeTestSkeleton:
     """Represents a generated test skeleton."""
     test_name: str
     test_content: str
@@ -26,16 +26,16 @@ class TestSkeleton:
 
 
 @dataclass
-class TestSuite:
+class CodeTestSuite:
     """Collection of test skeletons for a project."""
     project_name: str
-    test_skeletons: List[TestSkeleton]
+    test_skeletons: List[CodeTestSkeleton]
     framework_configs: Dict[str, Dict[str, Any]]
-    integration_tests: List[TestSkeleton]
+    integration_tests: List[CodeTestSkeleton]
     created_at: datetime
 
 
-class TestGenerator:
+class CodeTestGenerator:
     """Service for generating unit test skeletons and integration test stubs."""
     
     def __init__(self):
@@ -46,7 +46,7 @@ class TestGenerator:
     def generate_test_suite(self, project_structure: ProjectStructure, 
                           parsed_files: List[Any],
                           c_framework: str = 'unity',
-                          js_framework: str = 'jest') -> TestSuite:
+                          js_framework: str = 'jest') -> CodeTestSuite:
         """Generate complete test suite for a project.
         
         Args:
@@ -56,7 +56,7 @@ class TestGenerator:
             js_framework: Framework to use for JS tests ('jest' or 'mocha')
             
         Returns:
-            TestSuite containing all generated test skeletons
+            CodeTestSuite containing all generated test skeletons
         """
         if c_framework not in self.c_frameworks:
             raise ValueError(f"Unsupported C framework: {c_framework}")
@@ -102,7 +102,7 @@ class TestGenerator:
             'javascript': self._generate_js_framework_config(js_framework)
         }
         
-        return TestSuite(
+        return CodeTestSuite(
             project_name=os.path.basename(project_structure.root_path),
             test_skeletons=test_skeletons,
             framework_configs=framework_configs,
@@ -110,7 +110,7 @@ class TestGenerator:
             created_at=datetime.now()
         )
     
-    def _generate_c_unit_tests(self, parsed_file: Any, framework: str) -> List[TestSkeleton]:
+    def _generate_c_unit_tests(self, parsed_file: Any, framework: str) -> List[CodeTestSkeleton]:
         """Generate unit tests for C functions."""
         test_skeletons = []
         
@@ -125,7 +125,7 @@ class TestGenerator:
             else:  # minunit
                 test_content = self._generate_minunit_test(function, parsed_file.file_path)
             
-            test_skeleton = TestSkeleton(
+            test_skeleton = CodeTestSkeleton(
                 test_name=f"test_{function.name}",
                 test_content=test_content,
                 framework=framework,
@@ -145,7 +145,7 @@ class TestGenerator:
         
         return test_skeletons
     
-    def _generate_js_unit_tests(self, parsed_file: Any, framework: str) -> List[TestSkeleton]:
+    def _generate_js_unit_tests(self, parsed_file: Any, framework: str) -> List[CodeTestSkeleton]:
         """Generate unit tests for JavaScript functions."""
         test_skeletons = []
         
@@ -160,7 +160,7 @@ class TestGenerator:
             else:  # mocha
                 test_content = self._generate_mocha_test(function, parsed_file.file_path)
             
-            test_skeleton = TestSkeleton(
+            test_skeleton = CodeTestSkeleton(
                 test_name=f"test_{function.name}",
                 test_content=test_content,
                 framework=framework,
@@ -338,7 +338,7 @@ describe('{function.name}', function() {{
 '''
         return test_content   
  
-    def _generate_c_integration_tests(self, parsed_file: Any, framework: str) -> List[TestSkeleton]:
+    def _generate_c_integration_tests(self, parsed_file: Any, framework: str) -> List[CodeTestSkeleton]:
         """Generate integration test stubs for C functions with hardware mocks."""
         integration_tests = []
         
@@ -356,7 +356,7 @@ describe('{function.name}', function() {{
             else:  # minunit
                 test_content = self._generate_minunit_integration_test(function, parsed_file.file_path)
             
-            test_skeleton = TestSkeleton(
+            test_skeleton = CodeTestSkeleton(
                 test_name=f"integration_test_{function.name}",
                 test_content=test_content,
                 framework=framework,
@@ -375,7 +375,7 @@ describe('{function.name}', function() {{
         
         return integration_tests
     
-    def _generate_js_integration_tests(self, parsed_file: Any, framework: str) -> List[TestSkeleton]:
+    def _generate_js_integration_tests(self, parsed_file: Any, framework: str) -> List[CodeTestSkeleton]:
         """Generate integration test stubs for JavaScript functions with hardware mocks."""
         integration_tests = []
         
@@ -393,7 +393,7 @@ describe('{function.name}', function() {{
             else:  # mocha
                 test_content = self._generate_mocha_integration_test(function, parsed_file.file_path)
             
-            test_skeleton = TestSkeleton(
+            test_skeleton = CodeTestSkeleton(
                 test_name=f"integration_test_{function.name}",
                 test_content=test_content,
                 framework=framework,
@@ -822,7 +822,7 @@ describe('{function.name} Integration Tests', function() {{
                 'timeout': 5000
             }
     
-    def export_test_suite(self, test_suite: TestSuite, output_dir: str) -> Dict[str, str]:
+    def export_test_suite(self, test_suite: CodeTestSuite, output_dir: str) -> Dict[str, str]:
         """Export test suite to files in the specified directory.
         
         Args:
@@ -929,7 +929,7 @@ describe('{function.name} Integration Tests', function() {{
         
         return None
     
-    def validate_test_skeleton(self, test_skeleton: TestSkeleton) -> List[str]:
+    def validate_test_skeleton(self, test_skeleton: CodeTestSkeleton) -> List[str]:
         """Validate a test skeleton for completeness and correctness.
         
         Args:

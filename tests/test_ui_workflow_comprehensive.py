@@ -19,10 +19,10 @@ from PyQt6.QtGui import QAction
 
 from medical_analyzer.ui.requirements_tab_widget import RequirementsTabWidget
 from medical_analyzer.ui.traceability_matrix_widget import TraceabilityMatrixWidget
-from medical_analyzer.ui.test_case_export_widget import TestCaseExportWidget
+from medical_analyzer.ui.test_case_export_widget import CaseModelExportWidget
 from medical_analyzer.ui.main_window import MainWindow
 from medical_analyzer.models.core import Requirement, RequirementType
-from medical_analyzer.models.test_models import TestCase, TestStep, TestCasePriority, TestCaseCategory
+from medical_analyzer.models.test_models import CaseModel, CaseStep, CasePriority, CaseCategory
 from medical_analyzer.services.traceability_models import TraceabilityMatrix, TraceabilityTableRow
 
 
@@ -318,8 +318,8 @@ class TestTraceabilityMatrixWidgetUI:
                     mock_dialog.assert_called()
 
 
-class TestTestCaseExportWidgetUI:
-    """Test TestCaseExportWidget UI interactions."""
+class TestCaseModelExportWidgetUI:
+    """Test CaseModelExportWidget UI interactions."""
     
     @pytest.fixture
     def qapp(self):
@@ -332,8 +332,8 @@ class TestTestCaseExportWidgetUI:
     
     @pytest.fixture
     def widget(self, qapp):
-        """Create TestCaseExportWidget for testing."""
-        widget = TestCaseExportWidget()
+        """Create CaseModelExportWidget for testing."""
+        widget = CaseModelExportWidget()
         widget.show()
         return widget
     
@@ -341,20 +341,20 @@ class TestTestCaseExportWidgetUI:
     def sample_test_cases(self):
         """Create sample test cases."""
         return [
-            TestCase(
+            CaseModel(
                 id="TC1",
                 name="Test login functionality",
                 description="Test user login with valid credentials",
                 requirement_id="UR1",
                 preconditions=["User account exists"],
                 test_steps=[
-                    TestStep(1, "Enter username", "Username accepted"),
-                    TestStep(2, "Enter password", "Password accepted"),
-                    TestStep(3, "Click login", "User logged in")
+                    CaseStep(1, "Enter username", "Username accepted"),
+                    CaseStep(2, "Enter password", "Password accepted"),
+                    CaseStep(3, "Click login", "User logged in")
                 ],
                 expected_results=["Dashboard displayed"],
-                priority=TestCasePriority.HIGH,
-                category=TestCaseCategory.FUNCTIONAL
+                priority=CasePriority.HIGH,
+                category=CaseCategory.FUNCTIONAL
             )
         ]
     
@@ -734,24 +734,24 @@ class TestExportFunctionalityComprehensive:
     
     def test_test_case_export_formats(self, qapp):
         """Test test case export in multiple formats."""
-        widget = TestCaseExportWidget()
+        widget = CaseModelExportWidget()
         
         # Create test cases
         test_cases = [
-            TestCase(
+            CaseModel(
                 id=f"TC{i:03d}",
                 name=f"Test case {i}",
                 description=f"Detailed test case description {i}",
                 requirement_id=f"UR{i}",
                 preconditions=[f"Precondition {i}.1", f"Precondition {i}.2"],
                 test_steps=[
-                    TestStep(1, f"Action {i}.1", f"Expected result {i}.1"),
-                    TestStep(2, f"Action {i}.2", f"Expected result {i}.2"),
-                    TestStep(3, f"Action {i}.3", f"Expected result {i}.3")
+                    CaseStep(1, f"Action {i}.1", f"Expected result {i}.1"),
+                    CaseStep(2, f"Action {i}.2", f"Expected result {i}.2"),
+                    CaseStep(3, f"Action {i}.3", f"Expected result {i}.3")
                 ],
                 expected_results=[f"Final result {i}"],
-                priority=TestCasePriority.HIGH if i % 2 == 0 else TestCasePriority.MEDIUM,
-                category=TestCaseCategory.FUNCTIONAL
+                priority=CasePriority.HIGH if i % 2 == 0 else CasePriority.MEDIUM,
+                category=CaseCategory.FUNCTIONAL
             )
             for i in range(50)
         ]

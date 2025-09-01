@@ -20,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from medical_analyzer.services.analysis_orchestrator import AnalysisOrchestrator
 from medical_analyzer.services.requirements_generator import RequirementsGenerator
 from medical_analyzer.services.traceability_service import TraceabilityService
-from medical_analyzer.services.test_case_generator import TestCaseGenerator
+from medical_analyzer.services.test_case_generator import CaseGenerator as TestCaseGenerator
 from medical_analyzer.services.soup_detector import SOUPDetector
 from medical_analyzer.services.soup_service import SOUPService
 from medical_analyzer.llm.api_response_validator import APIResponseValidator

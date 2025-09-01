@@ -16,12 +16,12 @@ from .progress_widget import AnalysisProgressWidget, AnalysisStage, StageStatus
 from .results_tab_widget import ResultsTabWidget
 from .requirements_tab_widget import RequirementsTabWidget
 from .traceability_matrix_widget import TraceabilityMatrixWidget
-from .test_case_export_widget import TestCaseExportWidget
+from .test_case_export_widget import CaseModelExportWidget
 from .soup_widget import SOUPWidget
 from ..database.schema import DatabaseManager
 from ..services.soup_service import SOUPService
 from ..services.export_service import ExportService
-from ..services.test_case_generator import TestCaseGenerator
+from ..services.test_case_generator import CaseGenerator
 from ..services.traceability_service import TraceabilityService
 from ..llm.backend import LLMBackend
 
@@ -50,7 +50,7 @@ class MainWindow(QMainWindow):
         # Initialize enhanced UI components
         self.requirements_tab_widget: Optional[RequirementsTabWidget] = None
         self.traceability_matrix_widget: Optional[TraceabilityMatrixWidget] = None
-        self.test_case_export_widget: Optional[TestCaseExportWidget] = None
+        self.test_case_export_widget: Optional[CaseModelExportWidget] = None
         self.enhanced_soup_widget: Optional[SOUPWidget] = None
         
         self.setup_ui()
@@ -138,11 +138,11 @@ class MainWindow(QMainWindow):
         
         # Initialize test case export widget with generator
         if self.llm_backend:
-            test_generator = TestCaseGenerator(self.llm_backend)
-            self.test_case_export_widget = TestCaseExportWidget()
+            test_generator = CaseGenerator(self.llm_backend)
+            self.test_case_export_widget = CaseModelExportWidget()
             self.test_case_export_widget.set_generator(test_generator)
         else:
-            self.test_case_export_widget = TestCaseExportWidget()
+            self.test_case_export_widget = CaseModelExportWidget()
         
         # Initialize enhanced SOUP widget
         self.enhanced_soup_widget = SOUPWidget(self.soup_service)

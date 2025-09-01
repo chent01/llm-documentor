@@ -23,7 +23,7 @@ from medical_analyzer.ui.traceability_matrix_widget import TraceabilityMatrixWid
 from medical_analyzer.services.traceability_service import TraceabilityService
 from medical_analyzer.services.soup_detector import SOUPDetector
 from medical_analyzer.services.iec62304_compliance_manager import IEC62304ComplianceManager
-from medical_analyzer.services.test_case_generator import TestCaseGenerator
+from medical_analyzer.services.test_case_generator import CaseGenerator
 from medical_analyzer.llm.api_response_validator import APIResponseValidator
 from medical_analyzer.llm.local_server_backend import LocalServerBackend
 from medical_analyzer.models.core import Requirement, RequirementType
@@ -345,6 +345,8 @@ class TestAPIIntegrationWithValidation:
         mock_response = Mock()
         mock_response.status_code = 429
         mock_response.headers = {'retry-after': '60'}
+        mock_response.content = b'{"error": {"code": "RATE_LIMITED", "message": "Too many requests"}}'
+        mock_response.text = '{"error": {"code": "RATE_LIMITED", "message": "Too many requests"}}'
         mock_response.json.return_value = {
             'error': {
                 'code': 'RATE_LIMITED',
@@ -572,7 +574,7 @@ class TestCrossComponentIntegration:
         }
         
         # Generate test cases
-        test_generator = TestCaseGenerator(mock_backend)
+        test_generator = CaseGenerator(mock_backend)
         test_cases = test_generator.generate_test_cases(requirements)
         
         # Verify test cases were generated
@@ -620,6 +622,7 @@ class TestCrossComponentIntegration:
         mock_response = Mock()
         mock_response.status_code = 400
         mock_response.headers = {'content-type': 'application/json'}
+        mock_response.content = b'{"error": {"code": "INVALID_REQUEST", "message": "Request validation failed"}}'
         mock_response.json.return_value = {
             'error': {
                 'code': 'INVALID_REQUEST',
@@ -675,8 +678,7 @@ class TestSystemReliabilityAndRecovery:
         mock_backend.generate.side_effect = ConnectionError("API service unavailable")
         
         # Requirements generator should handle failure gracefully
-        requirements_generator = RequirementsGenerator()
-        requirements_generator.llm_backend = mock_backend
+        requirements_generator = RequirementsGenerator(mock_backend)
         
         # Should not crash, but return appropriate error
         with pytest.raises(ConnectionError):

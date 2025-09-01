@@ -21,7 +21,7 @@ from medical_analyzer.services.ingestion import IngestionService
 from medical_analyzer.parsers.parser_service import ParserService
 from medical_analyzer.services.feature_extractor import FeatureExtractor
 from medical_analyzer.services.hazard_identifier import HazardIdentifier
-from medical_analyzer.tests.test_generator import TestGenerator
+from medical_analyzer.tests import TestGenerator
 from medical_analyzer.services.export_service import ExportService
 from medical_analyzer.services.soup_service import SOUPService
 from medical_analyzer.llm.backend import LLMBackend

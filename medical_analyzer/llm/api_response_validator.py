@@ -390,6 +390,7 @@ class APIResponseValidator:
                 is_recoverable=True,
                 suggested_action=RecoveryAction.RETRY
             ))
+            result.confidence = 0.0
             return None
         except Exception as e:
             result.add_error(ErrorDetails(
@@ -529,6 +530,14 @@ class APIResponseValidator:
                     extracted_data['model_id'] = model_info.get('id', 'unknown')
                     extracted_data['context_length'] = model_info.get('context_length', 4096)
             
+            elif operation == 'requirements':
+                # Extract requirements data directly
+                extracted_data.update(json_data)
+            
+            elif operation == 'test_generation':
+                # Extract test generation data directly
+                extracted_data.update(json_data)
+            
             result.extracted_data = extracted_data
             
         except Exception as e:
@@ -573,6 +582,10 @@ class APIResponseValidator:
                 if operation == 'requirements_generation':
                     if not self._validate_requirements_content(content, result):
                         result.confidence *= 0.7
+            
+            elif operation == 'requirements':
+                # Validate requirements data structure
+                self._validate_requirements_data(extracted_data, result)
                         
         except Exception as e:
             result.add_warning(f"Semantic validation failed: {str(e)}")
@@ -593,16 +606,52 @@ class APIResponseValidator:
                 result.add_warning("Content is not in JSON format")
                 return True
     
+    def _validate_requirements_data(self, data: Dict[str, Any], result: ValidationResult) -> None:
+        """Validate requirements data structure and content."""
+        # Check for empty user requirements
+        user_requirements = data.get('user_requirements', [])
+        if isinstance(user_requirements, list):
+            if len(user_requirements) == 0:
+                result.add_warning("Empty user_requirements array detected")
+                result.confidence *= 0.7  # Significant confidence reduction for empty arrays
+            elif len(user_requirements) == 1:
+                # Minimal data - reduce confidence slightly
+                result.confidence *= 0.85
+        
+        # Check for empty software requirements
+        software_requirements = data.get('software_requirements', [])
+        if isinstance(software_requirements, list):
+            if len(software_requirements) == 0:
+                result.add_warning("Empty software_requirements array detected")
+                result.confidence *= 0.7  # Significant confidence reduction for empty arrays
+            elif len(software_requirements) == 1:
+                # Minimal data - reduce confidence slightly
+                result.confidence *= 0.85
+        
+        # Check status field
+        status = data.get('status', '')
+        if status == 'partial_success':
+            result.add_warning("Requirements generation reported partial success")
+            result.confidence *= 0.95
+    
     def _extract_client_error_details(self, response: requests.Response) -> Dict[str, Any]:
         """Extract error details from client error responses."""
         try:
             error_data = response.json()
-            return {
-                'message': error_data.get('error', {}).get('message', 'Client error'),
-                'type': error_data.get('error', {}).get('type', 'unknown'),
-                'code': error_data.get('error', {}).get('code', 'unknown'),
+            error_info = error_data.get('error', {})
+            result = {
+                'message': error_info.get('message', 'Client error'),
+                'type': error_info.get('type', 'unknown'),
+                'code': error_info.get('code', 'unknown'),
                 'raw_response': response.text[:500]
             }
+            
+            # Include any additional fields from the error object
+            for key, value in error_info.items():
+                if key not in result:
+                    result[key] = value
+                    
+            return result
         except:
             return {
                 'message': f"HTTP {response.status_code} error",
@@ -657,19 +706,38 @@ class APIResponseValidator:
                     is_recoverable=True,
                     suggested_action=RecoveryAction.WAIT_AND_RETRY
                 )
-            elif response.status_code in [400, 422]:
+            elif response.status_code == 401:
                 return ErrorDetails(
-                    error_code=f"CLIENT_ERROR_{response.status_code}",
-                    error_message=client_error_details.get('message', f"Client error: {response.status_code}"),
+                    error_code=f"HTTP_{response.status_code}",
+                    error_message=client_error_details.get('message', "Authentication required"),
                     error_context=client_error_details,
                     severity=ErrorSeverity.HIGH,
                     is_recoverable=False,
                     suggested_action=RecoveryAction.MODIFY_REQUEST
                 )
-            elif response.status_code >= 500:
+            elif response.status_code in [400, 422]:
+                # Use application-level error code if available, otherwise use HTTP error code
+                error_code = client_error_details.get('code', f"CLIENT_ERROR_{response.status_code}")
+                if error_code == 'unknown':
+                    error_code = f"CLIENT_ERROR_{response.status_code}"
+                
                 return ErrorDetails(
-                    error_code=f"SERVER_ERROR_{response.status_code}",
-                    error_message=f"Server error: {response.status_code}",
+                    error_code=error_code,
+                    error_message=client_error_details.get('message', f"Client error: {response.status_code}"),
+                    error_context=client_error_details,
+                    severity=ErrorSeverity.HIGH,
+                    is_recoverable=True,  # Application errors might be recoverable
+                    suggested_action=RecoveryAction.MODIFY_REQUEST
+                )
+            elif response.status_code >= 500:
+                # Use response text if available and JSON parsing failed
+                error_message = client_error_details.get('message', f"Server error: {response.status_code}")
+                if 'raw_response' in client_error_details and client_error_details['raw_response']:
+                    error_message = client_error_details['raw_response']
+                
+                return ErrorDetails(
+                    error_code=f"HTTP_{response.status_code}",
+                    error_message=error_message,
                     error_context=client_error_details,
                     severity=ErrorSeverity.MEDIUM,
                     is_recoverable=True,
@@ -711,6 +779,17 @@ class APIResponseValidator:
         
         # Don't retry client errors (except rate limiting)
         if 400 <= response.status_code < 500 and response.status_code != 429:
+            # Check for application-level rate limiting in the response body
+            try:
+                json_data = response.json()
+                if 'error' in json_data:
+                    error_info = json_data['error']
+                    error_code = error_info.get('code', '').upper()
+                    # Retry on rate limiting errors even with 400 status
+                    if error_code == 'RATE_LIMITED':
+                        return True
+            except:
+                pass
             return False
         
         # Retry server errors and rate limiting
@@ -751,7 +830,7 @@ class APIResponseValidator:
         jitter = random.uniform(0.1, 0.3) * delay
         return delay + jitter
     
-    def parse_generation_result(self, response_json: Dict[str, Any]) -> Optional[str]:
+    def parse_generation_result(self, response_json: Dict[str, Any]) -> Optional[GenerationResult]:
         """
         Parse generation result from validated JSON response.
         
@@ -759,26 +838,64 @@ class APIResponseValidator:
             response_json: Validated JSON response data
             
         Returns:
-            Generated text content or None if not found
+            GenerationResult object or None if parsing fails
         """
         try:
+            # Check if this is an error response
+            if response_json.get('status') == 'failed' or 'error' in response_json:
+                return GenerationResult(
+                    success=False,
+                    error_message=response_json.get('error', 'Unknown error'),
+                    partial_data=response_json.get('partial_results', {}),
+                    metadata=response_json.get('metadata', {})
+                )
+            
+            # Check if this is a direct requirements response
+            if 'user_requirements' in response_json or 'software_requirements' in response_json:
+                return GenerationResult(
+                    success=response_json.get('status') == 'success',
+                    data={
+                        'user_requirements': response_json.get('user_requirements', []),
+                        'software_requirements': response_json.get('software_requirements', [])
+                    },
+                    metadata=response_json.get('metadata', {})
+                )
+            
+            # Try OpenAI-style response format
             choices = response_json.get('choices', [])
             if not choices:
-                return None
+                return GenerationResult(
+                    success=False,
+                    error_message="No choices found in response"
+                )
             
             choice = choices[0]
+            content = None
             
             # Try different content extraction methods
             if 'message' in choice and 'content' in choice['message']:
-                return choice['message']['content'].strip()
+                content = choice['message']['content'].strip()
             elif 'text' in choice:
-                return choice['text'].strip()
+                content = choice['text'].strip()
             
-            return None
+            if content:
+                return GenerationResult(
+                    success=True,
+                    data={'content': content},
+                    metadata=response_json.get('metadata', {})
+                )
+            
+            return GenerationResult(
+                success=False,
+                error_message="No content found in response"
+            )
             
         except Exception as e:
             logger.error(f"Failed to parse generation result: {e}")
-            return None
+            return GenerationResult(
+                success=False,
+                error_message=str(e)
+            )
     
     def add_schema(self, operation: str, schema: Dict[str, Any]) -> None:
         """

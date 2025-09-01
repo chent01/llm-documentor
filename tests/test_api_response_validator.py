@@ -294,7 +294,7 @@ class TestAPIResponseValidator:
         
         error_details = validator.extract_error_details(mock_response)
         
-        assert 'retry' in error_details.suggested_action.lower()
+        assert 'retry' in error_details.suggested_action.value
         assert error_details.is_recoverable is True
         
         # Test authentication error
@@ -303,7 +303,8 @@ class TestAPIResponseValidator:
         
         error_details = validator.extract_error_details(mock_response)
         
-        assert 'authentication' in error_details.suggested_action.lower()
+        # 401 errors should suggest modifying the request (authentication)
+        assert error_details.suggested_action.value == 'modify_request'
         assert error_details.is_recoverable is False
     
     def test_validation_with_nested_schema_validation(self, validator, mock_response):

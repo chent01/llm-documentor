@@ -586,31 +586,62 @@ class RequirementsTabWidget(QWidget):
         
         return total_errors == 0
         
+    def _get_req_attr(self, requirement, attr_name: str, default=None):
+        """Helper to get attribute from requirement (dict or object)."""
+        if hasattr(requirement, 'get'):
+            return requirement.get(attr_name, default)
+        else:
+            return getattr(requirement, attr_name, default)
+    
     def _validate_requirement(self, requirement: Dict, req_type: str) -> List[str]:
         """Validate a single requirement and return list of errors."""
         errors = []
         
-        if not requirement.get('id'):
+        # Handle both dict and Requirement object
+        if hasattr(requirement, 'get'):
+            # Dictionary-like object
+            req_id = requirement.get('id')
+            req_desc = requirement.get('description')
+        else:
+            # Requirement object
+            req_id = getattr(requirement, 'id', None)
+            req_desc = getattr(requirement, 'description', None)
+        
+        if not req_id:
             errors.append("Missing ID")
-        elif req_type == "user" and not requirement['id'].startswith('UR-'):
+        elif req_type == "user" and not req_id.startswith('UR-'):
             errors.append("User requirement ID must start with 'UR-'")
-        elif req_type == "software" and not requirement['id'].startswith('SR-'):
+        elif req_type == "software" and not req_id.startswith('SR-'):
             errors.append("Software requirement ID must start with 'SR-'")
             
-        if not requirement.get('description'):
+        if not req_desc:
             errors.append("Missing description")
+        
+        # Get acceptance criteria
+        if hasattr(requirement, 'get'):
+            acceptance_criteria = requirement.get('acceptance_criteria')
+            priority = requirement.get('priority')
+        else:
+            acceptance_criteria = getattr(requirement, 'acceptance_criteria', None)
+            priority = getattr(requirement, 'priority', None)
             
-        if not requirement.get('acceptance_criteria'):
+        if not acceptance_criteria:
             errors.append("Missing acceptance criteria")
-        elif isinstance(requirement['acceptance_criteria'], list) and len(requirement['acceptance_criteria']) == 0:
+        elif isinstance(acceptance_criteria, list) and len(acceptance_criteria) == 0:
             errors.append("At least one acceptance criterion required")
             
         valid_priorities = ['Low', 'Medium', 'High', 'Critical']
-        if requirement.get('priority') not in valid_priorities:
+        if priority not in valid_priorities:
             errors.append(f"Invalid priority. Must be one of: {', '.join(valid_priorities)}")
             
+        # Get status
+        if hasattr(requirement, 'get'):
+            status = requirement.get('status')
+        else:
+            status = getattr(requirement, 'status', None)
+            
         valid_statuses = ['Draft', 'Under Review', 'Approved', 'Implemented', 'Verified']
-        if requirement.get('status') not in valid_statuses:
+        if status not in valid_statuses:
             errors.append(f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
             
         return errors

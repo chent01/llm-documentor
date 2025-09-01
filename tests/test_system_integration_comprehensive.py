@@ -23,7 +23,7 @@ from PyQt6.QtTest import QTest
 from medical_analyzer.services.analysis_orchestrator import AnalysisOrchestrator
 from medical_analyzer.services.requirements_generator import RequirementsGenerator
 from medical_analyzer.services.traceability_service import TraceabilityService
-from medical_analyzer.services.test_case_generator import TestCaseGenerator
+from medical_analyzer.services.test_case_generator import CaseGenerator as TestCaseGenerator
 from medical_analyzer.services.soup_detector import SOUPDetector
 from medical_analyzer.services.soup_service import SOUPService
 from medical_analyzer.services.iec62304_compliance_manager import IEC62304ComplianceManager
@@ -32,10 +32,10 @@ from medical_analyzer.llm.local_server_backend import LocalServerBackend
 from medical_analyzer.ui.main_window import MainWindow
 from medical_analyzer.ui.requirements_tab_widget import RequirementsTabWidget
 from medical_analyzer.ui.traceability_matrix_widget import TraceabilityMatrixWidget
-from medical_analyzer.ui.test_case_export_widget import TestCaseExportWidget
+from medical_analyzer.ui.test_case_export_widget import CaseModelExportWidget
 from medical_analyzer.ui.soup_widget import SOUPWidget
 from medical_analyzer.models.core import Requirement, RequirementType
-from medical_analyzer.models.test_models import TestCase, TestStep
+from medical_analyzer.models.test_models import CaseModel, CaseStep
 from medical_analyzer.models.soup_models import DetectedSOUPComponent, IEC62304Classification
 
 
@@ -308,7 +308,7 @@ module.exports = { validateInput, formatOutput };
         
         assert test_cases is not None
         assert len(test_cases) > 0
-        assert all(isinstance(tc, TestCase) for tc in test_cases)
+        assert all(isinstance(tc, CaseModel) for tc in test_cases)
     
     def test_soup_detection_to_compliance_flow(self, integration_orchestrator, temp_project_dir):
         """Test data flow from SOUP detection to IEC 62304 compliance."""
@@ -500,7 +500,7 @@ module.exports = {{ process_{i}, validate_{i} }};
         # Create components
         requirements_tab = RequirementsTabWidget()
         traceability_widget = TraceabilityMatrixWidget()
-        test_export_widget = TestCaseExportWidget()
+        test_export_widget = CaseModelExportWidget()
         
         qtbot.addWidget(requirements_tab)
         qtbot.addWidget(traceability_widget)
@@ -556,14 +556,14 @@ module.exports = {{ process_{i}, validate_{i} }};
         
         # Test test case export
         test_cases = [
-            TestCase(
+            CaseModel(
                 id="TC-EXP-001",
                 name="Export Test Case",
                 description="Test case for export functionality",
                 requirement_id="EXP-001",
                 preconditions=["Export environment ready"],
                 test_steps=[
-                    TestStep(
+                    CaseStep(
                         step_number=1,
                         action="Execute export function",
                         expected_result="Export completes successfully"

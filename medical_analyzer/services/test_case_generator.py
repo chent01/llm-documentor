@@ -13,12 +13,12 @@ import csv
 import io
 
 from ..models.core import Requirement
-from ..models.test_models import TestCase, TestOutline, TestStep, TestCasePriority, TestCaseCategory
+from ..models.test_models import CaseModel, CaseOutline, CaseStep, CasePriority, CaseCategory, CoverageReport
 from ..llm.backend import LLMBackend
-from .test_case_templates import TestCaseTemplateManager
+from .test_case_templates import CaseTemplateManager
 
 
-class TestCaseGenerator:
+class CaseGenerator:
     """Service for generating exportable test case outlines."""
     
     def __init__(self, llm_backend: Optional[LLMBackend] = None):
@@ -28,15 +28,15 @@ class TestCaseGenerator:
             llm_backend: Optional LLM backend for intelligent test generation
         """
         self.llm_backend = llm_backend
-        self.template_manager = TestCaseTemplateManager()
+        self.template_manager = CaseTemplateManager()
         self.templates = self._initialize_templates()
     
     def _initialize_templates(self) -> Dict[str, Dict[str, Any]]:
         """Initialize test case templates for different requirement types."""
         return {
             "functional": {
-                "category": TestCaseCategory.FUNCTIONAL,
-                "priority": TestCasePriority.HIGH,
+                "category": CaseCategory.FUNCTIONAL,
+                "priority": CasePriority.HIGH,
                 "template_steps": [
                     "Verify system initialization",
                     "Execute the required functionality",
@@ -45,8 +45,8 @@ class TestCaseGenerator:
                 ]
             },
             "safety": {
-                "category": TestCaseCategory.SAFETY,
-                "priority": TestCasePriority.CRITICAL,
+                "category": CaseCategory.SAFETY,
+                "priority": CasePriority.CRITICAL,
                 "template_steps": [
                     "Set up safety-critical conditions",
                     "Trigger safety mechanism",
@@ -55,8 +55,8 @@ class TestCaseGenerator:
                 ]
             },
             "performance": {
-                "category": TestCaseCategory.PERFORMANCE,
-                "priority": TestCasePriority.MEDIUM,
+                "category": CaseCategory.PERFORMANCE,
+                "priority": CasePriority.MEDIUM,
                 "template_steps": [
                     "Establish baseline conditions",
                     "Execute performance-critical operation",
@@ -65,8 +65,8 @@ class TestCaseGenerator:
                 ]
             },
             "usability": {
-                "category": TestCaseCategory.USABILITY,
-                "priority": TestCasePriority.MEDIUM,
+                "category": CaseCategory.USABILITY,
+                "priority": CasePriority.MEDIUM,
                 "template_steps": [
                     "Set up user interface",
                     "Perform user interaction",
@@ -76,14 +76,14 @@ class TestCaseGenerator:
             }
         }
     
-    def generate_test_cases(self, requirements: List[Requirement]) -> TestOutline:
+    def generate_test_cases(self, requirements: List[Requirement]) -> CaseOutline:
         """Generate test cases for a list of requirements.
         
         Args:
             requirements: List of requirements to generate tests for
             
         Returns:
-            TestOutline containing generated test cases
+            CaseOutline containing generated test cases
         """
         test_cases = []
         
@@ -96,7 +96,7 @@ class TestCaseGenerator:
         coverage_summary = self._generate_coverage_summary(test_cases, requirements)
         
         # Create test outline
-        test_outline = TestOutline(
+        test_outline = CaseOutline(
             project_name="Medical Software Analysis",
             test_cases=test_cases,
             coverage_summary=coverage_summary,
@@ -111,7 +111,7 @@ class TestCaseGenerator:
         
         return test_outline
     
-    def _generate_test_cases_for_requirement(self, requirement: Requirement) -> List[TestCase]:
+    def _generate_test_cases_for_requirement(self, requirement: Requirement) -> List[CaseModel]:
         """Generate test cases for a single requirement.
         
         Args:
@@ -136,13 +136,13 @@ class TestCaseGenerator:
             test_cases.append(edge_test_case)
         
         # Generate negative test case for safety-critical requirements
-        if category == TestCaseCategory.SAFETY:
+        if category == CaseCategory.SAFETY:
             negative_test_case = self._create_negative_test_case(requirement, template)
             test_cases.append(negative_test_case)
         
         return test_cases
     
-    def _determine_test_category(self, requirement: Requirement) -> TestCaseCategory:
+    def _determine_test_category(self, requirement: Requirement) -> CaseCategory:
         """Determine appropriate test category for a requirement using template manager.
         
         Args:
@@ -154,7 +154,7 @@ class TestCaseGenerator:
         template = self.template_manager.get_template_for_requirement(requirement)
         return template.category
     
-    def _create_main_test_case(self, requirement: Requirement, template: Dict[str, Any]) -> TestCase:
+    def _create_main_test_case(self, requirement: Requirement, template: Dict[str, Any]) -> CaseModel:
         """Create main test case for a requirement using enhanced templates.
         
         Args:
@@ -186,7 +186,7 @@ class TestCaseGenerator:
                 # Fall back to template-based generation
                 pass
         
-        return TestCase(
+        return CaseModel(
             id=test_case_id,
             name=template_data["name"],
             description=template_data["description"],
@@ -206,7 +206,7 @@ class TestCaseGenerator:
             }
         )
     
-    def _create_edge_case_test(self, requirement: Requirement, template: Dict[str, Any]) -> TestCase:
+    def _create_edge_case_test(self, requirement: Requirement, template: Dict[str, Any]) -> CaseModel:
         """Create edge case test for a requirement.
         
         Args:
@@ -219,13 +219,13 @@ class TestCaseGenerator:
         test_case_id = f"TC_{requirement.id}_002"
         
         edge_steps = [
-            TestStep(1, "Set up boundary conditions", "System accepts boundary inputs"),
-            TestStep(2, "Execute functionality with edge case inputs", "System processes edge cases correctly"),
-            TestStep(3, "Verify system behavior at boundaries", "System maintains correct behavior"),
-            TestStep(4, "Validate error handling for invalid inputs", "System handles errors gracefully")
+            CaseStep(1, "Set up boundary conditions", "System accepts boundary inputs"),
+            CaseStep(2, "Execute functionality with edge case inputs", "System processes edge cases correctly"),
+            CaseStep(3, "Verify system behavior at boundaries", "System maintains correct behavior"),
+            CaseStep(4, "Validate error handling for invalid inputs", "System handles errors gracefully")
         ]
         
-        return TestCase(
+        return CaseModel(
             id=test_case_id,
             name=f"Edge Case Test {requirement.text[:40]}...",
             description=f"Verify edge case handling for requirement: {requirement.text}",
@@ -241,7 +241,7 @@ class TestCaseGenerator:
                 "Error conditions are properly managed",
                 "System remains stable under edge conditions"
             ],
-            priority=TestCasePriority.MEDIUM,
+            priority=CasePriority.MEDIUM,
             category=template["category"],
             estimated_duration="45 minutes",
             test_data_requirements=["Boundary value data", "Invalid input data"],
@@ -253,7 +253,7 @@ class TestCaseGenerator:
             }
         )
     
-    def _create_negative_test_case(self, requirement: Requirement, template: Dict[str, Any]) -> TestCase:
+    def _create_negative_test_case(self, requirement: Requirement, template: Dict[str, Any]) -> CaseModel:
         """Create negative test case for safety-critical requirements.
         
         Args:
@@ -266,13 +266,13 @@ class TestCaseGenerator:
         test_case_id = f"TC_{requirement.id}_003"
         
         negative_steps = [
-            TestStep(1, "Introduce failure conditions", "Failure conditions are established"),
-            TestStep(2, "Attempt to violate safety requirement", "System detects violation attempt"),
-            TestStep(3, "Verify safety mechanisms activate", "Safety mechanisms respond correctly"),
-            TestStep(4, "Confirm system enters safe state", "System is in documented safe state")
+            CaseStep(1, "Introduce failure conditions", "Failure conditions are established"),
+            CaseStep(2, "Attempt to violate safety requirement", "System detects violation attempt"),
+            CaseStep(3, "Verify safety mechanisms activate", "Safety mechanisms respond correctly"),
+            CaseStep(4, "Confirm system enters safe state", "System is in documented safe state")
         ]
         
-        return TestCase(
+        return CaseModel(
             id=test_case_id,
             name=f"Negative Test {requirement.text[:40]}...",
             description=f"Verify safety mechanisms for requirement: {requirement.text}",
@@ -288,8 +288,8 @@ class TestCaseGenerator:
                 "Safety mechanisms activate as designed",
                 "System enters safe state without harm"
             ],
-            priority=TestCasePriority.CRITICAL,
-            category=TestCaseCategory.SAFETY,
+            priority=CasePriority.CRITICAL,
+            category=CaseCategory.SAFETY,
             estimated_duration="60 minutes",
             test_data_requirements=["Failure scenario data", "Safety threshold data"],
             environment_requirements=["Safety test environment", "Failure simulation tools"],
@@ -300,7 +300,7 @@ class TestCaseGenerator:
             }
         )
     
-    def _generate_steps_from_criteria(self, acceptance_criteria: List[str]) -> List[TestStep]:
+    def _generate_steps_from_criteria(self, acceptance_criteria: List[str]) -> List[CaseStep]:
         """Generate test steps from acceptance criteria.
         
         Args:
@@ -324,7 +324,7 @@ class TestCaseGenerator:
                 action = f"Verify acceptance criterion: {criterion}"
                 result = f"Criterion is satisfied: {criterion}"
             
-            test_steps.append(TestStep(
+            test_steps.append(CaseStep(
                 step_number=i,
                 action=action,
                 expected_result=result,
@@ -333,7 +333,7 @@ class TestCaseGenerator:
         
         return test_steps
     
-    def _generate_steps_from_template(self, template_steps: List[str]) -> List[TestStep]:
+    def _generate_steps_from_template(self, template_steps: List[str]) -> List[CaseStep]:
         """Generate test steps from template.
         
         Args:
@@ -345,7 +345,7 @@ class TestCaseGenerator:
         test_steps = []
         
         for i, step_desc in enumerate(template_steps, 1):
-            test_steps.append(TestStep(
+            test_steps.append(CaseStep(
                 step_number=i,
                 action=step_desc,
                 expected_result=f"Step {i} completes successfully",
@@ -354,7 +354,7 @@ class TestCaseGenerator:
         
         return test_steps
     
-    def _enhance_test_steps_with_llm(self, requirement: Requirement, base_steps: List[TestStep]) -> List[TestStep]:
+    def _enhance_test_steps_with_llm(self, requirement: Requirement, base_steps: List[CaseStep]) -> List[CaseStep]:
         """Enhance test steps using LLM for more detailed and specific steps.
         
         Args:
@@ -402,7 +402,7 @@ class TestCaseGenerator:
             # Fall back to base steps if LLM enhancement fails
             return base_steps
     
-    def _parse_llm_test_steps(self, llm_response: str) -> List[TestStep]:
+    def _parse_llm_test_steps(self, llm_response: str) -> List[CaseStep]:
         """Parse LLM response to extract test steps.
         
         Args:
@@ -439,7 +439,7 @@ class TestCaseGenerator:
                     else:
                         action = action_part
                     
-                    test_steps.append(TestStep(
+                    test_steps.append(CaseStep(
                         step_number=step_num,
                         action=action,
                         expected_result=result_part,
@@ -448,7 +448,7 @@ class TestCaseGenerator:
         
         return test_steps
     
-    def _generate_coverage_summary(self, test_cases: List[TestCase], requirements: List[Requirement]) -> Dict[str, Any]:
+    def _generate_coverage_summary(self, test_cases: List[CaseModel], requirements: List[Requirement]) -> Dict[str, Any]:
         """Generate coverage summary for test cases.
         
         Args:
@@ -485,11 +485,11 @@ class TestCaseGenerator:
             "uncovered_requirements": [req.id for req in requirements if req.id not in covered_requirements]
         }   
  
-    def export_test_cases(self, test_outline: TestOutline, format_type: str, **options) -> str:
+    def export_test_cases(self, test_data, format_type: str, **options) -> str:
         """Export test cases in specified format using enhanced templates.
         
         Args:
-            test_outline: Test outline to export
+            test_data: Either CaseOutline or List[CaseModel] containing test cases to export
             format_type: Export format ('text', 'json', 'xml', 'csv', 'html', 'markdown')
             **options: Additional formatting options
             
@@ -499,6 +499,19 @@ class TestCaseGenerator:
         Raises:
             ValueError: If format_type is not supported
         """
+        # Handle both CaseOutline and List[CaseModel] inputs
+        if isinstance(test_data, list):
+            # Convert list of CaseModel to CaseOutline
+            test_outline = CaseOutline(
+                project_name="Medical Software Analysis",
+                test_cases=test_data,
+                coverage_summary={},
+                export_formats=["text", "json", "xml", "csv"],
+                generation_metadata={"test_cases_count": len(test_data)}
+            )
+        else:
+            test_outline = test_data
+        
         try:
             return self.template_manager.format_test_outline(test_outline, format_type, **options)
         except ValueError:
@@ -514,7 +527,7 @@ class TestCaseGenerator:
             else:
                 raise ValueError(f"Unsupported export format: {format_type}")
     
-    def _export_to_text(self, test_outline: TestOutline) -> str:
+    def _export_to_text(self, test_outline: CaseOutline) -> str:
         """Export test cases to plain text format.
         
         Args:
@@ -589,7 +602,7 @@ class TestCaseGenerator:
         
         return '\n'.join(lines)
     
-    def _export_to_json(self, test_outline: TestOutline) -> str:
+    def _export_to_json(self, test_outline: CaseOutline) -> str:
         """Export test cases to JSON format.
         
         Args:
@@ -608,7 +621,7 @@ class TestCaseGenerator:
         
         return json.dumps(export_data, indent=2, ensure_ascii=False)
     
-    def _export_to_xml(self, test_outline: TestOutline) -> str:
+    def _export_to_xml(self, test_outline: CaseOutline) -> str:
         """Export test cases to XML format.
         
         Args:
@@ -681,7 +694,7 @@ class TestCaseGenerator:
         reparsed = xml.dom.minidom.parseString(rough_string)
         return reparsed.toprettyxml(indent="  ")
     
-    def _export_to_csv(self, test_outline: TestOutline) -> str:
+    def _export_to_csv(self, test_outline: CaseOutline) -> str:
         """Export test cases to CSV format.
         
         Args:
@@ -738,18 +751,51 @@ class TestCaseGenerator:
         
         return output.getvalue()
     
-    def generate_coverage_report(self, test_outline: TestOutline, requirements: List[Requirement]) -> Dict[str, Any]:
+    def generate_coverage_report(self, test_data, requirements: List[Requirement] = None) -> Dict[str, Any]:
         """Generate detailed coverage report.
         
         Args:
-            test_outline: Test outline to analyze
-            requirements: Original requirements list
+            test_data: Either CaseOutline or List[CaseModel] to analyze
+            requirements: Original requirements list (optional)
             
         Returns:
             Detailed coverage report
         """
+        # Handle both CaseOutline and List[CaseModel] inputs
+        if isinstance(test_data, list):
+            # Convert list of CaseModel to CaseOutline
+            test_outline = CaseOutline(
+                project_name="Medical Software Analysis",
+                test_cases=test_data,
+                coverage_summary={},
+                export_formats=["text", "json", "xml", "csv"],
+                generation_metadata={"test_cases_count": len(test_data)}
+            )
+        else:
+            test_outline = test_data
+        
+        # If no requirements provided, try to infer from test cases
+        if requirements is None:
+            # Extract unique requirement IDs from test cases
+            req_ids = set()
+            for test_case in test_outline.test_cases:
+                if hasattr(test_case, 'requirement_id') and test_case.requirement_id:
+                    req_ids.add(test_case.requirement_id)
+            
+            # Create mock requirements for coverage calculation
+            from ..models.core import RequirementType
+            requirements = []
+            for req_id in req_ids:
+                # Create a minimal requirement object for coverage calculation
+                mock_req = type('MockRequirement', (), {
+                    'id': req_id,
+                    'text': f'Requirement {req_id}',
+                    'type': RequirementType.USER
+                })()
+                requirements.append(mock_req)
+        
         # Requirement coverage analysis
-        req_coverage = test_outline.get_coverage_by_requirement()
+        req_coverage = test_outline.get_coverage_by_requirement() if hasattr(test_outline, 'get_coverage_by_requirement') else {}
         uncovered_reqs = [req for req in requirements if req.id not in req_coverage]
         
         # Gap analysis
@@ -774,28 +820,19 @@ class TestCaseGenerator:
         tests_with_preconditions = sum(1 for tc in test_outline.test_cases if tc.preconditions)
         precondition_coverage = (tests_with_preconditions / len(test_outline.test_cases) * 100) if test_outline.test_cases else 0
         
-        return {
-            "summary": {
-                "total_requirements": len(requirements),
-                "covered_requirements": len(req_coverage),
-                "uncovered_requirements": len(uncovered_reqs),
-                "coverage_percentage": round((len(req_coverage) / len(requirements) * 100), 2) if requirements else 0,
-                "total_test_cases": len(test_outline.test_cases),
-                "total_test_steps": total_steps
-            },
-            "coverage_by_requirement": req_coverage,
-            "gaps": gaps,
-            "distribution": {
-                "by_category": category_dist,
-                "by_priority": priority_dist
-            },
-            "quality_metrics": {
-                "average_steps_per_test": round(avg_steps_per_test, 2),
-                "precondition_coverage_percentage": round(precondition_coverage, 2),
-                "tests_with_multiple_steps": sum(1 for tc in test_outline.test_cases if len(tc.test_steps) > 1)
-            },
-            "recommendations": self._generate_coverage_recommendations(gaps, category_dist, priority_dist)
-        }
+        # Create CoverageReport object
+        coverage_percentage = round((len(req_coverage) / len(requirements) * 100), 2) if requirements else 0
+        
+        return CoverageReport(
+            total_requirements=len(requirements),
+            covered_requirements=len(req_coverage),
+            coverage_percentage=coverage_percentage,
+            requirement_coverage=req_coverage,
+            uncovered_requirements=[req.id for req in uncovered_reqs],
+            test_case_count=len(test_outline.test_cases),
+            priority_distribution=priority_dist,
+            category_distribution=category_dist
+        )
     
     def _generate_coverage_recommendations(self, gaps: List[Dict], category_dist: Dict, priority_dist: Dict) -> List[str]:
         """Generate recommendations for improving test coverage.
@@ -836,7 +873,7 @@ class TestCaseGenerator:
         
         return recommendations
     
-    def generate_enhanced_coverage_report(self, test_outline: TestOutline, requirements: List[Requirement], format_type: str = "text") -> str:
+    def generate_enhanced_coverage_report(self, test_outline: CaseOutline, requirements: List[Requirement], format_type: str = "text") -> str:
         """Generate enhanced coverage report using template manager.
         
         Args:
@@ -848,3 +885,225 @@ class TestCaseGenerator:
             Enhanced coverage report
         """
         return self.template_manager.generate_coverage_report(test_outline, requirements, format_type)
+    # Additional methods expected by tests
+    
+    def validate_test_case(self, test_case: CaseModel) -> List[str]:
+        """Validate a test case and return list of validation errors.
+        
+        Args:
+            test_case: Test case to validate
+            
+        Returns:
+            List of validation error messages (empty if valid)
+        """
+        errors = []
+        
+        if not test_case.id or not test_case.id.strip():
+            errors.append("Test case ID is required")
+        
+        if not test_case.name or not test_case.name.strip():
+            errors.append("Test case name is required")
+        
+        if not test_case.requirement_id or not test_case.requirement_id.strip():
+            errors.append("Requirement ID is required")
+        
+        if not test_case.test_steps:
+            errors.append("Test steps are required")
+        
+        if not isinstance(test_case.priority, CasePriority):
+            errors.append("Invalid priority value")
+        
+        return errors
+    
+    def get_template_by_type(self, requirement_type) -> Dict[str, Any]:
+        """Get template by requirement type.
+        
+        Args:
+            requirement_type: Type of requirement
+            
+        Returns:
+            Template dictionary
+        """
+        # Map requirement types to template categories
+        if hasattr(requirement_type, 'value'):
+            if requirement_type.value == 1:  # USER requirement
+                return self.templates["usability"]
+            elif requirement_type.value == 2:  # SOFTWARE requirement
+                return self.templates["functional"]
+        
+        return self.templates["functional"]
+    
+    def generate_test_steps_from_criteria(self, acceptance_criteria: List[str]) -> List[CaseStep]:
+        """Generate test steps from acceptance criteria (public method).
+        
+        Args:
+            acceptance_criteria: List of acceptance criteria
+            
+        Returns:
+            List of test steps
+        """
+        return self._generate_steps_from_criteria(acceptance_criteria)
+    
+    def organize_tests_by_requirement(self, test_cases: List[CaseModel]) -> Dict[str, List[CaseModel]]:
+        """Organize test cases by requirement ID.
+        
+        Args:
+            test_cases: List of test cases to organize
+            
+        Returns:
+            Dictionary mapping requirement IDs to test cases
+        """
+        organized = {}
+        for test_case in test_cases:
+            req_id = test_case.requirement_id
+            if req_id not in organized:
+                organized[req_id] = []
+            organized[req_id].append(test_case)
+        
+        return organized
+    
+    def generate_test_summary(self, test_cases: List[CaseModel]) -> Dict[str, Any]:
+        """Generate summary statistics for test cases.
+        
+        Args:
+            test_cases: List of test cases
+            
+        Returns:
+            Summary statistics
+        """
+        if not test_cases:
+            return {
+                "total_tests": 0,
+                "by_category": {},
+                "by_priority": {},
+                "by_requirement": {}
+            }
+        
+        category_counts = {}
+        priority_counts = {}
+        requirement_counts = {}
+        
+        for test_case in test_cases:
+            # Count by category
+            category = test_case.category.value if hasattr(test_case.category, 'value') else str(test_case.category)
+            category_counts[category] = category_counts.get(category, 0) + 1
+            
+            # Count by priority
+            priority = test_case.priority.value if hasattr(test_case.priority, 'value') else str(test_case.priority)
+            priority_counts[priority] = priority_counts.get(priority, 0) + 1
+            
+            # Count by requirement
+            req_id = test_case.requirement_id
+            requirement_counts[req_id] = requirement_counts.get(req_id, 0) + 1
+        
+        return {
+            "total_tests": len(test_cases),
+            "by_category": category_counts,
+            "by_priority": priority_counts,
+            "by_requirement": requirement_counts
+        }
+    
+    def filter_tests_by_priority(self, test_cases: List[CaseModel], priority: str) -> List[CaseModel]:
+        """Filter test cases by priority.
+        
+        Args:
+            test_cases: List of test cases to filter
+            priority: Priority to filter by
+            
+        Returns:
+            Filtered list of test cases
+        """
+        filtered = []
+        for test_case in test_cases:
+            test_priority = test_case.priority.value if hasattr(test_case.priority, 'value') else str(test_case.priority)
+            if test_priority.lower() == priority.lower():
+                filtered.append(test_case)
+        
+        return filtered
+    
+    def filter_tests_by_category(self, test_cases: List[CaseModel], category: str) -> List[CaseModel]:
+        """Filter test cases by category.
+        
+        Args:
+            test_cases: List of test cases to filter
+            category: Category to filter by
+            
+        Returns:
+            Filtered list of test cases
+        """
+        filtered = []
+        for test_case in test_cases:
+            test_category = test_case.category.value if hasattr(test_case.category, 'value') else str(test_case.category)
+            if test_category.lower() == category.lower():
+                filtered.append(test_case)
+        
+        return filtered
+    
+    def update_test_case_metadata(self, test_case: CaseModel, metadata: Dict[str, Any]) -> None:
+        """Update test case metadata.
+        
+        Args:
+            test_case: Test case to update
+            metadata: Metadata to add/update
+        """
+        if not hasattr(test_case, 'metadata') or test_case.metadata is None:
+            test_case.metadata = {}
+        
+        test_case.metadata.update(metadata)
+    
+    def batch_generate_from_requirements(self, requirements: List[Requirement]) -> List[CaseModel]:
+        """Generate test cases from multiple requirements in batch.
+        
+        Args:
+            requirements: List of requirements
+            
+        Returns:
+            List of all generated test cases
+        """
+        test_outline = self.generate_test_cases(requirements)
+        return test_outline.test_cases
+    
+    def load_templates(self) -> Dict[str, Any]:
+        """Load available test case templates.
+        
+        Returns:
+            Dictionary of available templates
+        """
+        return self.templates.copy()
+    
+    def apply_template(self, requirement: Requirement) -> str:
+        """Apply template to requirement.
+        
+        Args:
+            requirement: Requirement to apply template to
+            
+        Returns:
+            Template content as string
+        """
+        template = self.template_manager.get_template_for_requirement(requirement)
+        template_data = template.apply_to_requirement(requirement)
+        
+        return f"Template for {requirement.id}: {template_data['name']}"
+    
+    def customize_template(self, requirement_type, template_params: Dict[str, Any]) -> str:
+        """Customize template with specific parameters.
+        
+        Args:
+            requirement_type: Type of requirement
+            template_params: Parameters for customization
+            
+        Returns:
+            Customized template content
+        """
+        base_template = self.get_template_by_type(requirement_type)
+        
+        # Apply customizations
+        customized = base_template.copy()
+        if 'test_type' in template_params:
+            customized['test_type'] = template_params['test_type']
+        if 'complexity' in template_params:
+            customized['complexity'] = template_params['complexity']
+        if 'automation_level' in template_params:
+            customized['automation_level'] = template_params['automation_level']
+        
+        return f"Customized template: {customized}"

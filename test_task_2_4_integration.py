@@ -4,6 +4,7 @@ Test script to verify Task 2.4 implementation:
 Integrate Requirements Display with Results System
 """
 
+import pytest
 import sys
 import os
 import tempfile
@@ -20,7 +21,7 @@ from medical_analyzer.services.soup_service import SOUPService
 from medical_analyzer.database.schema import DatabaseManager
 
 
-class TestMainWindow(QMainWindow):
+class ValidationMainWindow(QMainWindow):
     """Test window for verifying requirements integration."""
     
     def __init__(self):
@@ -269,27 +270,31 @@ class TestMainWindow(QMainWindow):
         print(f"🔄 Refresh requested: {tab_name}")
 
 
-def main():
+def test_task_2_4_integration(qapp):
     """Run the integration test."""
-    app = QApplication(sys.argv)
     
     print("Starting Task 2.4 Integration Test...")
     print("=" * 50)
     
     # Create and show test window
-    window = TestMainWindow()
+    window = ValidationMainWindow()
     window.show()
     
     # Run for a few seconds then exit
-    QTimer.singleShot(5000, app.quit)
+    QTimer.singleShot(5000, qapp.quit)
     
     try:
-        app.exec()
+        qapp.exec()
         print("\n✓ Integration test completed successfully!")
-        return True
     except Exception as e:
         print(f"\n✗ Integration test failed: {e}")
-        return False
+        pytest.fail(f"Integration test failed: {e}")
+
+
+def main():
+    """Legacy main function for backward compatibility."""
+    # For standalone execution, use pytest
+    return pytest.main([__file__, "-v"]) == 0
 
 
 if __name__ == "__main__":

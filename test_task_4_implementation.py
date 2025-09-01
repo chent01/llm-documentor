@@ -9,10 +9,10 @@ sys.path.insert(0, os.path.abspath('.'))
 
 from medical_analyzer.models.core import Requirement
 from medical_analyzer.models.enums import RequirementType
-from medical_analyzer.services.test_case_generator import TestCaseGenerator
-from medical_analyzer.models.test_models import TestCasePriority, TestCaseCategory
-from medical_analyzer.services.test_case_templates import TestCaseTemplateManager
-from medical_analyzer.services.test_requirements_integration import TestRequirementsIntegration
+from medical_analyzer.services.test_case_generator import CaseGenerator
+from medical_analyzer.models.test_models import CasePriority, CaseCategory
+from medical_analyzer.services.test_case_templates import CaseTemplateManager
+from medical_analyzer.services.test_requirements_integration import RequirementsIntegrationService
 
 
 def test_test_case_generator():
@@ -42,7 +42,7 @@ def test_test_case_generator():
     ]
     
     # Initialize generator
-    generator = TestCaseGenerator()
+    generator = CaseGenerator()
     
     # Generate test cases
     test_outline = generator.generate_test_cases(requirements)
@@ -66,10 +66,10 @@ def test_test_case_generator():
 
 
 def test_template_manager():
-    """Test the TestCaseTemplateManager functionality."""
-    print("\nTesting TestCaseTemplateManager...")
+    """Test the CaseTemplateManager functionality."""
+    print("\nTesting CaseTemplateManager...")
     
-    manager = TestCaseTemplateManager()
+    manager = CaseTemplateManager()
     
     # Test template retrieval
     functional_template = manager.get_template("functional")
@@ -89,7 +89,7 @@ def test_template_manager():
     )
     
     template = manager.get_template_for_requirement(safety_req)
-    if template.category == TestCaseCategory.SAFETY:
+    if template.category == CaseCategory.SAFETY:
         print("✓ Correctly categorized safety requirement")
     else:
         print("✗ Failed to categorize safety requirement")
@@ -111,8 +111,8 @@ def test_requirements_integration():
     print("\nTesting TestRequirementsIntegration...")
     
     # Create test generator and integration service
-    generator = TestCaseGenerator()
-    integration = TestRequirementsIntegration(generator)
+    generator = CaseGenerator()
+    integration = RequirementsIntegrationService(generator)
     
     # Initial requirements
     initial_requirements = [
@@ -174,7 +174,7 @@ def test_export_formats():
         )
     ]
     
-    generator = TestCaseGenerator()
+    generator = CaseGenerator()
     test_outline = generator.generate_test_cases(requirements)
     
     # Test enhanced formats
@@ -187,7 +187,7 @@ def test_export_formats():
             print(f"✗ Failed to export to {format_type}: {e}")
     
     # Test coverage report formats
-    manager = TestCaseTemplateManager()
+    manager = CaseTemplateManager()
     for format_type in ["text", "json"]:
         try:
             coverage_report = manager.generate_coverage_report(test_outline, requirements, format_type)

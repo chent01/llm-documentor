@@ -15,9 +15,9 @@ from medical_analyzer.parsers.parser_service import ParserService
 from medical_analyzer.services.feature_extractor import FeatureExtractor
 from medical_analyzer.services.requirements_generator import RequirementsGenerator
 from medical_analyzer.services.hazard_identifier import HazardIdentifier
-from medical_analyzer.tests.test_generator import TestGenerator
-from medical_analyzer.services.test_case_generator import TestCaseGenerator
-from medical_analyzer.services.test_requirements_integration import TestRequirementsIntegration
+from medical_analyzer.tests import CodeTestGenerator
+from medical_analyzer.services.test_case_generator import CaseGenerator
+from medical_analyzer.services.test_requirements_integration import RequirementsIntegrationService
 from medical_analyzer.services.export_service import ExportService
 from medical_analyzer.services.soup_service import SOUPService
 from medical_analyzer.services.risk_register import RiskRegister
@@ -97,7 +97,7 @@ class AnalysisOrchestrator(QObject):
             self.export_service = ExportService(self.soup_service)
             self.traceability_service = TraceabilityService(self.db_manager)
             self.risk_register = RiskRegister()
-            self.test_generator = TestGenerator()
+            self.test_generator = CodeTestGenerator()
             
             # Services that require LLM backend
             if self.llm_backend:
@@ -111,8 +111,8 @@ class AnalysisOrchestrator(QObject):
                 self.hazard_identifier = HazardIdentifier(self.llm_backend)
                 
                 # Enhanced test case generator with LLM support
-                self.test_case_generator = TestCaseGenerator(self.llm_backend)
-                self.test_requirements_integration = TestRequirementsIntegration(
+                self.test_case_generator = CaseGenerator(self.llm_backend)
+                self.test_requirements_integration = RequirementsIntegrationService(
                     self.test_case_generator, self.requirements_generator
                 )
             else:
@@ -121,8 +121,8 @@ class AnalysisOrchestrator(QObject):
                 self.hazard_identifier = None
                 
                 # Basic test case generator without LLM
-                self.test_case_generator = TestCaseGenerator()
-                self.test_requirements_integration = TestRequirementsIntegration(self.test_case_generator)
+                self.test_case_generator = CaseGenerator()
+                self.test_requirements_integration = RequirementsIntegrationService(self.test_case_generator)
                 
                 self.logger.warning("LLM-dependent services disabled due to backend initialization failure")
             

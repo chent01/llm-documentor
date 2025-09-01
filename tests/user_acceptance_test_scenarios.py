@@ -19,7 +19,7 @@ from PyQt6.QtTest import QTest
 from medical_analyzer.ui.main_window import MainWindow
 from medical_analyzer.ui.requirements_tab_widget import RequirementsTabWidget
 from medical_analyzer.ui.traceability_matrix_widget import TraceabilityMatrixWidget
-from medical_analyzer.ui.test_case_export_widget import TestCaseExportWidget
+from medical_analyzer.ui.test_case_export_widget import CaseModelExportWidget
 from medical_analyzer.ui.soup_widget import SOUPWidget
 from medical_analyzer.services.analysis_orchestrator import AnalysisOrchestrator
 from medical_analyzer.models.core import Requirement, RequirementType
@@ -460,7 +460,7 @@ module.exports = { generateAlerts };
             app = QApplication([])
         
         # Create test case export widget
-        test_export_widget = TestCaseExportWidget()
+        test_export_widget = CaseModelExportWidget()
         qtbot.addWidget(test_export_widget)
         
         # Step 1: User selects requirements for test generation

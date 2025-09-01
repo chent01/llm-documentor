@@ -15,15 +15,15 @@ import io
 from pathlib import Path
 
 from ..models.core import Requirement
-from ..models.test_models import TestCase, TestOutline, TestStep, TestCasePriority, TestCaseCategory
+from ..models.test_models import CaseModel, CaseOutline, CaseStep, CasePriority, CaseCategory
 
 
 @dataclass
-class TestCaseTemplate:
+class CaseModelTemplate:
     """Template definition for test case generation."""
     name: str
-    category: TestCaseCategory
-    priority: TestCasePriority
+    category: CaseCategory
+    priority: CasePriority
     description_template: str
     preconditions_template: List[str]
     steps_template: List[str]
@@ -61,22 +61,22 @@ class TestCaseTemplate:
         }
 
 
-class TestCaseTemplateManager:
+class CaseTemplateManager:
     """Manager for test case templates and formatting."""
     
     def __init__(self):
         self.templates = self._initialize_templates()
         self.formatters = self._initialize_formatters()
     
-    def _initialize_templates(self) -> Dict[str, TestCaseTemplate]:
+    def _initialize_templates(self) -> Dict[str, CaseModelTemplate]:
         """Initialize predefined test case templates."""
         templates = {}
         
         # Functional requirement template
-        templates["functional"] = TestCaseTemplate(
+        templates["functional"] = CaseModelTemplate(
             name="Functional Test Template",
-            category=TestCaseCategory.FUNCTIONAL,
-            priority=TestCasePriority.HIGH,
+            category=CaseCategory.FUNCTIONAL,
+            priority=CasePriority.HIGH,
             description_template="Verify that the system correctly implements the functional requirement: {requirement_text}",
             preconditions_template=[
                 "System is initialized and in operational state",
@@ -105,10 +105,10 @@ class TestCaseTemplateManager:
         )
         
         # Safety requirement template
-        templates["safety"] = TestCaseTemplate(
+        templates["safety"] = CaseModelTemplate(
             name="Safety Test Template",
-            category=TestCaseCategory.SAFETY,
-            priority=TestCasePriority.CRITICAL,
+            category=CaseCategory.SAFETY,
+            priority=CasePriority.CRITICAL,
             description_template="Verify safety mechanisms and fail-safe behavior for requirement: {requirement_text}",
             preconditions_template=[
                 "Safety monitoring systems are active and calibrated",
@@ -139,10 +139,10 @@ class TestCaseTemplateManager:
         )
         
         # Performance requirement template
-        templates["performance"] = TestCaseTemplate(
+        templates["performance"] = CaseModelTemplate(
             name="Performance Test Template",
-            category=TestCaseCategory.PERFORMANCE,
-            priority=TestCasePriority.MEDIUM,
+            category=CaseCategory.PERFORMANCE,
+            priority=CasePriority.MEDIUM,
             description_template="Verify performance characteristics and timing requirements for: {requirement_text}",
             preconditions_template=[
                 "Performance monitoring tools are configured and calibrated",
@@ -173,10 +173,10 @@ class TestCaseTemplateManager:
         )
         
         # Usability requirement template
-        templates["usability"] = TestCaseTemplate(
+        templates["usability"] = CaseModelTemplate(
             name="Usability Test Template",
-            category=TestCaseCategory.USABILITY,
-            priority=TestCasePriority.MEDIUM,
+            category=CaseCategory.USABILITY,
+            priority=CasePriority.MEDIUM,
             description_template="Verify user interface and interaction requirements for: {requirement_text}",
             preconditions_template=[
                 "User interface is fully rendered and responsive",
@@ -207,10 +207,10 @@ class TestCaseTemplateManager:
         )
         
         # Security requirement template
-        templates["security"] = TestCaseTemplate(
+        templates["security"] = CaseModelTemplate(
             name="Security Test Template",
-            category=TestCaseCategory.SECURITY,
-            priority=TestCasePriority.HIGH,
+            category=CaseCategory.SECURITY,
+            priority=CasePriority.HIGH,
             description_template="Verify security controls and access restrictions for: {requirement_text}",
             preconditions_template=[
                 "Security monitoring and logging systems are active",
@@ -241,10 +241,10 @@ class TestCaseTemplateManager:
         )
         
         # Integration requirement template
-        templates["integration"] = TestCaseTemplate(
+        templates["integration"] = CaseModelTemplate(
             name="Integration Test Template",
-            category=TestCaseCategory.INTEGRATION,
-            priority=TestCasePriority.HIGH,
+            category=CaseCategory.INTEGRATION,
+            priority=CasePriority.HIGH,
             description_template="Verify system integration and interface requirements for: {requirement_text}",
             preconditions_template=[
                 "All integrated systems are operational and accessible",
@@ -287,11 +287,11 @@ class TestCaseTemplateManager:
             "markdown": MarkdownFormatter()
         }
     
-    def get_template(self, template_name: str) -> Optional[TestCaseTemplate]:
+    def get_template(self, template_name: str) -> Optional[CaseModelTemplate]:
         """Get a test case template by name."""
         return self.templates.get(template_name)
     
-    def get_template_for_requirement(self, requirement: Requirement) -> TestCaseTemplate:
+    def get_template_for_requirement(self, requirement: Requirement) -> CaseModelTemplate:
         """Get the most appropriate template for a requirement."""
         req_text = requirement.text.lower()
         
@@ -323,7 +323,7 @@ class TestCaseTemplateManager:
         # Default to functional
         return self.templates["functional"]
     
-    def format_test_outline(self, test_outline: TestOutline, format_type: str, **options) -> str:
+    def format_test_outline(self, test_outline: CaseOutline, format_type: str, **options) -> str:
         """Format test outline using specified formatter."""
         formatter = self.formatters.get(format_type.lower())
         if not formatter:
@@ -331,7 +331,7 @@ class TestCaseTemplateManager:
         
         return formatter.format(test_outline, **options)
     
-    def generate_coverage_report(self, test_outline: TestOutline, requirements: List[Requirement], format_type: str = "text") -> str:
+    def generate_coverage_report(self, test_outline: CaseOutline, requirements: List[Requirement], format_type: str = "text") -> str:
         """Generate a comprehensive coverage report."""
         coverage_data = self._analyze_coverage(test_outline, requirements)
         
@@ -341,7 +341,7 @@ class TestCaseTemplateManager:
         
         return formatter.format_coverage_report(coverage_data)
     
-    def _analyze_coverage(self, test_outline: TestOutline, requirements: List[Requirement]) -> Dict[str, Any]:
+    def _analyze_coverage(self, test_outline: CaseOutline, requirements: List[Requirement]) -> Dict[str, Any]:
         """Analyze test coverage comprehensively."""
         req_coverage = test_outline.get_coverage_by_requirement()
         category_coverage = test_outline.get_coverage_by_category()
@@ -427,7 +427,7 @@ class TestCaseTemplateManager:
 class TextFormatter:
     """Plain text formatter for test cases."""
     
-    def format(self, test_outline: TestOutline, **options) -> str:
+    def format(self, test_outline: CaseOutline, **options) -> str:
         """Format test outline as plain text."""
         include_metadata = options.get("include_metadata", True)
         include_coverage = options.get("include_coverage", True)
@@ -549,7 +549,7 @@ class TextFormatter:
 class JSONFormatter:
     """JSON formatter for test cases."""
     
-    def format(self, test_outline: TestOutline, **options) -> str:
+    def format(self, test_outline: CaseOutline, **options) -> str:
         """Format test outline as JSON."""
         data = {
             "project_name": test_outline.project_name,
@@ -569,7 +569,7 @@ class JSONFormatter:
 class XMLFormatter:
     """XML formatter for test cases."""
     
-    def format(self, test_outline: TestOutline, **options) -> str:
+    def format(self, test_outline: CaseOutline, **options) -> str:
         """Format test outline as XML."""
         root = ET.Element("test_outline")
         root.set("project_name", test_outline.project_name)
@@ -591,7 +591,7 @@ class XMLFormatter:
         
         return self._prettify_xml(root)
     
-    def _test_case_to_xml(self, test_case: TestCase) -> ET.Element:
+    def _test_case_to_xml(self, test_case: CaseModel) -> ET.Element:
         """Convert test case to XML element."""
         tc_elem = ET.Element("test_case")
         tc_elem.set("id", test_case.id)
@@ -647,7 +647,7 @@ class XMLFormatter:
 class CSVFormatter:
     """CSV formatter for test cases."""
     
-    def format(self, test_outline: TestOutline, **options) -> str:
+    def format(self, test_outline: CaseOutline, **options) -> str:
         """Format test outline as CSV."""
         output = io.StringIO()
         writer = csv.writer(output)
@@ -707,7 +707,7 @@ class CSVFormatter:
 class HTMLFormatter:
     """HTML formatter for test cases."""
     
-    def format(self, test_outline: TestOutline, **options) -> str:
+    def format(self, test_outline: CaseOutline, **options) -> str:
         """Format test outline as HTML."""
         html_parts = []
         html_parts.append("<!DOCTYPE html>")
@@ -773,7 +773,7 @@ class HTMLFormatter:
 class MarkdownFormatter:
     """Markdown formatter for test cases."""
     
-    def format(self, test_outline: TestOutline, **options) -> str:
+    def format(self, test_outline: CaseOutline, **options) -> str:
         """Format test outline as Markdown."""
         lines = []
         lines.append(f"# Test Case Outline: {test_outline.project_name}")

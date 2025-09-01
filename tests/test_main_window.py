@@ -449,7 +449,7 @@ class TestMainWindowEnhancedProgress:
         """Test that results widget is properly initialized."""
         assert hasattr(main_window, 'results_widget')
         assert not main_window.results_widget.isEnabled()
-        assert main_window.results_widget.count() == 6  # 6 tabs (Summary, Requirements, Risk Register, Traceability, Tests, SOUP)
+        assert main_window.results_widget.count() == 10  # 6 original tabs + 4 enhanced tabs
         
     def test_update_stage_progress(self, main_window):
         """Test stage progress update functionality."""

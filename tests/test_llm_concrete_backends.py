@@ -196,7 +196,7 @@ class TestLocalServerBackend:
         assert "Authorization" in backend._session.headers
         assert backend._session.headers["Authorization"] == "Bearer test-key"
     
-    @patch('requests.Session.get')
+    @patch('medical_analyzer.utils.http_client.CachedHTTPClient.get')
     def test_is_available_success(self, mock_get):
         """Test availability check when server is available."""
         config = {"base_url": "http://localhost:8080"}
@@ -204,6 +204,8 @@ class TestLocalServerBackend:
         # Mock successful response
         mock_response = Mock()
         mock_response.status_code = 200
+        mock_response.content = b'{"status": "ok"}'
+        mock_response.headers = {'content-type': 'application/json'}
         mock_get.return_value = mock_response
         
         backend = LocalServerBackend(config)
@@ -220,18 +222,25 @@ class TestLocalServerBackend:
         backend = LocalServerBackend(config)
         assert not backend.is_available()
     
-    @patch('requests.Session.post')
-    @patch('requests.Session.get')
+    @patch('medical_analyzer.utils.http_client.CachedHTTPClient.post')
+    @patch('medical_analyzer.utils.http_client.CachedHTTPClient.get')
     def test_generate_chat_completion(self, mock_get, mock_post):
         """Test generation using chat completion API."""
         config = {"base_url": "http://localhost:8080"}
         
-        # Mock availability check
-        mock_get.return_value = Mock(status_code=200)
+        # Mock availability check and model info response
+        mock_get_response = Mock()
+        mock_get_response.status_code = 200
+        mock_get_response.content = b'{"data": [{"id": "test-model", "context_length": 4096}]}'
+        mock_get_response.headers = {'content-type': 'application/json'}
+        mock_get_response.json.return_value = {"data": [{"id": "test-model", "context_length": 4096}]}
+        mock_get.return_value = mock_get_response
         
         # Mock chat completion response
         mock_response = Mock()
         mock_response.status_code = 200
+        mock_response.content = b'{"choices": [{"message": {"content": "Generated response"}}]}'
+        mock_response.headers = {'content-type': 'application/json'}
         mock_response.json.return_value = {
             "choices": [{"message": {"content": "Generated response"}}]
         }
@@ -252,18 +261,25 @@ class TestLocalServerBackend:
         assert len(request_data["messages"]) == 1
         assert request_data["messages"][0]["content"] == "Test prompt"
     
-    @patch('requests.Session.post')
-    @patch('requests.Session.get')
+    @patch('medical_analyzer.utils.http_client.CachedHTTPClient.post')
+    @patch('medical_analyzer.utils.http_client.CachedHTTPClient.get')
     def test_generate_with_system_prompt(self, mock_get, mock_post):
         """Test generation with system prompt."""
         config = {"base_url": "http://localhost:8080"}
         
-        # Mock availability check
-        mock_get.return_value = Mock(status_code=200)
+        # Mock availability check and model info response
+        mock_get_response = Mock()
+        mock_get_response.status_code = 200
+        mock_get_response.content = b'{"data": [{"id": "test-model", "context_length": 4096}]}'
+        mock_get_response.headers = {'content-type': 'application/json'}
+        mock_get_response.json.return_value = {"data": [{"id": "test-model", "context_length": 4096}]}
+        mock_get.return_value = mock_get_response
         
         # Mock chat completion response
         mock_response = Mock()
         mock_response.status_code = 200
+        mock_response.content = b'{"choices": [{"message": {"content": "System response"}}]}'
+        mock_response.headers = {'content-type': 'application/json'}
         mock_response.json.return_value = {
             "choices": [{"message": {"content": "System response"}}]
         }

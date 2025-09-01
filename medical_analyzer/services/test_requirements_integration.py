@@ -13,8 +13,8 @@ import json
 import hashlib
 
 from ..models.core import Requirement
-from .test_case_generator import TestCaseGenerator
-from ..models.test_models import TestOutline, TestCase
+from .test_case_generator import CaseGenerator
+from ..models.test_models import CaseOutline, CaseModel
 from .requirements_generator import RequirementsGenerator
 
 
@@ -64,21 +64,21 @@ class ValidationIssue:
 
 
 @dataclass
-class TestCaseVersion:
+class CaseModelVersion:
     """Represents a version of test cases for a specific requirement set."""
     version_id: str
     requirements_hash: str
-    test_outline: TestOutline
+    test_outline: CaseOutline
     created_at: datetime
     change_summary: List[RequirementChange]
     validation_results: List[ValidationIssue] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
-class TestRequirementsIntegration:
+class RequirementsIntegrationService:
     """Service for integrating test generation with requirements management."""
     
-    def __init__(self, test_generator: TestCaseGenerator, requirements_generator: Optional[RequirementsGenerator] = None):
+    def __init__(self, test_generator: CaseGenerator, requirements_generator: Optional[RequirementsGenerator] = None):
         """Initialize the integration service.
         
         Args:
@@ -87,9 +87,9 @@ class TestRequirementsIntegration:
         """
         self.test_generator = test_generator
         self.requirements_generator = requirements_generator
-        self.test_versions: Dict[str, TestCaseVersion] = {}
+        self.test_versions: Dict[str, CaseModelVersion] = {}
         self.current_requirements: List[Requirement] = []
-        self.current_test_outline: Optional[TestOutline] = None
+        self.current_test_outline: Optional[CaseOutline] = None
         
     def set_requirements(self, requirements: List[Requirement]) -> None:
         """Set the current requirements and detect changes.
@@ -316,7 +316,7 @@ class TestRequirementsIntegration:
         
         return len(significant_changes) > 0
     
-    def regenerate_tests_for_changes(self, changes: List[RequirementChange]) -> TestOutline:
+    def regenerate_tests_for_changes(self, changes: List[RequirementChange]) -> CaseOutline:
         """Regenerate test cases for changed requirements.
         
         Args:
@@ -332,7 +332,7 @@ class TestRequirementsIntegration:
         version_id = f"v{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         requirements_hash = self._calculate_requirements_hash(self.current_requirements)
         
-        version = TestCaseVersion(
+        version = CaseModelVersion(
             version_id=version_id,
             requirements_hash=requirements_hash,
             test_outline=new_test_outline,
@@ -345,7 +345,7 @@ class TestRequirementsIntegration:
         
         return new_test_outline
     
-    def validate_test_cases_against_requirements(self, test_outline: Optional[TestOutline] = None) -> List[ValidationIssue]:
+    def validate_test_cases_against_requirements(self, test_outline: Optional[CaseOutline] = None) -> List[ValidationIssue]:
         """Validate test cases against current requirements.
         
         Args:
@@ -385,7 +385,7 @@ class TestRequirementsIntegration:
         
         return validation_issues
     
-    def _validate_single_test_case(self, test_case: TestCase, req_dict: Dict[str, Requirement]) -> List[ValidationIssue]:
+    def _validate_single_test_case(self, test_case: CaseModel, req_dict: Dict[str, Requirement]) -> List[ValidationIssue]:
         """Validate a single test case against its requirement.
         
         Args:
@@ -422,7 +422,7 @@ class TestRequirementsIntegration:
         
         return issues
     
-    def _validate_acceptance_criteria_coverage(self, test_case: TestCase, requirement: Requirement) -> List[ValidationIssue]:
+    def _validate_acceptance_criteria_coverage(self, test_case: CaseModel, requirement: Requirement) -> List[ValidationIssue]:
         """Validate that test case covers acceptance criteria.
         
         Args:
@@ -462,7 +462,7 @@ class TestRequirementsIntegration:
         
         return issues
     
-    def _validate_test_case_completeness(self, test_case: TestCase) -> List[ValidationIssue]:
+    def _validate_test_case_completeness(self, test_case: CaseModel) -> List[ValidationIssue]:
         """Validate test case completeness.
         
         Args:
@@ -506,7 +506,7 @@ class TestRequirementsIntegration:
         
         return issues
     
-    def _validate_test_case_consistency(self, test_case: TestCase, requirement: Requirement) -> List[ValidationIssue]:
+    def _validate_test_case_consistency(self, test_case: CaseModel, requirement: Requirement) -> List[ValidationIssue]:
         """Validate test case consistency with requirement.
         
         Args:

@@ -5,6 +5,11 @@ This module provides test generation capabilities and testing utilities
 for medical device software analysis.
 """
 
-from .test_generator import TestGenerator, TestSuite, TestSkeleton
+from .test_generator import CodeTestGenerator, CodeTestSuite, CodeTestSkeleton
 
-__all__ = ['TestGenerator', 'TestSuite', 'TestSkeleton']
+# Provide aliases for backward compatibility
+TestGenerator = CodeTestGenerator
+TestSuite = CodeTestSuite
+TestSkeleton = CodeTestSkeleton
+
+__all__ = ['CodeTestGenerator', 'CodeTestSuite', 'CodeTestSkeleton', 'TestGenerator', 'TestSuite', 'TestSkeleton']

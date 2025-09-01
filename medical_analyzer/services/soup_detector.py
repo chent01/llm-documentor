@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Optional, Set
 from xml.etree import ElementTree as ET
 
 from ..models.soup_models import (
-    DetectedSOUPComponent, DetectionMethod, IEC62304SafetyClass
+    DetectedSOUPComponent, DetectionMethod, IEC62304SafetyClass, IEC62304Classification, SafetyAssessment
 )
 from .llm_soup_classifier import LLMSOUPClassifier, SOUPAnalysisContext
 
@@ -474,7 +474,7 @@ class SOUPDetector:
         
         return list(component_map.values())
     
-    def classify_component(self, component: DetectedSOUPComponent) -> IEC62304SafetyClass:
+    def classify_component(self, component: DetectedSOUPComponent) -> IEC62304Classification:
         """
         Classify a component according to IEC 62304 safety classes.
         
@@ -482,17 +482,37 @@ class SOUPDetector:
             component: Component to classify
             
         Returns:
-            IEC 62304 safety classification
+            IEC 62304 safety classification with justification and requirements
         """
         # Use suggested classification if available
         if component.suggested_classification:
-            return component.suggested_classification
+            safety_class = component.suggested_classification
+        else:
+            # Apply classification rules
+            safety_class = self._suggest_safety_classification(component) or IEC62304SafetyClass.CLASS_B
         
-        # Apply classification rules
-        suggested = self._suggest_safety_classification(component)
-        return suggested or IEC62304SafetyClass.CLASS_B
+        # Generate justification based on component characteristics
+        justification = self._generate_classification_justification(component, safety_class)
+        
+        # Generate verification requirements based on safety class
+        verification_requirements = self._generate_verification_requirements(safety_class, component)
+        
+        # Generate documentation requirements
+        documentation_requirements = self._generate_documentation_requirements(safety_class)
+        
+        # Generate change control requirements
+        change_control_requirements = self._generate_change_control_requirements(safety_class)
+        
+        return IEC62304Classification(
+            safety_class=safety_class,
+            justification=justification,
+            risk_assessment=f"Component {component.name} assessed for {safety_class.value} classification",
+            verification_requirements=verification_requirements,
+            documentation_requirements=documentation_requirements,
+            change_control_requirements=change_control_requirements
+        )
     
-    def assess_safety_impact(self, component: DetectedSOUPComponent) -> Dict[str, Any]:
+    def assess_safety_impact(self, component: DetectedSOUPComponent) -> SafetyAssessment:
         """
         Assess the safety impact of a SOUP component.
         
@@ -505,47 +525,75 @@ class SOUPDetector:
         classification = self.classify_component(component)
         
         # Generate assessment based on classification
-        if classification == IEC62304SafetyClass.CLASS_C:
-            return {
-                'impact_level': 'High',
-                'failure_modes': [
+        if classification.safety_class == IEC62304SafetyClass.CLASS_C:
+            return SafetyAssessment(
+                component_id=component.name,
+                safety_impact='high',
+                failure_modes=[
                     'Component failure could cause death or serious injury',
                     'Malfunction could compromise life-supporting functions',
                     'Security vulnerabilities could endanger patient safety'
                 ],
-                'verification_requirements': [
+                mitigation_measures=[
                     'Comprehensive testing required',
                     'Code review and static analysis',
                     'Security assessment',
                     'Supplier audit may be required'
+                ],
+                verification_methods=[
+                    'Penetration testing',
+                    'Formal verification',
+                    'Independent safety assessment'
+                ],
+                residual_risks=[
+                    'Unknown vulnerabilities in third-party code',
+                    'Potential for undiscovered failure modes'
                 ]
-            }
-        elif classification == IEC62304SafetyClass.CLASS_B:
-            return {
-                'impact_level': 'Medium',
-                'failure_modes': [
+            )
+        elif classification.safety_class == IEC62304SafetyClass.CLASS_B:
+            return SafetyAssessment(
+                component_id=component.name,
+                safety_impact='medium',
+                failure_modes=[
                     'Component failure could cause non-serious injury',
                     'Malfunction could affect device functionality',
                     'Data integrity issues possible'
                 ],
-                'verification_requirements': [
+                mitigation_measures=[
                     'Functional testing required',
                     'Integration testing',
                     'Basic security review'
+                ],
+                verification_methods=[
+                    'Unit testing',
+                    'Integration testing',
+                    'Security scanning'
+                ],
+                residual_risks=[
+                    'Minor functionality issues',
+                    'Potential data inconsistencies'
                 ]
-            }
+            )
         else:  # CLASS_A
-            return {
-                'impact_level': 'Low',
-                'failure_modes': [
+            return SafetyAssessment(
+                component_id=component.name,
+                safety_impact='low',
+                failure_modes=[
                     'Component failure has no safety impact',
                     'Malfunction affects only non-safety functions'
                 ],
-                'verification_requirements': [
+                mitigation_measures=[
                     'Basic functional testing',
                     'Documentation review'
+                ],
+                verification_methods=[
+                    'Basic testing',
+                    'Code review'
+                ],
+                residual_risks=[
+                    'Minimal impact on system operation'
                 ]
-            }
+            )
     
     def track_version_changes(self, old_components: List[DetectedSOUPComponent], 
                             new_components: List[DetectedSOUPComponent]) -> List[Dict[str, Any]]:
@@ -706,3 +754,91 @@ class SOUPDetector:
             results.append(result)
         
         return results
+    
+    def _generate_classification_justification(self, component: DetectedSOUPComponent, 
+                                             safety_class: IEC62304SafetyClass) -> str:
+        """Generate justification for safety classification."""
+        component_type = "utility library"
+        if "server" in component.name.lower() or "http" in component.name.lower():
+            component_type = "web server"
+        elif "crypto" in component.name.lower() or "ssl" in component.name.lower():
+            component_type = "cryptographic library"
+        elif "database" in component.name.lower() or "db" in component.name.lower():
+            component_type = "database component"
+        
+        return f"Component {component.name} classified as {safety_class.value} - {component_type}"
+    
+    def _generate_verification_requirements(self, safety_class: IEC62304SafetyClass, 
+                                          component: DetectedSOUPComponent) -> List[str]:
+        """Generate verification requirements based on safety class."""
+        if safety_class == IEC62304SafetyClass.CLASS_C:
+            return [
+                "Comprehensive functional testing",
+                "Security vulnerability assessment", 
+                "Penetration testing",
+                "Code review and static analysis",
+                "Supplier audit and documentation review",
+                "Risk analysis and mitigation planning"
+            ]
+        elif safety_class == IEC62304SafetyClass.CLASS_B:
+            return [
+                "Functional testing",
+                "Integration testing",
+                "Basic security review",
+                "Documentation review",
+                "Version control verification"
+            ]
+        else:  # CLASS_A
+            return [
+                "Basic functional testing",
+                "Documentation review",
+                "License compliance check"
+            ]
+    
+    def _generate_documentation_requirements(self, safety_class: IEC62304SafetyClass) -> List[str]:
+        """Generate documentation requirements based on safety class."""
+        if safety_class == IEC62304SafetyClass.CLASS_C:
+            return [
+                "Complete SOUP documentation package",
+                "Risk management file entries",
+                "Verification and validation records",
+                "Change control documentation",
+                "Supplier quality agreements"
+            ]
+        elif safety_class == IEC62304SafetyClass.CLASS_B:
+            return [
+                "SOUP identification and documentation",
+                "Risk assessment records",
+                "Verification records",
+                "Change control procedures"
+            ]
+        else:  # CLASS_A
+            return [
+                "Basic SOUP identification",
+                "License documentation",
+                "Version tracking"
+            ]
+    
+    def _generate_change_control_requirements(self, safety_class: IEC62304SafetyClass) -> List[str]:
+        """Generate change control requirements based on safety class."""
+        if safety_class == IEC62304SafetyClass.CLASS_C:
+            return [
+                "Formal change control process",
+                "Impact assessment for all changes",
+                "Regression testing requirements",
+                "Approval workflow for updates",
+                "Traceability to risk analysis"
+            ]
+        elif safety_class == IEC62304SafetyClass.CLASS_B:
+            return [
+                "Change control process",
+                "Impact assessment",
+                "Testing requirements for changes",
+                "Approval process"
+            ]
+        else:  # CLASS_A
+            return [
+                "Basic change tracking",
+                "Version control",
+                "Update notification process"
+            ]
