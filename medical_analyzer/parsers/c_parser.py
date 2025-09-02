@@ -74,13 +74,23 @@ class CParser:
             self.parser = Parser(self.language)
         except ImportError:
             try:
-                # Try to load the C language using build_library
-                C_LANGUAGE = Language(tree_sitter.Language.build_library(
-                    # Store the library in the build directory
+                Language.build_library(
+                    # Path to the output shared library
                     'build/my-languages.so',
-                    # Include one or more languages
-                    ['tree-sitter-c']
-                ))
+
+                    # List of language grammar repositories
+                    [
+                        'tree-sitter-c',  # Path to your tree-sitter-c folder
+                    ]
+                )
+                C_LANGUAGE = Language('build/my-languages.so', 'c')
+                # Try to load the C language using build_library
+                # C_LANGUAGE = Language(tree_sitter.Language.build_library(
+                #     # Store the library in the build directory
+                #     'build/my-languages.so',
+                #     # Include one or more languages
+                #     ['tree-sitter-c']
+                # ))
                 
                 self.parser = Parser(C_LANGUAGE)
                 self.language = C_LANGUAGE

@@ -258,7 +258,7 @@ class LLMDebugLogger:
     
     def log_model_info(self, model_info: Dict[str, Any]):
         """Log model information."""
-        connection_logger.info(f"Model info retrieved: {json.dumps(model_info, indent=2)}")
+        connection_logger.info(f"Model info retrieved: {model_info}")
     
     def get_active_requests_summary(self) -> Dict[str, Any]:
         """Get summary of currently active requests."""

@@ -3,12 +3,12 @@
     "backends": [
         {
             "backend_type": "local_server",
-            "server_url": "http://192.168.50.3:1234",
+            "server_url": "http://192.168.2.163:11434/",
             "api_key": "your-api-key-if-required",
-            "model_name": "your-model-name",
-            "max_tokens": 4000,
+            "model_name": "deepseek-coder-v2:latest",
+            "max_tokens": 8000,
             "temperature": 0.1,
-            "timeout": 30,
+            "timeout": 600,
             "retry_attempts": 3
         }
     ],
