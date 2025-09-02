@@ -310,7 +310,7 @@ Generate 2-5 software requirements for this user requirement."""
                     system_prompt=self.ur_system_prompt,
                     operation="user_requirements_generation",
                     temperature=0.7,
-                    max_tokens=3000
+                    max_tokens=4000
                 )
                 
                 if response_text and validation_result and validation_result.is_valid:
@@ -393,7 +393,7 @@ Generate 2-5 software requirements for this user requirement."""
                     system_prompt=self.sr_system_prompt,
                     operation="software_requirements_generation",
                     temperature=0.6,
-                    max_tokens=2500
+                    max_tokens=4000
                 )
                 
                 if response_text and validation_result and validation_result.is_valid:
@@ -786,6 +786,13 @@ Generate 2-5 software requirements for this user requirement."""
                 return result
             
             # Check if response looks like JSON
+            response_text = response_text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.startswith('```'):
+                response_text = response_text[3:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
             response_text = response_text.strip()
             if not (response_text.startswith('[') or response_text.startswith('{')):
                 result.add_warning("Response does not appear to be JSON format")
