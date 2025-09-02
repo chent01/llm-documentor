@@ -26,6 +26,7 @@ from medical_analyzer.llm.debug_config import LLMDebugConfig, create_llm_debug_s
 from medical_analyzer.llm.backend import LLMBackend
 from medical_analyzer.llm.local_server_backend import LocalServerBackend
 from medical_analyzer.llm.llama_cpp_backend import LlamaCppBackend
+from medical_analyzer.llm.operation_configs import get_operation_params
 from medical_analyzer.llm.config import LLMConfig
 
 
@@ -388,10 +389,10 @@ class LLMDiagnostics:
             if available:
                 # Test simple generation
                 try:
+                    params = get_operation_params("diagnostic_test")
                     response = backend.generate(
                         prompt="Say 'Hello' and nothing else.",
-                        temperature=0.1,
-                        max_tokens=10
+                        **params
                     )
                     result['status'] = 'working'
                     result['test_response'] = response[:50]  # First 50 chars
@@ -492,10 +493,10 @@ class LLMDiagnostics:
             test_prompt = "Generate a short response about artificial intelligence."
             
             start_time = time.time()
+            params = get_operation_params("diagnostic_test")
             response = backend.generate(
                 prompt=test_prompt,
-                temperature=0.1,
-                max_tokens=50
+                **params
             )
             end_time = time.time()
             

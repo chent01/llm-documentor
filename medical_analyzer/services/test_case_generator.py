@@ -13,6 +13,7 @@ import csv
 import io
 
 from ..models.core import Requirement
+from ..llm.operation_configs import get_operation_params
 from ..models.test_models import CaseModel, CaseOutline, CaseStep, CasePriority, CaseCategory, CoverageReport
 from ..llm.backend import LLMBackend
 from .test_case_templates import CaseTemplateManager
@@ -387,11 +388,11 @@ class CaseGenerator:
         """
         
         try:
+            params = get_operation_params("test_case_generation")
             response = self.llm_backend.generate(
                 prompt=prompt,
-                temperature=0.1,
-                max_tokens=1000,
-                system_prompt="You are a medical software test engineer creating detailed test procedures."
+                system_prompt="You are a medical software test engineer creating detailed test procedures.",
+                **params
             )
             
             # Parse LLM response to extract enhanced steps

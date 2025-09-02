@@ -11,6 +11,7 @@ from datetime import datetime
 from ..models.core import CodeChunk, Feature, CodeReference
 from ..models.enums import FeatureCategory
 from ..llm.backend import LLMBackend, LLMError
+from ..llm.operation_configs import get_operation_params
 from ..models.result_models import FeatureExtractionResult
 from .llm_response_parser import LLMResponseParser
 
@@ -151,8 +152,7 @@ Only include features you can clearly identify from the code. If no clear featur
             response = self.llm_backend.generate(
                 prompt=prompt,
                 system_prompt=self.system_prompt,
-                temperature=0.5,
-                max_tokens=4000
+                **get_operation_params("feature_extraction")
             )
             
             # Parse JSON response

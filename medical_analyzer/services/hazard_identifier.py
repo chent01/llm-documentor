@@ -11,6 +11,7 @@ from datetime import datetime
 from ..models.core import Requirement, RiskItem
 from ..models.enums import Severity, Probability, RiskLevel
 from ..llm.backend import LLMBackend, LLMError
+from ..llm.operation_configs import get_operation_params
 from ..models.result_models import HazardIdentificationResult
 from .llm_response_parser import LLMResponseParser
 
@@ -174,8 +175,7 @@ Focus on realistic hazards that are relevant to medical device safety. If no cle
             response = self.llm_backend.generate(
                 prompt=prompt,
                 system_prompt=self.system_prompt,
-                temperature=0.1,
-                max_tokens=2000
+                **get_operation_params("hazard_identification")
             )
             
             # Parse JSON response

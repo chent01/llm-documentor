@@ -12,6 +12,8 @@ from ..models.soup_models import (
 )
 from ..llm.backend import LLMBackend
 from ..llm.config import LLMConfig, load_config
+from ..llm.operation_configs import get_operation_params
+from ..llm.response_handler import get_response_handler, ResponseFormat
 
 
 @dataclass
@@ -142,11 +144,11 @@ Respond in JSON format:
                 self.llm_backend = self._get_available_backend()
             
             # Generate classification using LLM
+            params = get_operation_params("soup_classification")
             response = self.llm_backend.generate(
                 prompt=prompt,
-                temperature=0.1,  # Low temperature for consistent classification
-                max_tokens=1500,
-                system_prompt="You are a medical device software safety expert specializing in IEC 62304 compliance."
+                system_prompt="You are a medical device software safety expert specializing in IEC 62304 compliance.",
+                **params
             )
             
             # Parse LLM response
@@ -200,11 +202,11 @@ Respond in JSON format:
             if self.llm_backend is None:
                 self.llm_backend = self._get_available_backend()
             
+            params = get_operation_params("soup_risk_assessment")
             response = self.llm_backend.generate(
                 prompt=prompt,
-                temperature=0.2,
-                max_tokens=1000,
-                system_prompt="You are a medical device safety analyst."
+                system_prompt="You are a medical device safety analyst.",
+                **params
             )
             
             return self._parse_safety_impact_response(response)

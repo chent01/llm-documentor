@@ -14,6 +14,8 @@ from ..models.core import Feature, Requirement, CodeReference
 from ..models.enums import RequirementType, FeatureCategory
 from ..llm.backend import LLMBackend, LLMError
 from ..llm.api_response_validator import APIResponseValidator, ValidationResult
+from ..llm.operation_configs import get_operation_params
+from ..llm.response_handler import get_response_handler, ResponseFormat
 from ..models.result_models import RequirementsGenerationResult
 from .llm_response_parser import LLMResponseParser
 
@@ -305,12 +307,12 @@ Generate 2-5 software requirements for this user requirement."""
                 self._generation_stats['total_requests'] += 1
                 
                 # Generate user requirements using LLM with validation
+                params = get_operation_params("user_requirements_generation")
                 response_text, validation_result = self._generate_with_validation(
                     prompt=prompt,
                     system_prompt=self.ur_system_prompt,
                     operation="user_requirements_generation",
-                    temperature=0.7,
-                    max_tokens=4000
+                    **params
                 )
                 
                 if response_text and validation_result and validation_result.is_valid:
@@ -388,12 +390,12 @@ Generate 2-5 software requirements for this user requirement."""
                 self._generation_stats['total_requests'] += 1
                 
                 # Generate software requirements using LLM with validation
+                params = get_operation_params("software_requirements_generation")
                 response_text, validation_result = self._generate_with_validation(
                     prompt=prompt,
                     system_prompt=self.sr_system_prompt,
                     operation="software_requirements_generation",
-                    temperature=0.6,
-                    max_tokens=4000
+                    **params
                 )
                 
                 if response_text and validation_result and validation_result.is_valid:
