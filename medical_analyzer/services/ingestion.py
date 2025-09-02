@@ -17,11 +17,12 @@ from ..error_handling.error_handler import (
 class IngestionService:
     """Service for project scanning and file filtering."""
     
-    # Supported file extensions for C and JavaScript/Electron projects
+    # Supported file extensions for C, JavaScript/Electron, and Python projects
     SUPPORTED_EXTENSIONS = {
         '.c', '.h',           # C files
         '.js', '.jsx',        # JavaScript files
         '.ts', '.tsx',        # TypeScript files (for Electron)
+        '.py',                # Python files
         '.json'               # Configuration files (package.json, etc.)
     }
     
@@ -76,14 +77,18 @@ class IngestionService:
             
             # Use selected files if provided, otherwise discover all files
             if selected_files is not None:
+                print(f"[FILE_SELECTION] Processing {len(selected_files)} selected files")
                 # Validate that selected files exist and are within the project root
                 validated_files = []
                 for file_path in selected_files:
                     abs_file_path = os.path.abspath(file_path)
                     abs_root_path = os.path.abspath(root_path)
                     
+                    print(f"[FILE_SELECTION] Validating: {file_path}")
+                    
                     # Check if file is within project root
                     if not abs_file_path.startswith(abs_root_path):
+                        print(f"[FILE_SELECTION] REJECTED - Outside project root: {file_path}")
                         handle_error(
                             category=ErrorCategory.FILE_SYSTEM,
                             message=f"Selected file is outside project root: {file_path}",
@@ -96,6 +101,7 @@ class IngestionService:
                     
                     # Check if file exists
                     if not os.path.exists(abs_file_path):
+                        print(f"[FILE_SELECTION] REJECTED - File does not exist: {file_path}")
                         handle_error(
                             category=ErrorCategory.FILE_SYSTEM,
                             message=f"Selected file does not exist: {file_path}",
@@ -106,10 +112,13 @@ class IngestionService:
                         )
                         continue
                     
+                    print(f"[FILE_SELECTION] VALIDATED: {file_path}")
                     validated_files.append(abs_file_path)
                 
+                print(f"[FILE_SELECTION] {len(validated_files)} files passed validation")
                 all_files = validated_files
                 supported_files = self.filter_files(all_files)
+                print(f"[FILE_SELECTION] {len(supported_files)} files passed type filtering")
             else:
                 # Discover all files in the project
                 all_files = self._discover_files(root_path)

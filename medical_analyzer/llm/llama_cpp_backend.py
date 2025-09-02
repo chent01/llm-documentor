@@ -8,10 +8,21 @@ without cloud dependencies, suitable for medical device software analysis.
 import os
 from typing import List, Optional, Dict, Any
 import logging
+import time
+import traceback
+import threading
+from datetime import datetime
 
 from .backend import LLMBackend, LLMError, ModelInfo, ModelType
 
 logger = logging.getLogger(__name__)
+
+# Create specialized loggers for different aspects
+debug_logger = logging.getLogger(f"{__name__}.debug")
+model_logger = logging.getLogger(f"{__name__}.model")
+performance_logger = logging.getLogger(f"{__name__}.performance")
+generation_logger = logging.getLogger(f"{__name__}.generation")
+error_logger = logging.getLogger(f"{__name__}.errors")
 
 
 class LlamaCppBackend(LLMBackend):
@@ -32,34 +43,101 @@ class LlamaCppBackend(LLMBackend):
         super().__init__(config)
         self._llama = None
         self._model_info = None
+        self._lock = threading.Lock()
+        
+        # Performance tracking
+        self._generation_stats = {
+            'total_generations': 0,
+            'successful_generations': 0,
+            'failed_generations': 0,
+            'total_tokens_generated': 0,
+            'total_generation_time': 0.0,
+            'avg_tokens_per_second': 0.0,
+            'model_load_time': None,
+            'model_loaded_at': None
+        }
+        
+        # Debug configuration
+        self._debug_enabled = config.get('debug_enabled', False)
+        self._log_generations = config.get('log_generations', self._debug_enabled)
+        self._log_model_loading = config.get('log_model_loading', True)
+        
+        logger.info(f"Initializing LlamaCpp backend with config: {self._sanitize_config_for_logging(config)}")
         
         # Validate configuration
-        self.validate_config()
+        try:
+            self.validate_config()
+            logger.debug("LlamaCpp configuration validation passed")
+        except Exception as e:
+            error_logger.error(f"LlamaCpp configuration validation failed: {e}")
+            raise
         
         # Initialize llama.cpp if available
         self._initialize_llama()
     
+    def _sanitize_config_for_logging(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Sanitize configuration for safe logging."""
+        safe_config = config.copy()
+        # No sensitive data to sanitize in llama.cpp config typically
+        return safe_config
+    
     def _initialize_llama(self) -> None:
         """Initialize llama.cpp model if available."""
+        model_path = self.config.get("model_path", "")
+        
+        if self._log_model_loading:
+            model_logger.info(f"Attempting to initialize llama.cpp model: {model_path}")
+        
+        load_start_time = time.time()
+        
         try:
             # Try to import llama-cpp-python
-            from llama_cpp import Llama
-            
-            model_path = self.config.get("model_path", "")
-            if not model_path or not os.path.exists(model_path):
-                logger.warning(f"Model path not found: {model_path}")
+            try:
+                from llama_cpp import Llama
+                model_logger.debug("llama-cpp-python import successful")
+            except ImportError as e:
+                error_msg = "llama-cpp-python not available. Install with: pip install llama-cpp-python"
+                error_logger.error(error_msg)
+                model_logger.error(f"Import error: {e}")
                 return
             
+            # Validate model path
+            if not model_path:
+                error_logger.error("Model path not specified in configuration")
+                return
+            
+            if not os.path.exists(model_path):
+                error_logger.error(f"Model file not found: {model_path}")
+                model_logger.info("Check that the model file exists and is accessible")
+                return
+            
+            # Log model file info
+            try:
+                model_size = os.path.getsize(model_path)
+                model_logger.info(f"Model file size: {model_size / (1024**3):.2f} GB")
+            except Exception as e:
+                model_logger.warning(f"Could not get model file size: {e}")
+            
+            # Prepare initialization parameters
+            init_params = {
+                'model_path': model_path,
+                'n_ctx': self.config.get("n_ctx", 4096),
+                'n_threads': self.config.get("n_threads", -1),
+                'verbose': self.config.get("verbose", False),
+                'n_gpu_layers': self.config.get("n_gpu_layers", 0),
+                'use_mmap': self.config.get("use_mmap", True),
+                'use_mlock': self.config.get("use_mlock", False)
+            }
+            
+            model_logger.debug(f"Initializing with parameters: {init_params}")
+            
             # Initialize Llama model
-            self._llama = Llama(
-                model_path=model_path,
-                n_ctx=self.config.get("n_ctx", 4096),
-                n_threads=self.config.get("n_threads", -1),
-                verbose=self.config.get("verbose", False),
-                n_gpu_layers=self.config.get("n_gpu_layers", 0),
-                use_mmap=self.config.get("use_mmap", True),
-                use_mlock=self.config.get("use_mlock", False)
-            )
+            model_logger.info("Loading model... this may take a while for large models")
+            self._llama = Llama(**init_params)
+            
+            load_time = time.time() - load_start_time
+            self._generation_stats['model_load_time'] = load_time
+            self._generation_stats['model_loaded_at'] = datetime.now()
             
             # Create model info
             self._model_info = ModelInfo(
@@ -70,13 +148,28 @@ class LlamaCppBackend(LLMBackend):
                 backend_name="LlamaCppBackend"
             )
             
-            logger.info(f"Initialized LlamaCpp backend with model: {model_path}")
+            model_logger.info(f"Model loaded successfully in {load_time:.2f}s: {os.path.basename(model_path)}")
+            model_logger.info(f"Model type: {self._model_info.type.value}, Context length: {self._model_info.context_length}")
             
-        except ImportError:
-            logger.warning("llama-cpp-python not available. Install with: pip install llama-cpp-python")
+            # Log GPU usage if enabled
+            if init_params['n_gpu_layers'] > 0:
+                model_logger.info(f"GPU acceleration enabled with {init_params['n_gpu_layers']} layers")
+            else:
+                model_logger.debug("Running on CPU only")
+            
         except Exception as e:
-            logger.error(f"Failed to initialize LlamaCpp backend: {e}")
+            load_time = time.time() - load_start_time
+            error_logger.error(f"Failed to initialize LlamaCpp backend after {load_time:.2f}s: {e}")
+            model_logger.debug(f"Full initialization error: {traceback.format_exc()}")
             self._llama = None
+            
+            # Provide helpful error messages
+            if "CUDA" in str(e):
+                model_logger.error("CUDA-related error - check GPU drivers and CUDA installation")
+            elif "memory" in str(e).lower():
+                model_logger.error("Memory error - model may be too large for available RAM")
+            elif "file" in str(e).lower():
+                model_logger.error("File access error - check model file permissions and path")
     
     def generate(
         self, 
@@ -103,19 +196,32 @@ class LlamaCppBackend(LLMBackend):
             LLMError: If generation fails
         """
         if not self.is_available():
-            raise LLMError(
-                "LlamaCpp backend not available. Check model path and installation.",
-                recoverable=False,
-                backend="LlamaCppBackend"
-            )
+            error_msg = "LlamaCpp backend not available. Check model path and installation."
+            error_logger.error(error_msg)
+            raise LLMError(error_msg, recoverable=False, backend="LlamaCppBackend")
+        
+        # Update stats
+        with self._lock:
+            self._generation_stats['total_generations'] += 1
+            generation_id = self._generation_stats['total_generations']
+        
+        start_time = time.time()
+        
+        if self._log_generations:
+            generation_logger.info(f"[GEN-{generation_id:04d}] Starting generation")
+            generation_logger.debug(f"[GEN-{generation_id:04d}] Prompt length: {len(prompt)} chars")
+            generation_logger.debug(f"[GEN-{generation_id:04d}] Context chunks: {len(context_chunks) if context_chunks else 0}")
+            generation_logger.debug(f"[GEN-{generation_id:04d}] Temperature: {temperature}, Max tokens: {max_tokens}")
         
         try:
             # Validate input length and handle token limits
             if not self.validate_input_length(prompt, context_chunks):
-                logger.warning("Input exceeds token limits, applying truncation")
+                generation_logger.warning(f"[GEN-{generation_id:04d}] Input exceeds token limits, applying truncation")
                 # Handle token limit by reducing context
                 if context_chunks:
+                    original_count = len(context_chunks)
                     context_chunks = self._reduce_context_for_limits(prompt, context_chunks)
+                    generation_logger.info(f"[GEN-{generation_id:04d}] Reduced context from {original_count} to {len(context_chunks)} chunks")
             
             # Prepare the full prompt
             full_prompt = self._prepare_prompt(prompt, context_chunks, system_prompt)
@@ -131,14 +237,18 @@ class LlamaCppBackend(LLMBackend):
             max_tokens = min(max_tokens, available_tokens)
             
             if max_tokens <= 0:
-                raise LLMError(
-                    "Input too long for model context window",
-                    recoverable=True,
-                    backend="LlamaCppBackend"
-                )
+                error_msg = f"Input too long for model context window (input: {input_tokens}, context: {model_info.context_length})"
+                error_logger.error(f"[GEN-{generation_id:04d}] {error_msg}")
+                raise LLMError(error_msg, recoverable=True, backend="LlamaCppBackend")
+            
+            generation_logger.debug(f"[GEN-{generation_id:04d}] Input tokens: {input_tokens}, Available for generation: {max_tokens}")
             
             # Generate response
+            generation_start = time.time()
+            
             if self._model_info.type == ModelType.CHAT and self.config.get("chat_format"):
+                generation_logger.debug(f"[GEN-{generation_id:04d}] Using chat completion format")
+                
                 # Use chat completion format
                 messages = []
                 if system_prompt:
@@ -152,8 +262,10 @@ class LlamaCppBackend(LLMBackend):
                     stop=self.config.get("stop_sequences", [])
                 )
                 
-                return response["choices"][0]["message"]["content"].strip()
+                generated_text = response["choices"][0]["message"]["content"].strip()
             else:
+                generation_logger.debug(f"[GEN-{generation_id:04d}] Using completion format")
+                
                 # Use completion format
                 response = self._llama(
                     full_prompt,
@@ -163,15 +275,93 @@ class LlamaCppBackend(LLMBackend):
                     echo=False
                 )
                 
-                return response["choices"][0]["text"].strip()
+                generated_text = response["choices"][0]["text"].strip()
+            
+            generation_time = time.time() - generation_start
+            total_time = time.time() - start_time
+            
+            # Update statistics
+            with self._lock:
+                self._generation_stats['successful_generations'] += 1
+                self._generation_stats['total_generation_time'] += generation_time
+                
+                # Estimate tokens generated
+                generated_tokens = self.estimate_tokens(generated_text)
+                self._generation_stats['total_tokens_generated'] += generated_tokens
+                
+                # Calculate tokens per second
+                if generation_time > 0:
+                    tokens_per_second = generated_tokens / generation_time
+                    # Update running average
+                    total_successful = self._generation_stats['successful_generations']
+                    current_avg = self._generation_stats['avg_tokens_per_second']
+                    self._generation_stats['avg_tokens_per_second'] = (
+                        (current_avg * (total_successful - 1) + tokens_per_second) / total_successful
+                    )
+            
+            if self._log_generations:
+                generation_logger.info(f"[GEN-{generation_id:04d}] Generation completed in {generation_time:.2f}s")
+                generation_logger.info(f"[GEN-{generation_id:04d}] Generated {len(generated_text)} characters (~{generated_tokens} tokens)")
+                
+                if generation_time > 0:
+                    tokens_per_second = generated_tokens / generation_time
+                    performance_logger.info(f"[GEN-{generation_id:04d}] Performance: {tokens_per_second:.1f} tokens/second")
+            
+            # Log performance warnings
+            if generation_time > 30:
+                performance_logger.warning(f"[GEN-{generation_id:04d}] Slow generation: {generation_time:.2f}s")
+            elif generation_time < 1:
+                performance_logger.debug(f"[GEN-{generation_id:04d}] Fast generation: {generation_time:.2f}s")
+            
+            # Log periodic performance summary
+            if generation_id % 10 == 0:
+                self._log_performance_summary()
+            
+            return generated_text
                 
         except Exception as e:
-            logger.error(f"LlamaCpp generation failed: {e}")
+            generation_time = time.time() - start_time
+            
+            with self._lock:
+                self._generation_stats['failed_generations'] += 1
+            
+            error_logger.error(f"[GEN-{generation_id:04d}] Generation failed after {generation_time:.2f}s: {e}")
+            generation_logger.debug(f"[GEN-{generation_id:04d}] Full error traceback:\n{traceback.format_exc()}")
+            
+            # Provide specific error guidance
+            if "out of memory" in str(e).lower():
+                error_logger.error("Out of memory - try reducing max_tokens or context length")
+            elif "cuda" in str(e).lower():
+                error_logger.error("CUDA error - check GPU memory and drivers")
+            
             raise LLMError(
                 f"Text generation failed: {str(e)}",
                 recoverable=True,
                 backend="LlamaCppBackend"
             )
+    
+    def _log_performance_summary(self):
+        """Log performance summary statistics."""
+        stats = self._generation_stats
+        
+        if stats['total_generations'] > 0:
+            success_rate = (stats['successful_generations'] / stats['total_generations']) * 100
+            avg_generation_time = stats['total_generation_time'] / max(stats['successful_generations'], 1)
+            
+            performance_logger.info(
+                f"LlamaCpp Performance Summary - "
+                f"Generations: {stats['total_generations']} "
+                f"(✅ {stats['successful_generations']}, ❌ {stats['failed_generations']}), "
+                f"Success Rate: {success_rate:.1f}%, "
+                f"Avg Generation Time: {avg_generation_time:.2f}s, "
+                f"Avg Speed: {stats['avg_tokens_per_second']:.1f} tokens/s"
+            )
+            
+            if stats['model_load_time']:
+                performance_logger.debug(f"Model loaded in {stats['model_load_time']:.2f}s")
+            
+            if stats['total_tokens_generated'] > 0:
+                performance_logger.debug(f"Total tokens generated: {stats['total_tokens_generated']}")
     
     def _prepare_prompt(
         self, 

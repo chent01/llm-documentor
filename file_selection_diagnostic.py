@@ -1,154 +1,163 @@
 #!/usr/bin/env python3
 """
-File Selection Diagnostic Tool
-
-This tool helps diagnose file selection issues in the Medical Software Analyzer.
-Run this to check if file selection is working correctly in your environment.
+Diagnostic script to trace file selection through the analysis pipeline.
+This will help identify where the file selection constraint is being lost.
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
-# Add the project root to Python path
+# Add the project root to the Python path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-def run_diagnostic():
-    """Run comprehensive file selection diagnostic"""
+from medical_analyzer.services.ingestion import IngestionService
+from medical_analyzer.parsers.parser_service import ParserService
+from medical_analyzer.services.feature_extractor import FeatureExtractor
+from medical_analyzer.services.requirements_generator import RequirementsGenerator
+from medical_analyzer.config.config_manager import ConfigManager
+from medical_analyzer.llm.backend import LLMBackend
+
+
+def trace_file_selection(project_path: str, selected_files: list):
+    """
+    Trace how file selection flows through the analysis pipeline.
     
-    print("=" * 60)
-    print("MEDICAL SOFTWARE ANALYZER - FILE SELECTION DIAGNOSTIC")
-    print("=" * 60)
+    Args:
+        project_path: Path to the project to analyze
+        selected_files: List of specific files to analyze
+    """
+    print("=" * 80)
+    print("FILE SELECTION DIAGNOSTIC")
+    print("=" * 80)
+    print(f"Project Path: {project_path}")
+    print(f"Selected Files: {selected_files}")
+    print()
+    
+    # Stage 1: Project Ingestion
+    print("STAGE 1: PROJECT INGESTION")
+    print("-" * 40)
+    
+    ingestion_service = IngestionService()
+    project_structure = ingestion_service.scan_project(
+        project_path, 
+        description="Diagnostic test", 
+        selected_files=selected_files
+    )
+    
+    print(f"Files in project_structure.selected_files: {len(project_structure.selected_files)}")
+    for i, file_path in enumerate(project_structure.selected_files):
+        print(f"  {i+1}. {file_path}")
+    print()
+    
+    # Stage 2: Code Parsing
+    print("STAGE 2: CODE PARSING")
+    print("-" * 40)
+    
+    parser_service = ParserService()
+    parsed_files = parser_service.parse_project(project_structure)
+    
+    print(f"Number of parsed files: {len(parsed_files)}")
+    all_chunks = []
+    for parsed_file in parsed_files:
+        print(f"  File: {parsed_file.file_path}")
+        print(f"    Chunks: {len(parsed_file.chunks)}")
+        all_chunks.extend(parsed_file.chunks)
+        for j, chunk in enumerate(parsed_file.chunks):
+            print(f"      Chunk {j+1}: {chunk.file_path}:{chunk.start_line}-{chunk.end_line}")
+    
+    print(f"Total chunks from selected files: {len(all_chunks)}")
+    print()
+    
+    # Stage 3: Feature Extraction (if LLM available)
+    print("STAGE 3: FEATURE EXTRACTION")
+    print("-" * 40)
     
     try:
-        from medical_analyzer.services.ingestion import IngestionService
-        from medical_analyzer.ui.file_tree_widget import FileTreeWidget
-        from medical_analyzer.ui.main_window import MainWindow
-        from medical_analyzer.config.config_manager import ConfigManager
-        from medical_analyzer.config.app_settings import AppSettings
-        from PyQt6.QtWidgets import QApplication
-        from PyQt6.QtCore import Qt
-        
-        print("✓ All imports successful")
-        
-        # Initialize Qt application
-        app = QApplication.instance()
-        if app is None:
-            app = QApplication(sys.argv)
-        print("✓ Qt application initialized")
-        
-        # Test with your actual project
-        print("\n" + "=" * 40)
-        print("TESTING WITH CURRENT PROJECT")
-        print("=" * 40)
-        
-        current_dir = Path.cwd()
-        print(f"Current directory: {current_dir}")
-        
-        # Initialize services
         config_manager = ConfigManager()
-        config_manager.load_default_config()
-        app_settings = AppSettings(config_manager)
+        llm_config = config_manager.get_llm_config()
         
-        # Test ingestion service
-        print("\n1. Testing Ingestion Service...")
-        ingestion = IngestionService()
-        
-        # Scan all files
-        project_all = ingestion.scan_project(str(current_dir))
-        print(f"   Total supported files found: {len(project_all.selected_files)}")
-        
-        if len(project_all.selected_files) > 0:
-            print("   Sample files:")
-            for i, file_path in enumerate(project_all.selected_files[:5]):
-                print(f"     {i+1}. {Path(file_path).name}")
-            if len(project_all.selected_files) > 5:
-                print(f"     ... and {len(project_all.selected_files) - 5} more")
-        
-        # Test with specific file selection
-        if len(project_all.selected_files) >= 2:
-            print("\n2. Testing Specific File Selection...")
-            selected_files = project_all.selected_files[:2]  # Select first 2 files
-            print(f"   Selecting specific files: {[Path(f).name for f in selected_files]}")
+        # Try to initialize LLM backend
+        if llm_config and llm_config.get('backend_type'):
+            from medical_analyzer.llm.local_server_backend import LocalServerBackend
+            llm_backend = LocalServerBackend(llm_config)
             
-            project_selected = ingestion.scan_project(str(current_dir), selected_files=selected_files)
-            print(f"   Files processed with selection: {len(project_selected.selected_files)}")
+            feature_extractor = FeatureExtractor(llm_backend)
+            feature_result = feature_extractor.extract_features(all_chunks)
             
-            if len(project_selected.selected_files) == len(selected_files):
-                print("   ✓ File selection working correctly in ingestion service")
-            else:
-                print("   ✗ File selection NOT working in ingestion service")
-                print(f"     Expected: {len(selected_files)}, Got: {len(project_selected.selected_files)}")
-        
-        # Test file tree widget
-        print("\n3. Testing File Tree Widget...")
-        file_tree = FileTreeWidget()
-        file_tree.load_directory_structure(str(current_dir))
-        
-        total_files = len(file_tree.file_items)
-        print(f"   Files loaded in tree widget: {total_files}")
-        
-        if total_files > 0:
-            # Test select all
-            file_tree.select_all_files()
-            selected_all = len(file_tree.get_selected_files())
-            print(f"   Files selected with 'Select All': {selected_all}")
+            print(f"Features extracted: {len(feature_result.features)}")
+            for i, feature in enumerate(feature_result.features):
+                print(f"  Feature {i+1}: {feature.id} - {feature.description}")
+                if feature.evidence:
+                    for evidence in feature.evidence:
+                        print(f"    Evidence: {evidence.file_path}:{evidence.start_line}")
+            print()
             
-            # Test select none
-            file_tree.select_no_files()
-            selected_none = len(file_tree.get_selected_files())
-            print(f"   Files selected with 'Select None': {selected_none}")
+            # Stage 4: Requirements Generation
+            print("STAGE 4: REQUIREMENTS GENERATION")
+            print("-" * 40)
             
-            if selected_none == 0:
-                print("   ✓ File tree selection controls working correctly")
-            else:
-                print("   ✗ File tree selection controls NOT working correctly")
-        
-        # Test main window
-        print("\n4. Testing Main Window Integration...")
-        main_window = MainWindow(config_manager, app_settings)
-        main_window.set_project_folder(str(current_dir))
-        
-        # Check if files are loaded
-        main_window_files = len(main_window.file_tree_widget.file_items)
-        print(f"   Files loaded in main window: {main_window_files}")
-        
-        if main_window_files > 0:
-            # Test file selection
-            main_window.file_tree_widget.select_all_files()
-            main_selected = len(main_window.get_selected_files())
-            print(f"   Files selected in main window: {main_selected}")
+            requirements_generator = RequirementsGenerator(llm_backend)
+            requirements_result = requirements_generator.generate_requirements_from_features(
+                feature_result.features, 
+                "Diagnostic test project"
+            )
             
-            if main_selected == main_window_files:
-                print("   ✓ Main window file selection working correctly")
-            else:
-                print("   ✗ Main window file selection NOT working correctly")
-        
-        print("\n" + "=" * 40)
-        print("DIAGNOSTIC SUMMARY")
-        print("=" * 40)
-        
-        if len(project_all.selected_files) == 0:
-            print("⚠️  No supported files found in current directory")
-            print("   Make sure you're running this from a project with C/JS/TS files")
+            print(f"User requirements generated: {len(requirements_result.user_requirements)}")
+            for i, ur in enumerate(requirements_result.user_requirements):
+                print(f"  UR {i+1}: {ur.id} - {ur.text}")
+                print(f"    Derived from features: {ur.derived_from}")
+            
+            print(f"Software requirements generated: {len(requirements_result.software_requirements)}")
+            for i, sr in enumerate(requirements_result.software_requirements):
+                print(f"  SR {i+1}: {sr.id} - {sr.text}")
+                print(f"    Derived from: {sr.derived_from}")
+            print()
+            
         else:
-            print("✓ File selection mechanism appears to be working correctly")
-            print("\nIf you're still experiencing issues:")
-            print("1. Make sure you're not accidentally selecting directory checkboxes")
-            print("2. Check that 'Show supported files only' filter is set correctly")
-            print("3. Verify you're clicking individual file checkboxes, not directory ones")
-            print("4. Try using 'Select None' then manually selecting specific files")
-        
-        print(f"\nTotal supported files in current project: {len(project_all.selected_files)}")
-        
-    except ImportError as e:
-        print(f"✗ Import error: {e}")
-        print("Make sure you're running this from the project root directory")
+            print("LLM backend not configured - skipping feature extraction and requirements generation")
+            print()
+            
     except Exception as e:
-        print(f"✗ Unexpected error: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"Error in LLM-based stages: {e}")
+        print()
+    
+    # Check for any other file scanning
+    print("STAGE 5: OTHER FILE SCANNING CHECKS")
+    print("-" * 40)
+    
+    # Check if SOUP detector would scan additional files
+    from medical_analyzer.services.soup_detector import SOUPDetector
+    soup_detector = SOUPDetector(use_llm_classification=False)
+    
+    print("SOUP detector would scan for these dependency files:")
+    project_root = Path(project_path)
+    for filename in soup_detector.parsers.keys():
+        dependency_files = list(project_root.rglob(filename))
+        if dependency_files:
+            print(f"  {filename}: {len(dependency_files)} files found")
+            for dep_file in dependency_files:
+                print(f"    - {dep_file}")
+                # Check if this file is in selected_files
+                if str(dep_file) in selected_files:
+                    print(f"      ✓ This file IS in selected_files")
+                else:
+                    print(f"      ✗ This file is NOT in selected_files")
+    print()
+    
+    print("DIAGNOSTIC COMPLETE")
+    print("=" * 80)
+
 
 if __name__ == "__main__":
-    run_diagnostic()
+    # Example usage - you can modify these paths
+    current_dir = os.getcwd()
+    
+    # Test with a few selected files
+    selected_files = [
+        os.path.join(current_dir, "main.py"),
+        os.path.join(current_dir, "medical_analyzer", "services", "requirements_generator.py")
+    ]
+    
+    trace_file_selection(current_dir, selected_files)

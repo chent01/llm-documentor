@@ -9,6 +9,7 @@ from datetime import datetime
 
 from .c_parser import CParser, CCodeStructure
 from .js_parser import JSParser, JSCodeStructure
+from .python_parser import PythonParser
 from ..models.core import CodeChunk, FileMetadata, CodeReference, ProjectStructure
 from ..models.enums import ChunkType
 from ..error_handling.error_handler import (
@@ -38,7 +39,8 @@ class ParserService:
         self.max_chunk_size = max_chunk_size
         self.c_parser = CParser()
         self.js_parser = JSParser()
-        self.supported_extensions = {'.c', '.h', '.js', '.ts', '.jsx', '.tsx', '.json'}
+        self.python_parser = PythonParser()
+        self.supported_extensions = {'.c', '.h', '.js', '.ts', '.jsx', '.tsx', '.py', '.json'}
     
     def parse_project(self, project_structure: ProjectStructure) -> List[ParsedFile]:
         """Parse all selected files in a project.
@@ -145,6 +147,27 @@ class ParserService:
                         severity=ErrorSeverity.MEDIUM,
                         recoverable=True,
                         stage="javascript_parsing",
+                        file_path=file_path,
+                        exception=e
+                    )
+                    # Fall back to basic text analysis
+                    chunks = self._fallback_text_analysis(file_path, file_metadata)
+                    code_structure = None
+                    
+            elif file_ext == '.py':
+                try:
+                    chunks = self.python_parser.parse_file(file_path)
+                    if not chunks:
+                        chunks = self._fallback_text_analysis(file_path, file_metadata)
+                    code_structure = None  # Python parser returns chunks directly
+                except Exception as e:
+                    handle_error(
+                        category=ErrorCategory.PARSER,
+                        message=f"Python parser failed for file: {file_path}",
+                        details=str(e),
+                        severity=ErrorSeverity.MEDIUM,
+                        recoverable=True,
+                        stage="python_parsing",
                         file_path=file_path,
                         exception=e
                     )

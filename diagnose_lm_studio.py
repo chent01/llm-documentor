@@ -145,6 +145,8 @@ def main():
     """Main diagnostic function."""
     print("🏥 Medical Analyzer - LM Studio Diagnostic Tool")
     print("=" * 60)
+    print("💡 For comprehensive diagnostics, use: python medical_analyzer/llm/llm_diagnostics.py")
+    print()
     
     # Step 1: Scan for open ports
     open_ports = scan_common_llm_ports()
@@ -178,6 +180,12 @@ def main():
             primary_port = llm_servers[0][0]
             print(f"\n🔧 Updating configuration to use port {primary_port}...")
             update_config_for_port(primary_port)
+            
+        # Suggest enabling debugging
+        print(f"\n🔍 For detailed debugging and monitoring:")
+        print(f"   • Enable debugging: python enable_llm_debugging.py --verbose")
+        print(f"   • Run diagnostics: python medical_analyzer/llm/llm_diagnostics.py")
+        print(f"   • Create debug session: python enable_llm_debugging.py --session lm_studio_test")
     else:
         print("\n❌ No working LLM servers found on open ports.")
         provide_lm_studio_guidance()
