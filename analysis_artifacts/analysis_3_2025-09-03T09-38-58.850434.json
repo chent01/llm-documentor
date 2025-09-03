@@ -1,0 +1,1320 @@
+{
+  "project_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp",
+  "description": "Complete caching test project",
+  "summary": {
+    "project_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp",
+    "files_analyzed": 2,
+    "analysis_date": "2025-09-03T09:38:58.835802",
+    "features_found": 0,
+    "requirements_generated": 0,
+    "risks_identified": 0,
+    "soup_components_detected": 0,
+    "confidence": 100,
+    "errors": [],
+    "warnings": [
+      "No features extracted - check if supported file types are present",
+      "No risks identified - manual risk assessment recommended"
+    ]
+  },
+  "requirements": {
+    "user_requirements": [],
+    "software_requirements": []
+  },
+  "risks": [],
+  "traceability": {
+    "matrix": {
+      "metadata": {
+        "total_links": 0,
+        "code_feature_links": 0,
+        "feature_ur_links": 0,
+        "ur_sr_links": 0,
+        "sr_risk_links": 0,
+        "code_sr_links": 0
+      },
+      "links": [],
+      "code_to_requirements": {},
+      "user_to_software_requirements": {},
+      "requirements_to_risks": {}
+    },
+    "matrix_rows": [],
+    "gaps": [],
+    "total_links": 0
+  },
+  "tests": {
+    "total_tests": 7,
+    "test_frameworks": [
+      "c",
+      "javascript"
+    ],
+    "test_suite": {
+      "project_name": "cache_test_u0fnespp",
+      "test_skeletons": [
+        {
+          "test_name": "test_authenticate_user",
+          "test_content": "#include \"unity.h\"\n#include \"main.c\"\n\nvoid setUp(void) {\n    // Set up test fixtures, if any\n}\n\nvoid tearDown(void) {\n    // Clean up after test, if any\n}\n\nvoid test_authenticate_user(void) {\n    // Test for function: authenticate_user\n    // Return type: int\n    // Parameters: 2\n    \n    // Set up test parameters\n    char* username = \"test_string\"; // TODO: Set appropriate test value\n    char* password = \"test_string\"; // TODO: Set appropriate test value\n    \n    // Call the function under test\n    int result = authenticate_user(/* parameters */);\n    TEST_ASSERT_EQUAL(expected_value, result);\n    \n    // TODO: Add specific test assertions based on expected behavior\n    // Example assertions:\n    // TEST_ASSERT_EQUAL(expected_value, actual_value);\n    // TEST_ASSERT_NOT_NULL(pointer_value);\n    // TEST_ASSERT_TRUE(boolean_condition);\n}\n",
+          "framework": "unity",
+          "language": "c",
+          "target_function": "authenticate_user",
+          "file_path": "tests/unit/test_main.c",
+          "metadata": {
+            "return_type": "int",
+            "parameters": [
+              {
+                "type": "char*",
+                "name": "username"
+              },
+              {
+                "type": "char*",
+                "name": "password"
+              }
+            ],
+            "is_static": false,
+            "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+            "start_line": 6,
+            "end_line": 14
+          }
+        },
+        {
+          "test_name": "test_process_patient_data",
+          "test_content": "#include \"unity.h\"\n#include \"main.c\"\n\nvoid setUp(void) {\n    // Set up test fixtures, if any\n}\n\nvoid tearDown(void) {\n    // Clean up after test, if any\n}\n\nvoid test_process_patient_data(void) {\n    // Test for function: process_patient_data\n    // Return type: void\n    // Parameters: 2\n    \n    // Set up test parameters\n    int patient_id = 42; // TODO: Set appropriate test value\n    char* data = \"test_string\"; // TODO: Set appropriate test value\n    \n    // Call the function under test\n    process_patient_data(/* parameters */);\n    // TODO: Add assertions for side effects\n    \n    // TODO: Add specific test assertions based on expected behavior\n    // Example assertions:\n    // TEST_ASSERT_EQUAL(expected_value, actual_value);\n    // TEST_ASSERT_NOT_NULL(pointer_value);\n    // TEST_ASSERT_TRUE(boolean_condition);\n}\n",
+          "framework": "unity",
+          "language": "c",
+          "target_function": "process_patient_data",
+          "file_path": "tests/unit/test_main.c",
+          "metadata": {
+            "return_type": "void",
+            "parameters": [
+              {
+                "type": "int",
+                "name": "patient_id"
+              },
+              {
+                "type": "char*",
+                "name": "data"
+              }
+            ],
+            "is_static": false,
+            "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+            "start_line": 17,
+            "end_line": 26
+          }
+        },
+        {
+          "test_name": "test_main",
+          "test_content": "#include \"unity.h\"\n#include \"main.c\"\n\nvoid setUp(void) {\n    // Set up test fixtures, if any\n}\n\nvoid tearDown(void) {\n    // Clean up after test, if any\n}\n\nvoid test_main(void) {\n    // Test for function: main\n    // Return type: int\n    // Parameters: 0\n    \n    // No parameters\n    \n    // Call the function under test\n    int result = main(/* parameters */);\n    TEST_ASSERT_EQUAL(expected_value, result);\n    \n    // TODO: Add specific test assertions based on expected behavior\n    // Example assertions:\n    // TEST_ASSERT_EQUAL(expected_value, actual_value);\n    // TEST_ASSERT_NOT_NULL(pointer_value);\n    // TEST_ASSERT_TRUE(boolean_condition);\n}\n",
+          "framework": "unity",
+          "language": "c",
+          "target_function": "main",
+          "file_path": "tests/unit/test_main.c",
+          "metadata": {
+            "return_type": "int",
+            "parameters": [],
+            "is_static": false,
+            "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+            "start_line": 28,
+            "end_line": 40
+          }
+        },
+        {
+          "test_name": "test_constructor",
+          "test_content": "const { MedicalDataValidator } = require('../utils');\n\ndescribe('constructor', () => {\n    test('test constructor', () => {\n        // Test for function: constructor\n        // Parameters: []\n        // Async: False\n        // Method: True\n        \n        // No parameters\n        \n        // Call the function under test\n        const result = constructor();\n        \n        // TODO: Add specific test assertions based on expected behavior\n        // Example assertions:\n        // expect(result).toBe(expectedValue);\n        // expect(result).toEqual(expectedObject);\n        // expect(result).toBeTruthy();\n        // expect(result).toBeNull();\n        \n        // Placeholder assertion\n        expect(result).toBeDefined();\n    });\n    \n    test('constructor handles edge cases', () => {\n        // TODO: Add edge case tests\n        // Test with null/undefined inputs\n        // Test with boundary values\n        // Test error conditions\n    });\n});\n",
+          "framework": "jest",
+          "language": "javascript",
+          "target_function": "constructor",
+          "file_path": "tests/unit/utils.test.js",
+          "metadata": {
+            "parameters": [],
+            "is_async": false,
+            "is_arrow": false,
+            "is_method": true,
+            "class_name": "MedicalDataValidator",
+            "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+            "start_line": 4,
+            "end_line": 10
+          }
+        },
+        {
+          "test_name": "test_validatePatientId",
+          "test_content": "const { MedicalDataValidator } = require('../utils');\n\ndescribe('validatePatientId', () => {\n    test('test validatePatientId', () => {\n        // Test for function: validatePatientId\n        // Parameters: ['patientId']\n        // Async: False\n        // Method: True\n        \n        // Set up test parameters\n        const patientId = 'test_value'; // TODO: Set appropriate test value\n        \n        // Call the function under test\n        const result = validatePatientId(patientId);\n        \n        // TODO: Add specific test assertions based on expected behavior\n        // Example assertions:\n        // expect(result).toBe(expectedValue);\n        // expect(result).toEqual(expectedObject);\n        // expect(result).toBeTruthy();\n        // expect(result).toBeNull();\n        \n        // Placeholder assertion\n        expect(result).toBeDefined();\n    });\n    \n    test('validatePatientId handles edge cases', () => {\n        // TODO: Add edge case tests\n        // Test with null/undefined inputs\n        // Test with boundary values\n        // Test error conditions\n    });\n});\n",
+          "framework": "jest",
+          "language": "javascript",
+          "target_function": "validatePatientId",
+          "file_path": "tests/unit/utils.test.js",
+          "metadata": {
+            "parameters": [
+              "patientId"
+            ],
+            "is_async": false,
+            "is_arrow": false,
+            "is_method": true,
+            "class_name": "MedicalDataValidator",
+            "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+            "start_line": 13,
+            "end_line": 19
+          }
+        },
+        {
+          "test_name": "test_validateVitalSigns",
+          "test_content": "const { MedicalDataValidator } = require('../utils');\n\ndescribe('validateVitalSigns', () => {\n    test('test validateVitalSigns', () => {\n        // Test for function: validateVitalSigns\n        // Parameters: ['vitalSigns']\n        // Async: False\n        // Method: True\n        \n        // Set up test parameters\n        const vitalSigns = 'test_value'; // TODO: Set appropriate test value\n        \n        // Call the function under test\n        const result = validateVitalSigns(vitalSigns);\n        \n        // TODO: Add specific test assertions based on expected behavior\n        // Example assertions:\n        // expect(result).toBe(expectedValue);\n        // expect(result).toEqual(expectedObject);\n        // expect(result).toBeTruthy();\n        // expect(result).toBeNull();\n        \n        // Placeholder assertion\n        expect(result).toBeDefined();\n    });\n    \n    test('validateVitalSigns handles edge cases', () => {\n        // TODO: Add edge case tests\n        // Test with null/undefined inputs\n        // Test with boundary values\n        // Test error conditions\n    });\n});\n",
+          "framework": "jest",
+          "language": "javascript",
+          "target_function": "validateVitalSigns",
+          "file_path": "tests/unit/utils.test.js",
+          "metadata": {
+            "parameters": [
+              "vitalSigns"
+            ],
+            "is_async": false,
+            "is_arrow": false,
+            "is_method": true,
+            "class_name": "MedicalDataValidator",
+            "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+            "start_line": 22,
+            "end_line": 34
+          }
+        },
+        {
+          "test_name": "test_sanitizeData",
+          "test_content": "const { MedicalDataValidator } = require('../utils');\n\ndescribe('sanitizeData', () => {\n    test('test sanitizeData', () => {\n        // Test for function: sanitizeData\n        // Parameters: ['data']\n        // Async: False\n        // Method: True\n        \n        // Set up test parameters\n        const data = 'test_value'; // TODO: Set appropriate test value\n        \n        // Call the function under test\n        const result = sanitizeData(data);\n        \n        // TODO: Add specific test assertions based on expected behavior\n        // Example assertions:\n        // expect(result).toBe(expectedValue);\n        // expect(result).toEqual(expectedObject);\n        // expect(result).toBeTruthy();\n        // expect(result).toBeNull();\n        \n        // Placeholder assertion\n        expect(result).toBeDefined();\n    });\n    \n    test('sanitizeData handles edge cases', () => {\n        // TODO: Add edge case tests\n        // Test with null/undefined inputs\n        // Test with boundary values\n        // Test error conditions\n    });\n});\n",
+          "framework": "jest",
+          "language": "javascript",
+          "target_function": "sanitizeData",
+          "file_path": "tests/unit/utils.test.js",
+          "metadata": {
+            "parameters": [
+              "data"
+            ],
+            "is_async": false,
+            "is_arrow": false,
+            "is_method": true,
+            "class_name": "MedicalDataValidator",
+            "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+            "start_line": 37,
+            "end_line": 44
+          }
+        }
+      ],
+      "framework_configs": {
+        "c": {
+          "framework": "unity",
+          "config_file": "unity_config.h",
+          "runner_template": "unity_runner.c.template",
+          "build_script": "build_unity_tests.sh",
+          "dependencies": [
+            "unity.c",
+            "unity.h"
+          ],
+          "compiler_flags": [
+            "-DUNITY_INCLUDE_CONFIG_H"
+          ],
+          "linker_flags": []
+        },
+        "javascript": {
+          "framework": "jest",
+          "config_file": "jest.config.js",
+          "package_dependencies": [
+            "jest",
+            "@types/jest"
+          ],
+          "test_patterns": [
+            "**/*.test.js",
+            "**/*.spec.js"
+          ],
+          "coverage_threshold": {
+            "global": {
+              "branches": 80,
+              "functions": 80,
+              "lines": 80,
+              "statements": 80
+            }
+          }
+        }
+      },
+      "integration_tests": [],
+      "created_at": "2025-09-03T09:38:58.833806"
+    },
+    "passed_tests": 0,
+    "failed_tests": 0,
+    "skipped_tests": 0
+  },
+  "soup": {
+    "detected_components": [],
+    "classified_components": [],
+    "total_components": 0,
+    "detection_summary": {
+      "package_managers": [],
+      "confidence_distribution": {
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      },
+      "classification_distribution": {
+        "Class A": 0,
+        "Class B": 0,
+        "Class C": 0,
+        "Unclassified": 0
+      }
+    },
+    "error": null
+  },
+  "analysis_stages": {
+    "project_ingestion": {
+      "project_structure": {
+        "root_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp",
+        "selected_files": [
+          "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+          "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js"
+        ],
+        "description": "Complete caching test project",
+        "metadata": {
+          "total_files_discovered": 2,
+          "supported_files_count": 2,
+          "successful_metadata_extraction": 2,
+          "failed_metadata_extraction": 0,
+          "scan_timestamp": "2025-09-03T09:38:58.662885"
+        },
+        "timestamp": "2025-09-03T09:38:58.662885",
+        "file_metadata": [
+          {
+            "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+            "file_size": 1041,
+            "last_modified": "2025-09-03T09:38:58.366252",
+            "file_type": "c",
+            "encoding": "utf-8",
+            "line_count": 40,
+            "function_count": 3
+          },
+          {
+            "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+            "file_size": 1356,
+            "last_modified": "2025-09-03T09:38:58.366252",
+            "file_type": "javascript",
+            "encoding": "utf-8",
+            "line_count": 48,
+            "function_count": 0
+          }
+        ]
+      },
+      "total_files": 2,
+      "file_types": {
+        ".c": 1,
+        ".js": 1
+      }
+    },
+    "code_parsing": {
+      "parsed_files": [
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+          "file_metadata": {
+            "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+            "file_size": 1041,
+            "last_modified": "2025-09-03T09:38:58.366252",
+            "file_type": "c",
+            "encoding": "utf-8",
+            "line_count": 40,
+            "function_count": 3
+          },
+          "code_structure": {
+            "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+            "functions": [
+              {
+                "name": "authenticate_user",
+                "return_type": "int",
+                "parameters": [
+                  {
+                    "type": "char*",
+                    "name": "username"
+                  },
+                  {
+                    "type": "char*",
+                    "name": "password"
+                  }
+                ],
+                "start_line": 6,
+                "end_line": 14,
+                "is_static": false,
+                "is_inline": false
+              },
+              {
+                "name": "process_patient_data",
+                "return_type": "void",
+                "parameters": [
+                  {
+                    "type": "int",
+                    "name": "patient_id"
+                  },
+                  {
+                    "type": "char*",
+                    "name": "data"
+                  }
+                ],
+                "start_line": 17,
+                "end_line": 26,
+                "is_static": false,
+                "is_inline": false
+              },
+              {
+                "name": "main",
+                "return_type": "int",
+                "parameters": [],
+                "start_line": 28,
+                "end_line": 40,
+                "is_static": false,
+                "is_inline": false
+              }
+            ],
+            "includes": [
+              "#include <stdio.h>",
+              "#include <stdlib.h>"
+            ],
+            "defines": [],
+            "global_variables": [],
+            "structs": [],
+            "enums": []
+          },
+          "chunks": [
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+              "start_line": 6,
+              "end_line": 14,
+              "content": "int authenticate_user(const char* username, const char* password) {\n    // Validate user credentials\n    if (username == NULL || password == NULL) {\n        return 0;\n    }\n    \n    // Check against database (simplified)\n    return strcmp(username, \"admin\") == 0 && strcmp(password, \"secret\") == 0;\n}",
+              "function_name": "authenticate_user",
+              "chunk_type": {
+                "_value_": 1,
+                "_name_": "FUNCTION",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "return_type": "int",
+                "parameters": [
+                  {
+                    "type": "char*",
+                    "name": "username"
+                  },
+                  {
+                    "type": "char*",
+                    "name": "password"
+                  }
+                ],
+                "is_static": false,
+                "is_inline": false,
+                "language": "c"
+              },
+              "embedding": null
+            },
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+              "start_line": 17,
+              "end_line": 26,
+              "content": "void process_patient_data(int patient_id, const char* data) {\n    // Process medical data\n    if (data == NULL) {\n        printf(\"Error: Invalid patient data\\n\");\n        return;\n    }\n    \n    // Log the operation\n    printf(\"Processing data for patient %d\\n\", patient_id);\n}",
+              "function_name": "process_patient_data",
+              "chunk_type": {
+                "_value_": 1,
+                "_name_": "FUNCTION",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "return_type": "void",
+                "parameters": [
+                  {
+                    "type": "int",
+                    "name": "patient_id"
+                  },
+                  {
+                    "type": "char*",
+                    "name": "data"
+                  }
+                ],
+                "is_static": false,
+                "is_inline": false,
+                "language": "c"
+              },
+              "embedding": null
+            },
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+              "start_line": 28,
+              "end_line": 40,
+              "content": "int main() {\n    printf(\"Medical Software System\\n\");\n    \n    // Authenticate user\n    if (authenticate_user(\"admin\", \"secret\")) {\n        printf(\"User authenticated successfully\\n\");\n        process_patient_data(12345, \"sample_data\");\n    } else {\n        printf(\"Authentication failed\\n\");\n    }\n    \n    return 0;\n}",
+              "function_name": "main",
+              "chunk_type": {
+                "_value_": 1,
+                "_name_": "FUNCTION",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "return_type": "int",
+                "parameters": [],
+                "is_static": false,
+                "is_inline": false,
+                "language": "c"
+              },
+              "embedding": null
+            },
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+              "start_line": 1,
+              "end_line": 40,
+              "content": "#include <stdio.h>\n#include <stdlib.h>",
+              "function_name": null,
+              "chunk_type": {
+                "_value_": 4,
+                "_name_": "GLOBAL",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "includes_count": 2,
+                "defines_count": 0,
+                "structs_count": 0,
+                "enums_count": 0,
+                "global_vars_count": 0,
+                "language": "c"
+              },
+              "embedding": null
+            }
+          ]
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+          "file_metadata": {
+            "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+            "file_size": 1356,
+            "last_modified": "2025-09-03T09:38:58.366252",
+            "file_type": "javascript",
+            "encoding": "utf-8",
+            "line_count": 48,
+            "function_count": 4
+          },
+          "code_structure": {
+            "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+            "functions": [
+              {
+                "name": "constructor",
+                "parameters": [],
+                "start_line": 4,
+                "end_line": 10,
+                "is_async": false,
+                "is_arrow": false,
+                "is_method": true,
+                "class_name": "MedicalDataValidator"
+              },
+              {
+                "name": "validatePatientId",
+                "parameters": [
+                  "patientId"
+                ],
+                "start_line": 13,
+                "end_line": 19,
+                "is_async": false,
+                "is_arrow": false,
+                "is_method": true,
+                "class_name": "MedicalDataValidator"
+              },
+              {
+                "name": "validateVitalSigns",
+                "parameters": [
+                  "vitalSigns"
+                ],
+                "start_line": 22,
+                "end_line": 34,
+                "is_async": false,
+                "is_arrow": false,
+                "is_method": true,
+                "class_name": "MedicalDataValidator"
+              },
+              {
+                "name": "sanitizeData",
+                "parameters": [
+                  "data"
+                ],
+                "start_line": 37,
+                "end_line": 44,
+                "is_async": false,
+                "is_arrow": false,
+                "is_method": true,
+                "class_name": "MedicalDataValidator"
+              }
+            ],
+            "classes": [
+              {
+                "name": "MedicalDataValidator",
+                "methods": [
+                  {
+                    "name": "constructor",
+                    "parameters": [],
+                    "start_line": 4,
+                    "end_line": 10,
+                    "is_async": false,
+                    "is_arrow": false,
+                    "is_method": true,
+                    "class_name": "MedicalDataValidator"
+                  },
+                  {
+                    "name": "validatePatientId",
+                    "parameters": [
+                      "patientId"
+                    ],
+                    "start_line": 13,
+                    "end_line": 19,
+                    "is_async": false,
+                    "is_arrow": false,
+                    "is_method": true,
+                    "class_name": "MedicalDataValidator"
+                  },
+                  {
+                    "name": "validateVitalSigns",
+                    "parameters": [
+                      "vitalSigns"
+                    ],
+                    "start_line": 22,
+                    "end_line": 34,
+                    "is_async": false,
+                    "is_arrow": false,
+                    "is_method": true,
+                    "class_name": "MedicalDataValidator"
+                  },
+                  {
+                    "name": "sanitizeData",
+                    "parameters": [
+                      "data"
+                    ],
+                    "start_line": 37,
+                    "end_line": 44,
+                    "is_async": false,
+                    "is_arrow": false,
+                    "is_method": true,
+                    "class_name": "MedicalDataValidator"
+                  }
+                ],
+                "properties": [],
+                "extends": null,
+                "start_line": 3,
+                "end_line": 45
+              }
+            ],
+            "imports": [],
+            "exports": [],
+            "variables": [
+              {
+                "type": "const",
+                "name": "vitalSigns",
+                "line": 23
+              }
+            ],
+            "requires": []
+          },
+          "chunks": [
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 4,
+              "end_line": 10,
+              "content": "constructor() {\n        this.validationRules = {\n            patientId: /^\\d{5,10}$/,\n            bloodPressure: /^\\d{2,3}\\/\\d{2,3}$/,\n            heartRate: /^\\d{2,3}$/\n        };\n    }",
+              "function_name": "constructor",
+              "chunk_type": {
+                "_value_": 1,
+                "_name_": "FUNCTION",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "parameters": [],
+                "is_async": false,
+                "is_arrow": false,
+                "is_method": true,
+                "class_name": "MedicalDataValidator",
+                "language": "javascript"
+              },
+              "embedding": null
+            },
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 13,
+              "end_line": 19,
+              "content": "validatePatientId(patientId) {\n        if (!patientId) {\n            throw new Error(\"Patient ID is required\");\n        }\n        \n        return this.validationRules.patientId.test(patientId);\n    }",
+              "function_name": "validatePatientId",
+              "chunk_type": {
+                "_value_": 1,
+                "_name_": "FUNCTION",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "parameters": [
+                  "patientId"
+                ],
+                "is_async": false,
+                "is_arrow": false,
+                "is_method": true,
+                "class_name": "MedicalDataValidator",
+                "language": "javascript"
+              },
+              "embedding": null
+            },
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 22,
+              "end_line": 34,
+              "content": "validateVitalSigns(vitalSigns) {\n        const { bloodPressure, heartRate } = vitalSigns;\n        \n        if (!this.validationRules.bloodPressure.test(bloodPressure)) {\n            return { valid: false, error: \"Invalid blood pressure format\" };\n        }\n        \n        if (!this.validationRules.heartRate.test(heartRate)) {\n            return { valid: false, error: \"Invalid heart rate format\" };\n        }\n        \n        return { valid: true };\n    }",
+              "function_name": "validateVitalSigns",
+              "chunk_type": {
+                "_value_": 1,
+                "_name_": "FUNCTION",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "parameters": [
+                  "vitalSigns"
+                ],
+                "is_async": false,
+                "is_arrow": false,
+                "is_method": true,
+                "class_name": "MedicalDataValidator",
+                "language": "javascript"
+              },
+              "embedding": null
+            },
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 37,
+              "end_line": 44,
+              "content": "sanitizeData(data) {\n        if (typeof data !== 'string') {\n            return '';\n        }\n        \n        // Remove potentially harmful characters\n        return data.replace(/[<>\"'&]/g, '');\n    }",
+              "function_name": "sanitizeData",
+              "chunk_type": {
+                "_value_": 1,
+                "_name_": "FUNCTION",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "parameters": [
+                  "data"
+                ],
+                "is_async": false,
+                "is_arrow": false,
+                "is_method": true,
+                "class_name": "MedicalDataValidator",
+                "language": "javascript"
+              },
+              "embedding": null
+            },
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 3,
+              "end_line": 36,
+              "content": "class MedicalDataValidator {\n    constructor() {\n        this.validationRules = {\n            patientId: /^\\d{5,10}$/,\n            bloodPressure: /^\\d{2,3}\\/\\d{2,3}$/,\n            heartRate: /^\\d{2,3}$/\n        };\n    }\n    \n    // Validate patient ID\n    validatePatientId(patientId) {\n        if (!patientId) {\n            throw new Error(\"Patient ID is required\");\n        }\n        \n        return this.validationRules.patientId.test(patientId);\n    }\n    \n    // Validate vital signs\n    validateVitalSigns(vitalSigns) {\n        const { bloodPressure, heartRate } = vitalSigns;\n        \n        if (!this.validationRules.bloodPressure.test(bloodPressure)) {\n            return { valid: false, error: \"Invalid blood pressure format\" };\n        }\n        \n        if (!this.validationRules.heartRate.test(heartRate)) {\n            return { valid: false, error: \"Invalid heart rate format\" };\n        }\n        \n        return { valid: true };\n    }\n    \n    // Sanitize medical data",
+              "function_name": "MedicalDataValidator_part_1",
+              "chunk_type": {
+                "_value_": 2,
+                "_name_": "CLASS",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "methods": [
+                  "constructor",
+                  "validatePatientId",
+                  "validateVitalSigns",
+                  "sanitizeData"
+                ],
+                "properties": [],
+                "extends": null,
+                "is_partial": true,
+                "part_of": "MedicalDataValidator",
+                "part_number": 1,
+                "total_parts": 2
+              },
+              "embedding": null
+            },
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 37,
+              "end_line": 46,
+              "content": "    sanitizeData(data) {\n        if (typeof data !== 'string') {\n            return '';\n        }\n        \n        // Remove potentially harmful characters\n        return data.replace(/[<>\"'&]/g, '');\n    }\n}\n",
+              "function_name": "MedicalDataValidator_part_2",
+              "chunk_type": {
+                "_value_": 2,
+                "_name_": "CLASS",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "methods": [
+                  "constructor",
+                  "validatePatientId",
+                  "validateVitalSigns",
+                  "sanitizeData"
+                ],
+                "properties": [],
+                "extends": null,
+                "is_partial": true,
+                "part_of": "MedicalDataValidator",
+                "part_number": 2,
+                "total_parts": 2
+              },
+              "embedding": null
+            },
+            {
+              "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 1,
+              "end_line": 48,
+              "content": "const vitalSigns",
+              "function_name": null,
+              "chunk_type": {
+                "_value_": 4,
+                "_name_": "GLOBAL",
+                "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+              },
+              "metadata": {
+                "imports_count": 0,
+                "exports_count": 0,
+                "requires_count": 0,
+                "variables_count": 1,
+                "language": "javascript"
+              },
+              "embedding": null
+            }
+          ]
+        }
+      ],
+      "total_chunks": 11,
+      "chunks": [
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+          "start_line": 6,
+          "end_line": 14,
+          "content": "int authenticate_user(const char* username, const char* password) {\n    // Validate user credentials\n    if (username == NULL || password == NULL) {\n        return 0;\n    }\n    \n    // Check against database (simplified)\n    return strcmp(username, \"admin\") == 0 && strcmp(password, \"secret\") == 0;\n}",
+          "function_name": "authenticate_user",
+          "chunk_type": {
+            "_value_": 1,
+            "_name_": "FUNCTION",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "return_type": "int",
+            "parameters": [
+              {
+                "type": "char*",
+                "name": "username"
+              },
+              {
+                "type": "char*",
+                "name": "password"
+              }
+            ],
+            "is_static": false,
+            "is_inline": false,
+            "language": "c"
+          },
+          "embedding": null
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+          "start_line": 17,
+          "end_line": 26,
+          "content": "void process_patient_data(int patient_id, const char* data) {\n    // Process medical data\n    if (data == NULL) {\n        printf(\"Error: Invalid patient data\\n\");\n        return;\n    }\n    \n    // Log the operation\n    printf(\"Processing data for patient %d\\n\", patient_id);\n}",
+          "function_name": "process_patient_data",
+          "chunk_type": {
+            "_value_": 1,
+            "_name_": "FUNCTION",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "return_type": "void",
+            "parameters": [
+              {
+                "type": "int",
+                "name": "patient_id"
+              },
+              {
+                "type": "char*",
+                "name": "data"
+              }
+            ],
+            "is_static": false,
+            "is_inline": false,
+            "language": "c"
+          },
+          "embedding": null
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+          "start_line": 28,
+          "end_line": 40,
+          "content": "int main() {\n    printf(\"Medical Software System\\n\");\n    \n    // Authenticate user\n    if (authenticate_user(\"admin\", \"secret\")) {\n        printf(\"User authenticated successfully\\n\");\n        process_patient_data(12345, \"sample_data\");\n    } else {\n        printf(\"Authentication failed\\n\");\n    }\n    \n    return 0;\n}",
+          "function_name": "main",
+          "chunk_type": {
+            "_value_": 1,
+            "_name_": "FUNCTION",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "return_type": "int",
+            "parameters": [],
+            "is_static": false,
+            "is_inline": false,
+            "language": "c"
+          },
+          "embedding": null
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+          "start_line": 1,
+          "end_line": 40,
+          "content": "#include <stdio.h>\n#include <stdlib.h>",
+          "function_name": null,
+          "chunk_type": {
+            "_value_": 4,
+            "_name_": "GLOBAL",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "includes_count": 2,
+            "defines_count": 0,
+            "structs_count": 0,
+            "enums_count": 0,
+            "global_vars_count": 0,
+            "language": "c"
+          },
+          "embedding": null
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+          "start_line": 4,
+          "end_line": 10,
+          "content": "constructor() {\n        this.validationRules = {\n            patientId: /^\\d{5,10}$/,\n            bloodPressure: /^\\d{2,3}\\/\\d{2,3}$/,\n            heartRate: /^\\d{2,3}$/\n        };\n    }",
+          "function_name": "constructor",
+          "chunk_type": {
+            "_value_": 1,
+            "_name_": "FUNCTION",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "parameters": [],
+            "is_async": false,
+            "is_arrow": false,
+            "is_method": true,
+            "class_name": "MedicalDataValidator",
+            "language": "javascript"
+          },
+          "embedding": null
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+          "start_line": 13,
+          "end_line": 19,
+          "content": "validatePatientId(patientId) {\n        if (!patientId) {\n            throw new Error(\"Patient ID is required\");\n        }\n        \n        return this.validationRules.patientId.test(patientId);\n    }",
+          "function_name": "validatePatientId",
+          "chunk_type": {
+            "_value_": 1,
+            "_name_": "FUNCTION",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "parameters": [
+              "patientId"
+            ],
+            "is_async": false,
+            "is_arrow": false,
+            "is_method": true,
+            "class_name": "MedicalDataValidator",
+            "language": "javascript"
+          },
+          "embedding": null
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+          "start_line": 22,
+          "end_line": 34,
+          "content": "validateVitalSigns(vitalSigns) {\n        const { bloodPressure, heartRate } = vitalSigns;\n        \n        if (!this.validationRules.bloodPressure.test(bloodPressure)) {\n            return { valid: false, error: \"Invalid blood pressure format\" };\n        }\n        \n        if (!this.validationRules.heartRate.test(heartRate)) {\n            return { valid: false, error: \"Invalid heart rate format\" };\n        }\n        \n        return { valid: true };\n    }",
+          "function_name": "validateVitalSigns",
+          "chunk_type": {
+            "_value_": 1,
+            "_name_": "FUNCTION",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "parameters": [
+              "vitalSigns"
+            ],
+            "is_async": false,
+            "is_arrow": false,
+            "is_method": true,
+            "class_name": "MedicalDataValidator",
+            "language": "javascript"
+          },
+          "embedding": null
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+          "start_line": 37,
+          "end_line": 44,
+          "content": "sanitizeData(data) {\n        if (typeof data !== 'string') {\n            return '';\n        }\n        \n        // Remove potentially harmful characters\n        return data.replace(/[<>\"'&]/g, '');\n    }",
+          "function_name": "sanitizeData",
+          "chunk_type": {
+            "_value_": 1,
+            "_name_": "FUNCTION",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "parameters": [
+              "data"
+            ],
+            "is_async": false,
+            "is_arrow": false,
+            "is_method": true,
+            "class_name": "MedicalDataValidator",
+            "language": "javascript"
+          },
+          "embedding": null
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+          "start_line": 3,
+          "end_line": 36,
+          "content": "class MedicalDataValidator {\n    constructor() {\n        this.validationRules = {\n            patientId: /^\\d{5,10}$/,\n            bloodPressure: /^\\d{2,3}\\/\\d{2,3}$/,\n            heartRate: /^\\d{2,3}$/\n        };\n    }\n    \n    // Validate patient ID\n    validatePatientId(patientId) {\n        if (!patientId) {\n            throw new Error(\"Patient ID is required\");\n        }\n        \n        return this.validationRules.patientId.test(patientId);\n    }\n    \n    // Validate vital signs\n    validateVitalSigns(vitalSigns) {\n        const { bloodPressure, heartRate } = vitalSigns;\n        \n        if (!this.validationRules.bloodPressure.test(bloodPressure)) {\n            return { valid: false, error: \"Invalid blood pressure format\" };\n        }\n        \n        if (!this.validationRules.heartRate.test(heartRate)) {\n            return { valid: false, error: \"Invalid heart rate format\" };\n        }\n        \n        return { valid: true };\n    }\n    \n    // Sanitize medical data",
+          "function_name": "MedicalDataValidator_part_1",
+          "chunk_type": {
+            "_value_": 2,
+            "_name_": "CLASS",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "methods": [
+              "constructor",
+              "validatePatientId",
+              "validateVitalSigns",
+              "sanitizeData"
+            ],
+            "properties": [],
+            "extends": null,
+            "is_partial": true,
+            "part_of": "MedicalDataValidator",
+            "part_number": 1,
+            "total_parts": 2
+          },
+          "embedding": null
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+          "start_line": 37,
+          "end_line": 46,
+          "content": "    sanitizeData(data) {\n        if (typeof data !== 'string') {\n            return '';\n        }\n        \n        // Remove potentially harmful characters\n        return data.replace(/[<>\"'&]/g, '');\n    }\n}\n",
+          "function_name": "MedicalDataValidator_part_2",
+          "chunk_type": {
+            "_value_": 2,
+            "_name_": "CLASS",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "methods": [
+              "constructor",
+              "validatePatientId",
+              "validateVitalSigns",
+              "sanitizeData"
+            ],
+            "properties": [],
+            "extends": null,
+            "is_partial": true,
+            "part_of": "MedicalDataValidator",
+            "part_number": 2,
+            "total_parts": 2
+          },
+          "embedding": null
+        },
+        {
+          "file_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+          "start_line": 1,
+          "end_line": 48,
+          "content": "const vitalSigns",
+          "function_name": null,
+          "chunk_type": {
+            "_value_": 4,
+            "_name_": "GLOBAL",
+            "__objclass__": "{'_generate_next_value_': <function Enum._generate_next_value_ at 0x0000019BBF57BF40>, '__module__': 'medical_analyzer.models.enums', '__doc__': 'Types of code chunks for analysis.', '_member_names_': ['FUNCTION', 'CLASS', 'MODULE', 'GLOBAL', 'INTERFACE'], '_member_map_': {'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>}, '_member_type_': <class 'object'>, '_value2member_map_': {1: <ChunkType.FUNCTION: 1>, 2: <ChunkType.CLASS: 2>, 3: <ChunkType.MODULE: 3>, 4: <ChunkType.GLOBAL: 4>, 5: <ChunkType.INTERFACE: 5>}, 'FUNCTION': <ChunkType.FUNCTION: 1>, 'CLASS': <ChunkType.CLASS: 2>, 'MODULE': <ChunkType.MODULE: 3>, 'GLOBAL': <ChunkType.GLOBAL: 4>, 'INTERFACE': <ChunkType.INTERFACE: 5>, '__new__': <function Enum.__new__ at 0x0000019BBF57BEB0>}"
+          },
+          "metadata": {
+            "imports_count": 0,
+            "exports_count": 0,
+            "requires_count": 0,
+            "variables_count": 1,
+            "language": "javascript"
+          },
+          "embedding": null
+        }
+      ]
+    },
+    "feature_extraction": {
+      "features": [],
+      "total_features": 0,
+      "extraction_metadata": {
+        "total_chunks": 11,
+        "successful_chunks": 11,
+        "failed_chunks": 0,
+        "features_per_chunk": 0.0,
+        "llm_backend": "CachedLLMBackend"
+      }
+    },
+    "requirements_generation": {
+      "user_requirements": [],
+      "software_requirements": [],
+      "total_user_requirements": 0,
+      "total_software_requirements": 0,
+      "generation_metadata": {
+        "total_features_analyzed": 0,
+        "user_requirements_generated": 0,
+        "software_requirements_generated": 0,
+        "generation_method": "llm_based",
+        "llm_backend": "CachedLLMBackend",
+        "project_description_provided": true
+      }
+    },
+    "hazard_identification": {
+      "hazards": [],
+      "total_hazards": 0,
+      "identification_metadata": {
+        "total_requirements": 0,
+        "identification_method": "none"
+      }
+    },
+    "risk_analysis": {
+      "risk_register": {
+        "risk_items": [],
+        "metadata": {
+          "generation_method": "empty",
+          "total_risks": 0,
+          "generation_timestamp": "2025-09-03T09:38:58.833806",
+          "iso_14971_compliant": true
+        },
+        "generation_time": "2025-09-03T09:38:58.833806"
+      },
+      "total_risks": 0
+    },
+    "test_generation": {
+      "test_suite": {
+        "project_name": "cache_test_u0fnespp",
+        "test_skeletons": [
+          {
+            "test_name": "test_authenticate_user",
+            "test_content": "#include \"unity.h\"\n#include \"main.c\"\n\nvoid setUp(void) {\n    // Set up test fixtures, if any\n}\n\nvoid tearDown(void) {\n    // Clean up after test, if any\n}\n\nvoid test_authenticate_user(void) {\n    // Test for function: authenticate_user\n    // Return type: int\n    // Parameters: 2\n    \n    // Set up test parameters\n    char* username = \"test_string\"; // TODO: Set appropriate test value\n    char* password = \"test_string\"; // TODO: Set appropriate test value\n    \n    // Call the function under test\n    int result = authenticate_user(/* parameters */);\n    TEST_ASSERT_EQUAL(expected_value, result);\n    \n    // TODO: Add specific test assertions based on expected behavior\n    // Example assertions:\n    // TEST_ASSERT_EQUAL(expected_value, actual_value);\n    // TEST_ASSERT_NOT_NULL(pointer_value);\n    // TEST_ASSERT_TRUE(boolean_condition);\n}\n",
+            "framework": "unity",
+            "language": "c",
+            "target_function": "authenticate_user",
+            "file_path": "tests/unit/test_main.c",
+            "metadata": {
+              "return_type": "int",
+              "parameters": [
+                {
+                  "type": "char*",
+                  "name": "username"
+                },
+                {
+                  "type": "char*",
+                  "name": "password"
+                }
+              ],
+              "is_static": false,
+              "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+              "start_line": 6,
+              "end_line": 14
+            }
+          },
+          {
+            "test_name": "test_process_patient_data",
+            "test_content": "#include \"unity.h\"\n#include \"main.c\"\n\nvoid setUp(void) {\n    // Set up test fixtures, if any\n}\n\nvoid tearDown(void) {\n    // Clean up after test, if any\n}\n\nvoid test_process_patient_data(void) {\n    // Test for function: process_patient_data\n    // Return type: void\n    // Parameters: 2\n    \n    // Set up test parameters\n    int patient_id = 42; // TODO: Set appropriate test value\n    char* data = \"test_string\"; // TODO: Set appropriate test value\n    \n    // Call the function under test\n    process_patient_data(/* parameters */);\n    // TODO: Add assertions for side effects\n    \n    // TODO: Add specific test assertions based on expected behavior\n    // Example assertions:\n    // TEST_ASSERT_EQUAL(expected_value, actual_value);\n    // TEST_ASSERT_NOT_NULL(pointer_value);\n    // TEST_ASSERT_TRUE(boolean_condition);\n}\n",
+            "framework": "unity",
+            "language": "c",
+            "target_function": "process_patient_data",
+            "file_path": "tests/unit/test_main.c",
+            "metadata": {
+              "return_type": "void",
+              "parameters": [
+                {
+                  "type": "int",
+                  "name": "patient_id"
+                },
+                {
+                  "type": "char*",
+                  "name": "data"
+                }
+              ],
+              "is_static": false,
+              "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+              "start_line": 17,
+              "end_line": 26
+            }
+          },
+          {
+            "test_name": "test_main",
+            "test_content": "#include \"unity.h\"\n#include \"main.c\"\n\nvoid setUp(void) {\n    // Set up test fixtures, if any\n}\n\nvoid tearDown(void) {\n    // Clean up after test, if any\n}\n\nvoid test_main(void) {\n    // Test for function: main\n    // Return type: int\n    // Parameters: 0\n    \n    // No parameters\n    \n    // Call the function under test\n    int result = main(/* parameters */);\n    TEST_ASSERT_EQUAL(expected_value, result);\n    \n    // TODO: Add specific test assertions based on expected behavior\n    // Example assertions:\n    // TEST_ASSERT_EQUAL(expected_value, actual_value);\n    // TEST_ASSERT_NOT_NULL(pointer_value);\n    // TEST_ASSERT_TRUE(boolean_condition);\n}\n",
+            "framework": "unity",
+            "language": "c",
+            "target_function": "main",
+            "file_path": "tests/unit/test_main.c",
+            "metadata": {
+              "return_type": "int",
+              "parameters": [],
+              "is_static": false,
+              "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\main.c",
+              "start_line": 28,
+              "end_line": 40
+            }
+          },
+          {
+            "test_name": "test_constructor",
+            "test_content": "const { MedicalDataValidator } = require('../utils');\n\ndescribe('constructor', () => {\n    test('test constructor', () => {\n        // Test for function: constructor\n        // Parameters: []\n        // Async: False\n        // Method: True\n        \n        // No parameters\n        \n        // Call the function under test\n        const result = constructor();\n        \n        // TODO: Add specific test assertions based on expected behavior\n        // Example assertions:\n        // expect(result).toBe(expectedValue);\n        // expect(result).toEqual(expectedObject);\n        // expect(result).toBeTruthy();\n        // expect(result).toBeNull();\n        \n        // Placeholder assertion\n        expect(result).toBeDefined();\n    });\n    \n    test('constructor handles edge cases', () => {\n        // TODO: Add edge case tests\n        // Test with null/undefined inputs\n        // Test with boundary values\n        // Test error conditions\n    });\n});\n",
+            "framework": "jest",
+            "language": "javascript",
+            "target_function": "constructor",
+            "file_path": "tests/unit/utils.test.js",
+            "metadata": {
+              "parameters": [],
+              "is_async": false,
+              "is_arrow": false,
+              "is_method": true,
+              "class_name": "MedicalDataValidator",
+              "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 4,
+              "end_line": 10
+            }
+          },
+          {
+            "test_name": "test_validatePatientId",
+            "test_content": "const { MedicalDataValidator } = require('../utils');\n\ndescribe('validatePatientId', () => {\n    test('test validatePatientId', () => {\n        // Test for function: validatePatientId\n        // Parameters: ['patientId']\n        // Async: False\n        // Method: True\n        \n        // Set up test parameters\n        const patientId = 'test_value'; // TODO: Set appropriate test value\n        \n        // Call the function under test\n        const result = validatePatientId(patientId);\n        \n        // TODO: Add specific test assertions based on expected behavior\n        // Example assertions:\n        // expect(result).toBe(expectedValue);\n        // expect(result).toEqual(expectedObject);\n        // expect(result).toBeTruthy();\n        // expect(result).toBeNull();\n        \n        // Placeholder assertion\n        expect(result).toBeDefined();\n    });\n    \n    test('validatePatientId handles edge cases', () => {\n        // TODO: Add edge case tests\n        // Test with null/undefined inputs\n        // Test with boundary values\n        // Test error conditions\n    });\n});\n",
+            "framework": "jest",
+            "language": "javascript",
+            "target_function": "validatePatientId",
+            "file_path": "tests/unit/utils.test.js",
+            "metadata": {
+              "parameters": [
+                "patientId"
+              ],
+              "is_async": false,
+              "is_arrow": false,
+              "is_method": true,
+              "class_name": "MedicalDataValidator",
+              "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 13,
+              "end_line": 19
+            }
+          },
+          {
+            "test_name": "test_validateVitalSigns",
+            "test_content": "const { MedicalDataValidator } = require('../utils');\n\ndescribe('validateVitalSigns', () => {\n    test('test validateVitalSigns', () => {\n        // Test for function: validateVitalSigns\n        // Parameters: ['vitalSigns']\n        // Async: False\n        // Method: True\n        \n        // Set up test parameters\n        const vitalSigns = 'test_value'; // TODO: Set appropriate test value\n        \n        // Call the function under test\n        const result = validateVitalSigns(vitalSigns);\n        \n        // TODO: Add specific test assertions based on expected behavior\n        // Example assertions:\n        // expect(result).toBe(expectedValue);\n        // expect(result).toEqual(expectedObject);\n        // expect(result).toBeTruthy();\n        // expect(result).toBeNull();\n        \n        // Placeholder assertion\n        expect(result).toBeDefined();\n    });\n    \n    test('validateVitalSigns handles edge cases', () => {\n        // TODO: Add edge case tests\n        // Test with null/undefined inputs\n        // Test with boundary values\n        // Test error conditions\n    });\n});\n",
+            "framework": "jest",
+            "language": "javascript",
+            "target_function": "validateVitalSigns",
+            "file_path": "tests/unit/utils.test.js",
+            "metadata": {
+              "parameters": [
+                "vitalSigns"
+              ],
+              "is_async": false,
+              "is_arrow": false,
+              "is_method": true,
+              "class_name": "MedicalDataValidator",
+              "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 22,
+              "end_line": 34
+            }
+          },
+          {
+            "test_name": "test_sanitizeData",
+            "test_content": "const { MedicalDataValidator } = require('../utils');\n\ndescribe('sanitizeData', () => {\n    test('test sanitizeData', () => {\n        // Test for function: sanitizeData\n        // Parameters: ['data']\n        // Async: False\n        // Method: True\n        \n        // Set up test parameters\n        const data = 'test_value'; // TODO: Set appropriate test value\n        \n        // Call the function under test\n        const result = sanitizeData(data);\n        \n        // TODO: Add specific test assertions based on expected behavior\n        // Example assertions:\n        // expect(result).toBe(expectedValue);\n        // expect(result).toEqual(expectedObject);\n        // expect(result).toBeTruthy();\n        // expect(result).toBeNull();\n        \n        // Placeholder assertion\n        expect(result).toBeDefined();\n    });\n    \n    test('sanitizeData handles edge cases', () => {\n        // TODO: Add edge case tests\n        // Test with null/undefined inputs\n        // Test with boundary values\n        // Test error conditions\n    });\n});\n",
+            "framework": "jest",
+            "language": "javascript",
+            "target_function": "sanitizeData",
+            "file_path": "tests/unit/utils.test.js",
+            "metadata": {
+              "parameters": [
+                "data"
+              ],
+              "is_async": false,
+              "is_arrow": false,
+              "is_method": true,
+              "class_name": "MedicalDataValidator",
+              "source_file": "C:\\Users\\tongc\\AppData\\Local\\Temp\\cache_test_u0fnespp\\utils.js",
+              "start_line": 37,
+              "end_line": 44
+            }
+          }
+        ],
+        "framework_configs": {
+          "c": {
+            "framework": "unity",
+            "config_file": "unity_config.h",
+            "runner_template": "unity_runner.c.template",
+            "build_script": "build_unity_tests.sh",
+            "dependencies": [
+              "unity.c",
+              "unity.h"
+            ],
+            "compiler_flags": [
+              "-DUNITY_INCLUDE_CONFIG_H"
+            ],
+            "linker_flags": []
+          },
+          "javascript": {
+            "framework": "jest",
+            "config_file": "jest.config.js",
+            "package_dependencies": [
+              "jest",
+              "@types/jest"
+            ],
+            "test_patterns": [
+              "**/*.test.js",
+              "**/*.spec.js"
+            ],
+            "coverage_threshold": {
+              "global": {
+                "branches": 80,
+                "functions": 80,
+                "lines": 80,
+                "statements": 80
+              }
+            }
+          }
+        },
+        "integration_tests": [],
+        "created_at": "2025-09-03T09:38:58.833806"
+      },
+      "total_tests": 7,
+      "test_frameworks": [
+        "c",
+        "javascript"
+      ],
+      "enhanced_generation_available": false
+    },
+    "soup_detection": {
+      "detected_components": [],
+      "classified_components": [],
+      "total_components": 0,
+      "detection_summary": {
+        "package_managers": [],
+        "confidence_distribution": {
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        },
+        "classification_distribution": {
+          "Class A": 0,
+          "Class B": 0,
+          "Class C": 0,
+          "Unclassified": 0
+        }
+      }
+    },
+    "traceability_analysis": {
+      "traceability_matrix": {
+        "analysis_run_id": 656599,
+        "links": [],
+        "code_to_requirements": {},
+        "user_to_software_requirements": {},
+        "requirements_to_risks": {},
+        "metadata": {
+          "total_links": 0,
+          "code_feature_links": 0,
+          "feature_ur_links": 0,
+          "ur_sr_links": 0,
+          "sr_risk_links": 0,
+          "code_sr_links": 0
+        },
+        "created_at": "2025-09-03T09:38:58.835802"
+      },
+      "total_links": 0
+    },
+    "results_compilation": 

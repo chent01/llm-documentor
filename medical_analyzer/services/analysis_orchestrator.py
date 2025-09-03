@@ -26,6 +26,7 @@ from medical_analyzer.services.soup_detector import SOUPDetector
 from medical_analyzer.services.project_persistence import ProjectPersistenceService
 from medical_analyzer.database.schema import DatabaseManager
 from medical_analyzer.llm.backend import LLMBackend
+from medical_analyzer.llm.cached_backend import CachedLLMBackend
 from medical_analyzer.llm.api_response_validator import APIResponseValidator
 # Analysis result models are created dynamically as dictionaries
 
@@ -1312,7 +1313,13 @@ class AnalysisOrchestrator(QObject):
         """
         if not hasattr(llm_config, 'get_enabled_backends'):
             # Handle case where config is a simple dict (legacy)
-            return LLMBackend.create_from_config(llm_config)
+            backend = LLMBackend.create_from_config(llm_config)
+            if backend and backend.is_available():
+                # Wrap with caching layer
+                cached_backend = CachedLLMBackend(backend, cache_enabled=True)
+                self.logger.info("Wrapped legacy backend with caching layer")
+                return cached_backend
+            return backend
         
         # Get enabled backends sorted by priority
         enabled_backends = llm_config.get_enabled_backends()
@@ -1347,7 +1354,11 @@ class AnalysisOrchestrator(QObject):
                 # Test if backend is available
                 if backend.is_available():
                     self.logger.info(f"Successfully initialized {backend_config.name} backend")
-                    return backend
+                    
+                    # Wrap with caching layer
+                    cached_backend = CachedLLMBackend(backend, cache_enabled=True)
+                    self.logger.info(f"Wrapped {backend_config.name} backend with caching layer")
+                    return cached_backend
                 else:
                     self.logger.warning(f"{backend_config.name} backend not available")
                     
