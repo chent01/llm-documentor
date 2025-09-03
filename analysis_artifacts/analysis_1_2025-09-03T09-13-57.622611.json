@@ -1,0 +1,168 @@
+{
+  "project_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\demo_project_teuf94sw",
+  "description": "Demo project for caching test",
+  "summary": {
+    "project_path": "C:\\Users\\tongc\\AppData\\Local\\Temp\\demo_project_teuf94sw",
+    "files_analyzed": 2,
+    "analysis_date": "2025-09-03T09:13:57.594816",
+    "features_found": 0,
+    "requirements_generated": 0,
+    "risks_identified": 0,
+    "soup_components_detected": 0,
+    "confidence": 100,
+    "errors": [],
+    "warnings": [
+      "No features extracted - check if supported file types are present",
+      "No risks identified - manual risk assessment recommended"
+    ]
+  },
+  "requirements": {
+    "user_requirements": [],
+    "software_requirements": []
+  },
+  "risks": [],
+  "traceability": {
+    "matrix": {
+      "metadata": {
+        "total_links": 0,
+        "code_feature_links": 0,
+        "feature_ur_links": 0,
+        "ur_sr_links": 0,
+        "sr_risk_links": 0,
+        "code_sr_links": 0
+      },
+      "links": [],
+      "code_to_requirements": {},
+      "user_to_software_requirements": {},
+      "requirements_to_risks": {}
+    },
+    "matrix_rows": [],
+    "gaps": [],
+    "total_links": 0
+  },
+  "tests": {
+    "total_tests": 4,
+    "test_frameworks": [
+      "c",
+      "javascript"
+    ],
+    "test_suite": "CodeTestSuite(project_name='demo_project_teuf94sw', test_skeletons=[CodeTestSkeleton(test_name='test_add', test_content=\"const { Calculator } = require('../calculator');\\n\\ndescribe('add', () => {\\n    test('test add', () => {\\n        // Test for function: add\\n        // Parameters: ['a', 'b']\\n        // Async: False\\n        // Method: True\\n        \\n        // Set up test parameters\\n        const a = 'test_value'; // TODO: Set appropriate test value\\n        const b = 'test_value'; // TODO: Set appropriate test value\\n        \\n        // Call the function under test\\n        const result = add(a, b);\\n        \\n        // TODO: Add specific test assertions based on expected behavior\\n        // Example assertions:\\n        // expect(result).toBe(expectedValue);\\n        // expect(result).toEqual(expectedObject);\\n        // expect(result).toBeTruthy();\\n        // expect(result).toBeNull();\\n        \\n        // Placeholder assertion\\n        expect(result).toBeDefined();\\n    });\\n    \\n    test('add handles edge cases', () => {\\n        // TODO: Add edge case tests\\n        // Test with null/undefined inputs\\n        // Test with boundary values\\n        // Test error conditions\\n    });\\n});\\n\", framework='jest', language='javascript', target_function='add', file_path='tests/unit/calculator.test.js', metadata={'parameters': ['a', 'b'], 'is_async': False, 'is_arrow': False, 'is_method': True, 'class_name': 'Calculator', 'source_file': 'C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', 'start_line': 3, 'end_line': 5}), CodeTestSkeleton(test_name='test_subtract', test_content=\"const { Calculator } = require('../calculator');\\n\\ndescribe('subtract', () => {\\n    test('test subtract', () => {\\n        // Test for function: subtract\\n        // Parameters: ['a', 'b']\\n        // Async: False\\n        // Method: True\\n        \\n        // Set up test parameters\\n        const a = 'test_value'; // TODO: Set appropriate test value\\n        const b = 'test_value'; // TODO: Set appropriate test value\\n        \\n        // Call the function under test\\n        const result = subtract(a, b);\\n        \\n        // TODO: Add specific test assertions based on expected behavior\\n        // Example assertions:\\n        // expect(result).toBe(expectedValue);\\n        // expect(result).toEqual(expectedObject);\\n        // expect(result).toBeTruthy();\\n        // expect(result).toBeNull();\\n        \\n        // Placeholder assertion\\n        expect(result).toBeDefined();\\n    });\\n    \\n    test('subtract handles edge cases', () => {\\n        // TODO: Add edge case tests\\n        // Test with null/undefined inputs\\n        // Test with boundary values\\n        // Test error conditions\\n    });\\n});\\n\", framework='jest', language='javascript', target_function='subtract', file_path='tests/unit/calculator.test.js', metadata={'parameters': ['a', 'b'], 'is_async': False, 'is_arrow': False, 'is_method': True, 'class_name': 'Calculator', 'source_file': 'C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', 'start_line': 7, 'end_line': 9}), CodeTestSkeleton(test_name='test_add', test_content='#include \"unity.h\"\\n#include \"main.c\"\\n\\nvoid setUp(void) {\\n    // Set up test fixtures, if any\\n}\\n\\nvoid tearDown(void) {\\n    // Clean up after test, if any\\n}\\n\\nvoid test_add(void) {\\n    // Test for function: add\\n    // Return type: int\\n    // Parameters: 2\\n    \\n    // Set up test parameters\\n    int a = 42; // TODO: Set appropriate test value\\n    int b = 42; // TODO: Set appropriate test value\\n    \\n    // Call the function under test\\n    int result = add(/* parameters */);\\n    TEST_ASSERT_EQUAL(expected_value, result);\\n    \\n    // TODO: Add specific test assertions based on expected behavior\\n    // Example assertions:\\n    // TEST_ASSERT_EQUAL(expected_value, actual_value);\\n    // TEST_ASSERT_NOT_NULL(pointer_value);\\n    // TEST_ASSERT_TRUE(boolean_condition);\\n}\\n', framework='unity', language='c', target_function='add', file_path='tests/unit/test_main.c', metadata={'return_type': 'int', 'parameters': [{'type': 'int', 'name': 'a'}, {'type': 'int', 'name': 'b'}], 'is_static': False, 'source_file': 'C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', 'start_line': 4, 'end_line': 6}), CodeTestSkeleton(test_name='test_main', test_content='#include \"unity.h\"\\n#include \"main.c\"\\n\\nvoid setUp(void) {\\n    // Set up test fixtures, if any\\n}\\n\\nvoid tearDown(void) {\\n    // Clean up after test, if any\\n}\\n\\nvoid test_main(void) {\\n    // Test for function: main\\n    // Return type: int\\n    // Parameters: 0\\n    \\n    // No parameters\\n    \\n    // Call the function under test\\n    int result = main(/* parameters */);\\n    TEST_ASSERT_EQUAL(expected_value, result);\\n    \\n    // TODO: Add specific test assertions based on expected behavior\\n    // Example assertions:\\n    // TEST_ASSERT_EQUAL(expected_value, actual_value);\\n    // TEST_ASSERT_NOT_NULL(pointer_value);\\n    // TEST_ASSERT_TRUE(boolean_condition);\\n}\\n', framework='unity', language='c', target_function='main', file_path='tests/unit/test_main.c', metadata={'return_type': 'int', 'parameters': [], 'is_static': False, 'source_file': 'C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', 'start_line': 8, 'end_line': 12})], framework_configs={'c': {'framework': 'unity', 'config_file': 'unity_config.h', 'runner_template': 'unity_runner.c.template', 'build_script': 'build_unity_tests.sh', 'dependencies': ['unity.c', 'unity.h'], 'compiler_flags': ['-DUNITY_INCLUDE_CONFIG_H'], 'linker_flags': []}, 'javascript': {'framework': 'jest', 'config_file': 'jest.config.js', 'package_dependencies': ['jest', '@types/jest'], 'test_patterns': ['**/*.test.js', '**/*.spec.js'], 'coverage_threshold': {'global': {'branches': 80, 'functions': 80, 'lines': 80, 'statements': 80}}}}, integration_tests=[], created_at=datetime.datetime(2025, 9, 3, 9, 13, 57, 591819))",
+    "passed_tests": 0,
+    "failed_tests": 0,
+    "skipped_tests": 0
+  },
+  "soup": {
+    "detected_components": [],
+    "classified_components": [],
+    "total_components": 0,
+    "detection_summary": {
+      "package_managers": [],
+      "confidence_distribution": {
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      },
+      "classification_distribution": {
+        "Class A": 0,
+        "Class B": 0,
+        "Class C": 0,
+        "Unclassified": 0
+      }
+    },
+    "error": null
+  },
+  "analysis_stages": {
+    "project_ingestion": {
+      "project_structure": "ProjectStructure(root_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw', selected_files=['C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', 'C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c'], description='Demo project for caching test', metadata={'total_files_discovered': 2, 'supported_files_count': 2, 'successful_metadata_extraction': 2, 'failed_metadata_extraction': 0, 'scan_timestamp': '2025-09-03T09:13:57.584387'}, timestamp=datetime.datetime(2025, 9, 3, 9, 13, 57, 584387), file_metadata=[FileMetadata(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', file_size=251, last_modified=datetime.datetime(2025, 9, 3, 9, 13, 57, 279736), file_type='javascript', encoding='utf-8', line_count=14, function_count=0), FileMetadata(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', file_size=171, last_modified=datetime.datetime(2025, 9, 3, 9, 13, 57, 277729), file_type='c', encoding='utf-8', line_count=12, function_count=2)])",
+      "total_files": 2,
+      "file_types": {
+        ".js": 1,
+        ".c": 1
+      }
+    },
+    "code_parsing": {
+      "parsed_files": [
+        "ParsedFile(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', file_metadata=FileMetadata(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', file_size=251, last_modified=datetime.datetime(2025, 9, 3, 9, 13, 57, 279736), file_type='javascript', encoding='utf-8', line_count=14, function_count=2), code_structure=JSCodeStructure(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', functions=[FunctionSignature(name='add', parameters=['a', 'b'], start_line=3, end_line=5, is_async=False, is_arrow=False, is_method=True, class_name='Calculator'), FunctionSignature(name='subtract', parameters=['a', 'b'], start_line=7, end_line=9, is_async=False, is_arrow=False, is_method=True, class_name='Calculator')], classes=[ClassDefinition(name='Calculator', methods=[FunctionSignature(name='add', parameters=['a', 'b'], start_line=3, end_line=5, is_async=False, is_arrow=False, is_method=True, class_name='Calculator'), FunctionSignature(name='subtract', parameters=['a', 'b'], start_line=7, end_line=9, is_async=False, is_arrow=False, is_method=True, class_name='Calculator')], properties=[], extends=None, start_line=2, end_line=10)], imports=[], exports=[], variables=[{'type': 'const', 'name': 'calc', 'line': 12}], requires=[]), chunks=[CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', start_line=3, end_line=5, content='add(a, b) {\\n        return a + b;\\n    }', function_name='add', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'parameters': ['a', 'b'], 'is_async': False, 'is_arrow': False, 'is_method': True, 'class_name': 'Calculator', 'language': 'javascript'}, embedding=None), CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', start_line=7, end_line=9, content='subtract(a, b) {\\n        return a - b;\\n    }', function_name='subtract', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'parameters': ['a', 'b'], 'is_async': False, 'is_arrow': False, 'is_method': True, 'class_name': 'Calculator', 'language': 'javascript'}, embedding=None), CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', start_line=2, end_line=10, content='class Calculator {\\n    add(a, b) {\\n        return a + b;\\n    }\\n    \\n    subtract(a, b) {\\n        return a - b;\\n    }\\n}', function_name='Calculator', chunk_type=<ChunkType.CLASS: 2>, metadata={'methods': ['add', 'subtract'], 'properties': [], 'extends': None, 'language': 'javascript'}, embedding=None), CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', start_line=1, end_line=14, content='const calc', function_name=None, chunk_type=<ChunkType.GLOBAL: 4>, metadata={'imports_count': 0, 'exports_count': 0, 'requires_count': 0, 'variables_count': 1, 'language': 'javascript'}, embedding=None)])",
+        "ParsedFile(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', file_metadata=FileMetadata(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', file_size=171, last_modified=datetime.datetime(2025, 9, 3, 9, 13, 57, 277729), file_type='c', encoding='utf-8', line_count=12, function_count=2), code_structure=CCodeStructure(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', functions=[FunctionSignature(name='add', return_type='int', parameters=[{'type': 'int', 'name': 'a'}, {'type': 'int', 'name': 'b'}], start_line=4, end_line=6, is_static=False, is_inline=False), FunctionSignature(name='main', return_type='int', parameters=[], start_line=8, end_line=12, is_static=False, is_inline=False)], includes=['#include <stdio.h>'], defines=[], global_variables=[], structs=[], enums=[]), chunks=[CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', start_line=4, end_line=6, content='int add(int a, int b) {\\n    return a + b;\\n}', function_name='add', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'return_type': 'int', 'parameters': [{'type': 'int', 'name': 'a'}, {'type': 'int', 'name': 'b'}], 'is_static': False, 'is_inline': False, 'language': 'c'}, embedding=None), CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', start_line=8, end_line=12, content='int main() {\\n    int result = add(5, 3);\\n    printf(\"Result: %d\\\\n\", result);\\n    return 0;\\n}', function_name='main', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'return_type': 'int', 'parameters': [], 'is_static': False, 'is_inline': False, 'language': 'c'}, embedding=None), CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', start_line=1, end_line=12, content='#include <stdio.h>', function_name=None, chunk_type=<ChunkType.GLOBAL: 4>, metadata={'includes_count': 1, 'defines_count': 0, 'structs_count': 0, 'enums_count': 0, 'global_vars_count': 0, 'language': 'c'}, embedding=None)])"
+      ],
+      "total_chunks": 7,
+      "chunks": [
+        "CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', start_line=3, end_line=5, content='add(a, b) {\\n        return a + b;\\n    }', function_name='add', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'parameters': ['a', 'b'], 'is_async': False, 'is_arrow': False, 'is_method': True, 'class_name': 'Calculator', 'language': 'javascript'}, embedding=None)",
+        "CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', start_line=7, end_line=9, content='subtract(a, b) {\\n        return a - b;\\n    }', function_name='subtract', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'parameters': ['a', 'b'], 'is_async': False, 'is_arrow': False, 'is_method': True, 'class_name': 'Calculator', 'language': 'javascript'}, embedding=None)",
+        "CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', start_line=2, end_line=10, content='class Calculator {\\n    add(a, b) {\\n        return a + b;\\n    }\\n    \\n    subtract(a, b) {\\n        return a - b;\\n    }\\n}', function_name='Calculator', chunk_type=<ChunkType.CLASS: 2>, metadata={'methods': ['add', 'subtract'], 'properties': [], 'extends': None, 'language': 'javascript'}, embedding=None)",
+        "CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', start_line=1, end_line=14, content='const calc', function_name=None, chunk_type=<ChunkType.GLOBAL: 4>, metadata={'imports_count': 0, 'exports_count': 0, 'requires_count': 0, 'variables_count': 1, 'language': 'javascript'}, embedding=None)",
+        "CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', start_line=4, end_line=6, content='int add(int a, int b) {\\n    return a + b;\\n}', function_name='add', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'return_type': 'int', 'parameters': [{'type': 'int', 'name': 'a'}, {'type': 'int', 'name': 'b'}], 'is_static': False, 'is_inline': False, 'language': 'c'}, embedding=None)",
+        "CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', start_line=8, end_line=12, content='int main() {\\n    int result = add(5, 3);\\n    printf(\"Result: %d\\\\n\", result);\\n    return 0;\\n}', function_name='main', chunk_type=<ChunkType.FUNCTION: 1>, metadata={'return_type': 'int', 'parameters': [], 'is_static': False, 'is_inline': False, 'language': 'c'}, embedding=None)",
+        "CodeChunk(file_path='C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', start_line=1, end_line=12, content='#include <stdio.h>', function_name=None, chunk_type=<ChunkType.GLOBAL: 4>, metadata={'includes_count': 1, 'defines_count': 0, 'structs_count': 0, 'enums_count': 0, 'global_vars_count': 0, 'language': 'c'}, embedding=None)"
+      ]
+    },
+    "feature_extraction": {
+      "features": [],
+      "total_features": 0,
+      "extraction_metadata": {
+        "total_chunks": 7,
+        "successful_chunks": 7,
+        "failed_chunks": 0,
+        "features_per_chunk": 0.0,
+        "llm_backend": "FallbackLLMBackend"
+      }
+    },
+    "requirements_generation": {
+      "user_requirements": [],
+      "software_requirements": [],
+      "total_user_requirements": 0,
+      "total_software_requirements": 0,
+      "generation_metadata": {
+        "total_features_analyzed": 0,
+        "user_requirements_generated": 0,
+        "software_requirements_generated": 0,
+        "generation_method": "llm_based",
+        "llm_backend": "FallbackLLMBackend",
+        "project_description_provided": true
+      }
+    },
+    "hazard_identification": {
+      "hazards": [],
+      "total_hazards": 0,
+      "identification_metadata": {
+        "total_requirements": 0,
+        "identification_method": "none"
+      }
+    },
+    "risk_analysis": {
+      "risk_register": "<medical_analyzer.services.risk_register.RiskRegisterResult object at 0x000001FFE1B3F850>",
+      "total_risks": 0
+    },
+    "test_generation": {
+      "test_suite": "CodeTestSuite(project_name='demo_project_teuf94sw', test_skeletons=[CodeTestSkeleton(test_name='test_add', test_content=\"const { Calculator } = require('../calculator');\\n\\ndescribe('add', () => {\\n    test('test add', () => {\\n        // Test for function: add\\n        // Parameters: ['a', 'b']\\n        // Async: False\\n        // Method: True\\n        \\n        // Set up test parameters\\n        const a = 'test_value'; // TODO: Set appropriate test value\\n        const b = 'test_value'; // TODO: Set appropriate test value\\n        \\n        // Call the function under test\\n        const result = add(a, b);\\n        \\n        // TODO: Add specific test assertions based on expected behavior\\n        // Example assertions:\\n        // expect(result).toBe(expectedValue);\\n        // expect(result).toEqual(expectedObject);\\n        // expect(result).toBeTruthy();\\n        // expect(result).toBeNull();\\n        \\n        // Placeholder assertion\\n        expect(result).toBeDefined();\\n    });\\n    \\n    test('add handles edge cases', () => {\\n        // TODO: Add edge case tests\\n        // Test with null/undefined inputs\\n        // Test with boundary values\\n        // Test error conditions\\n    });\\n});\\n\", framework='jest', language='javascript', target_function='add', file_path='tests/unit/calculator.test.js', metadata={'parameters': ['a', 'b'], 'is_async': False, 'is_arrow': False, 'is_method': True, 'class_name': 'Calculator', 'source_file': 'C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', 'start_line': 3, 'end_line': 5}), CodeTestSkeleton(test_name='test_subtract', test_content=\"const { Calculator } = require('../calculator');\\n\\ndescribe('subtract', () => {\\n    test('test subtract', () => {\\n        // Test for function: subtract\\n        // Parameters: ['a', 'b']\\n        // Async: False\\n        // Method: True\\n        \\n        // Set up test parameters\\n        const a = 'test_value'; // TODO: Set appropriate test value\\n        const b = 'test_value'; // TODO: Set appropriate test value\\n        \\n        // Call the function under test\\n        const result = subtract(a, b);\\n        \\n        // TODO: Add specific test assertions based on expected behavior\\n        // Example assertions:\\n        // expect(result).toBe(expectedValue);\\n        // expect(result).toEqual(expectedObject);\\n        // expect(result).toBeTruthy();\\n        // expect(result).toBeNull();\\n        \\n        // Placeholder assertion\\n        expect(result).toBeDefined();\\n    });\\n    \\n    test('subtract handles edge cases', () => {\\n        // TODO: Add edge case tests\\n        // Test with null/undefined inputs\\n        // Test with boundary values\\n        // Test error conditions\\n    });\\n});\\n\", framework='jest', language='javascript', target_function='subtract', file_path='tests/unit/calculator.test.js', metadata={'parameters': ['a', 'b'], 'is_async': False, 'is_arrow': False, 'is_method': True, 'class_name': 'Calculator', 'source_file': 'C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\calculator.js', 'start_line': 7, 'end_line': 9}), CodeTestSkeleton(test_name='test_add', test_content='#include \"unity.h\"\\n#include \"main.c\"\\n\\nvoid setUp(void) {\\n    // Set up test fixtures, if any\\n}\\n\\nvoid tearDown(void) {\\n    // Clean up after test, if any\\n}\\n\\nvoid test_add(void) {\\n    // Test for function: add\\n    // Return type: int\\n    // Parameters: 2\\n    \\n    // Set up test parameters\\n    int a = 42; // TODO: Set appropriate test value\\n    int b = 42; // TODO: Set appropriate test value\\n    \\n    // Call the function under test\\n    int result = add(/* parameters */);\\n    TEST_ASSERT_EQUAL(expected_value, result);\\n    \\n    // TODO: Add specific test assertions based on expected behavior\\n    // Example assertions:\\n    // TEST_ASSERT_EQUAL(expected_value, actual_value);\\n    // TEST_ASSERT_NOT_NULL(pointer_value);\\n    // TEST_ASSERT_TRUE(boolean_condition);\\n}\\n', framework='unity', language='c', target_function='add', file_path='tests/unit/test_main.c', metadata={'return_type': 'int', 'parameters': [{'type': 'int', 'name': 'a'}, {'type': 'int', 'name': 'b'}], 'is_static': False, 'source_file': 'C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', 'start_line': 4, 'end_line': 6}), CodeTestSkeleton(test_name='test_main', test_content='#include \"unity.h\"\\n#include \"main.c\"\\n\\nvoid setUp(void) {\\n    // Set up test fixtures, if any\\n}\\n\\nvoid tearDown(void) {\\n    // Clean up after test, if any\\n}\\n\\nvoid test_main(void) {\\n    // Test for function: main\\n    // Return type: int\\n    // Parameters: 0\\n    \\n    // No parameters\\n    \\n    // Call the function under test\\n    int result = main(/* parameters */);\\n    TEST_ASSERT_EQUAL(expected_value, result);\\n    \\n    // TODO: Add specific test assertions based on expected behavior\\n    // Example assertions:\\n    // TEST_ASSERT_EQUAL(expected_value, actual_value);\\n    // TEST_ASSERT_NOT_NULL(pointer_value);\\n    // TEST_ASSERT_TRUE(boolean_condition);\\n}\\n', framework='unity', language='c', target_function='main', file_path='tests/unit/test_main.c', metadata={'return_type': 'int', 'parameters': [], 'is_static': False, 'source_file': 'C:\\\\Users\\\\tongc\\\\AppData\\\\Local\\\\Temp\\\\demo_project_teuf94sw\\\\main.c', 'start_line': 8, 'end_line': 12})], framework_configs={'c': {'framework': 'unity', 'config_file': 'unity_config.h', 'runner_template': 'unity_runner.c.template', 'build_script': 'build_unity_tests.sh', 'dependencies': ['unity.c', 'unity.h'], 'compiler_flags': ['-DUNITY_INCLUDE_CONFIG_H'], 'linker_flags': []}, 'javascript': {'framework': 'jest', 'config_file': 'jest.config.js', 'package_dependencies': ['jest', '@types/jest'], 'test_patterns': ['**/*.test.js', '**/*.spec.js'], 'coverage_threshold': {'global': {'branches': 80, 'functions': 80, 'lines': 80, 'statements': 80}}}}, integration_tests=[], created_at=datetime.datetime(2025, 9, 3, 9, 13, 57, 591819))",
+      "total_tests": 4,
+      "test_frameworks": [
+        "c",
+        "javascript"
+      ],
+      "enhanced_generation_available": false
+    },
+    "soup_detection": {
+      "detected_components": [],
+      "classified_components": [],
+      "total_components": 0,
+      "detection_summary": {
+        "package_managers": [],
+        "confidence_distribution": {
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        },
+        "classification_distribution": {
+          "Class A": 0,
+          "Class B": 0,
+          "Class C": 0,
+          "Unclassified": 0
+        }
+      }
+    },
+    "traceability_analysis": {
+      "traceability_matrix": "TraceabilityMatrix(analysis_run_id=532534, links=[], code_to_requirements={}, user_to_software_requirements={}, requirements_to_risks={}, metadata={'total_links': 0, 'code_feature_links': 0, 'feature_ur_links': 0, 'ur_sr_links': 0, 'sr_risk_links': 0, 'code_sr_links': 0}, created_at=datetime.datetime(2025, 9, 3, 9, 13, 57, 594816))",
+      "total_links": 0
+    },
+    "results_compilation": 

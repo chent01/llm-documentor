@@ -23,6 +23,7 @@ from medical_analyzer.services.soup_service import SOUPService
 from medical_analyzer.services.risk_register import RiskRegister
 from medical_analyzer.services.traceability_service import TraceabilityService
 from medical_analyzer.services.soup_detector import SOUPDetector
+from medical_analyzer.services.project_persistence import ProjectPersistenceService
 from medical_analyzer.database.schema import DatabaseManager
 from medical_analyzer.llm.backend import LLMBackend
 from medical_analyzer.llm.api_response_validator import APIResponseValidator
@@ -98,6 +99,7 @@ class AnalysisOrchestrator(QObject):
             self.traceability_service = TraceabilityService(self.db_manager)
             self.risk_register = RiskRegister()
             self.test_generator = CodeTestGenerator()
+            self.project_persistence = ProjectPersistenceService(self.db_manager.db_path)
             
             # Services that require LLM backend
             if self.llm_backend:
@@ -146,6 +148,29 @@ class AnalysisOrchestrator(QObject):
             return
         
         self.logger.info(f"Starting analysis for project: {project_path}")
+        
+        # Check for cached project results
+        cached_project = self.project_persistence.load_project_by_path(project_path)
+        if cached_project:
+            self.logger.info(f"Found cached project data for: {project_path}")
+            
+            # Check if we have recent analysis runs
+            project_id = self.db_manager.get_project_by_path(project_path)['id']
+            analysis_runs = self.project_persistence.get_project_analysis_runs(project_id)
+            
+            if analysis_runs:
+                latest_run = analysis_runs[0]  # Most recent run
+                if latest_run['status'] == 'completed':
+                    self.logger.info(f"Found completed analysis run from {latest_run['run_timestamp']}")
+                    
+                    # Load cached results
+                    cached_results = self._load_cached_analysis_results(project_id, latest_run['id'])
+                    if cached_results:
+                        self.logger.info("Using cached analysis results")
+                        self.analysis_started.emit(project_path)
+                        self.analysis_completed.emit(cached_results)
+                        return
+        
         self.is_running = True
         self.current_analysis = {
             'project_path': project_path,
@@ -331,6 +356,9 @@ class AnalysisOrchestrator(QObject):
                     final_results['summary']['pipeline_errors'] = pipeline_errors
                     final_results['summary']['stages_completed'] = stages_completed
                     final_results['summary']['total_stages'] = total_stages
+            
+            # Save analysis results to cache
+            self._save_analysis_results(final_results)
             
             self.analysis_completed.emit(final_results)
             
@@ -1365,4 +1393,121 @@ class AnalysisOrchestrator(QObject):
     def _get_current_timestamp(self) -> str:
         """Get current timestamp in ISO format."""
         from datetime import datetime
-        return datetime.now().isoformat()
+        return datetime.now().isoformat() 
+   
+    def _load_cached_analysis_results(self, project_id: int, analysis_run_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Load cached analysis results from the database.
+        
+        Args:
+            project_id: Database ID of the project
+            analysis_run_id: Database ID of the analysis run
+            
+        Returns:
+            Cached analysis results or None if not found
+        """
+        try:
+            # Get analysis run metadata
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT metadata, artifacts_path FROM analysis_runs 
+                    WHERE id = ? AND project_id = ? AND status = 'completed'
+                """, (analysis_run_id, project_id))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                
+                import json
+                metadata = json.loads(row['metadata'] or '{}')
+                artifacts_path = row['artifacts_path']
+                
+                # Check if artifacts file exists
+                if artifacts_path and Path(artifacts_path).exists():
+                    try:
+                        with open(artifacts_path, 'r', encoding='utf-8') as f:
+                            cached_results = json.load(f)
+                        
+                        self.logger.info(f"Successfully loaded cached results from {artifacts_path}")
+                        return cached_results
+                    except Exception as e:
+                        self.logger.warning(f"Failed to load artifacts from {artifacts_path}: {e}")
+                
+                # Fallback: try to reconstruct results from metadata
+                if 'final_results' in metadata:
+                    self.logger.info("Using cached results from analysis run metadata")
+                    return metadata['final_results']
+                
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"Error loading cached analysis results: {e}")
+            return None
+    
+    def _save_analysis_results(self, final_results: Dict[str, Any]):
+        """
+        Save analysis results to the database and artifacts file.
+        
+        Args:
+            final_results: Final analysis results to save
+        """
+        try:
+            project_path = self.current_analysis['project_path']
+            
+            # Save or update project
+            project_structure = self.current_analysis['results'].get('project_ingestion', {}).get('project_structure')
+            if project_structure:
+                project_id = self.project_persistence.save_project(project_structure)
+            else:
+                # Fallback: create minimal project record
+                project_id = self.db_manager.create_project(
+                    name=Path(project_path).name,
+                    root_path=project_path,
+                    description=self.current_analysis.get('description', '')
+                )
+            
+            # Create artifacts directory
+            artifacts_dir = Path("analysis_artifacts")
+            artifacts_dir.mkdir(exist_ok=True)
+            
+            # Save results to artifacts file
+            artifacts_filename = f"analysis_{project_id}_{self._get_current_timestamp().replace(':', '-')}.json"
+            artifacts_path = artifacts_dir / artifacts_filename
+            
+            with open(artifacts_path, 'w', encoding='utf-8') as f:
+                import json
+                
+                def json_serializer(obj):
+                    """Custom JSON serializer to handle complex objects."""
+                    if hasattr(obj, '__dict__'):
+                        return obj.__dict__
+                    elif hasattr(obj, 'isoformat'):  # datetime objects
+                        return obj.isoformat()
+                    else:
+                        return str(obj)
+                
+                json.dump(final_results, f, indent=2, default=json_serializer)
+            
+            # Create analysis run record
+            analysis_metadata = {
+                'final_results': final_results,
+                'analysis_stages': self.current_analysis['results'],
+                'project_description': self.current_analysis.get('description', ''),
+                'selected_files_count': len(self.current_analysis.get('selected_files', [])) if self.current_analysis.get('selected_files') else 0
+            }
+            
+            analysis_run_id = self.project_persistence.create_analysis_run(
+                project_id=project_id,
+                artifacts_path=str(artifacts_path),
+                metadata=analysis_metadata
+            )
+            
+            # Update analysis run status to completed
+            self.db_manager.update_analysis_run_status(analysis_run_id, 'completed')
+            
+            self.logger.info(f"Analysis results saved to database (run_id: {analysis_run_id}) and artifacts file: {artifacts_path}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to save analysis results: {e}")
+            # Don't raise exception - analysis completed successfully even if saving failed

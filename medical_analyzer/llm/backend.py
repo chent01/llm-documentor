@@ -88,24 +88,36 @@ class LLMBackend(ABC):
             config: Configuration dictionary containing backend settings
             
         Returns:
-            LLMBackend instance based on configuration
+            LLMBackend instance based on configuration (with caching if enabled)
             
         Raises:
             LLMError: If backend cannot be created from config
         """
         backend_type = config.get('backend', 'fallback')
         
+        # Create the base backend
         if backend_type == 'fallback' or backend_type == 'mock':
-            return FallbackLLMBackend(config)
+            backend = FallbackLLMBackend(config)
         elif backend_type == 'llama_cpp':
             from .llama_cpp_backend import LlamaCppBackend
-            return LlamaCppBackend(config)
+            backend = LlamaCppBackend(config)
         elif backend_type == 'local_server':
             from .local_server_backend import LocalServerBackend
-            return LocalServerBackend(config)
+            backend = LocalServerBackend(config)
         else:
             # Default to fallback backend for unknown types
-            return FallbackLLMBackend(config)
+            backend = FallbackLLMBackend(config)
+        
+        # Check if caching should be enabled
+        cache_config = config.get('cache', {})
+        cache_enabled = cache_config.get('enabled', True)  # Default to enabled
+        
+        if cache_enabled and backend_type != 'fallback':
+            # Wrap with caching layer (skip caching for fallback backend)
+            from .cached_backend import create_cached_backend
+            backend = create_cached_backend(backend, cache_config)
+        
+        return backend
     
     @abstractmethod
     def generate(
